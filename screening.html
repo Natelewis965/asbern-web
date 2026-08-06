@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Screening Room — Asbern</title>
+<meta name="description" content="Watch parties that stream films, shows and live TV from your own media library to one public link. How it works, what it costs in bandwidth, and what hardware it needs.">
+<meta name="color-scheme" content="dark light">
+<script>
+(function(){try{var p=localStorage.getItem('asbern.theme')||'system';
+var r=p==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):p;
+document.documentElement.setAttribute('data-theme',r);
+document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
+</script>
+<link rel="stylesheet" href="assets/asbern.css">
+</head>
+<body>
+
+<a class="as-btn as-btn--secondary as-skip" href="#main">Skip to content</a>
+
+<header class="as-nav">
+  <div class="as-nav__inner">
+    <a class="as-wordmark" href="index.html" aria-label="Asbern — home">
+      <svg class="as-mark" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+      </svg>
+      Asbern
+    </a>
+    <nav class="as-nav__links" aria-label="Primary">
+      <a class="as-nav__link" href="screening.html" aria-current="page">Screening Room</a>
+      <a class="as-nav__link" href="features.html">Modules</a>
+      <a class="as-nav__link" href="pricing.html">Pricing</a>
+    </nav>
+    <div class="as-nav__actions">
+      <button class="as-btn as-btn--ghost as-btn--icon" data-as-theme-toggle type="button" aria-label="Switch theme"></button>
+      <a class="as-btn as-btn--secondary as-btn--sm u-desktop-only" href="dashboard.html">Dashboard</a>
+      <a class="as-btn as-btn--primary as-btn--sm as-nav__cta" href="install.html">
+        <span data-as-icon="discord"></span> Add to Discord
+      </a>
+      <button class="as-btn as-btn--ghost as-btn--icon as-nav__burger" type="button"
+              data-as-drawer="#nav-drawer" aria-expanded="false" aria-controls="nav-drawer"
+              aria-label="Open menu" data-as-icon="menu"></button>
+    </div>
+  </div>
+</header>
+<div class="as-drawer" id="nav-drawer" data-as-drawer-panel hidden>
+  <a href="screening.html">Screening Room</a>
+  <a href="features.html">Modules</a>
+  <a href="pricing.html">Pricing</a>
+  <a href="dashboard.html">Dashboard</a>
+  <a class="as-btn as-btn--primary u-mt-2" href="install.html">Add to Discord</a>
+</div>
+
+<main id="main">
+
+<!-- ============================ HERO ============================ -->
+<section class="as-hero">
+  <div class="as-container">
+    <div class="as-hero__copy" style="max-width:64ch">
+      <span class="as-eyebrow as-eyebrow--frost">Screening Room</span>
+      <h1 class="as-display as-display--hero">Put the film on.</h1>
+      <p class="as-lead">
+        A Discord watch party that actually streams. Asbern reads the Plex server you already run, or a
+        live TV feed, transcodes it beside the files, and gives every viewer one public link. No Plex
+        account, no install, no screen-share turning a 4K master into forty megabits of mush.
+      </p>
+      <div class="as-row">
+        <a class="as-btn as-btn--primary as-btn--lg" href="install.html">
+          <span data-as-icon="discord"></span> Add to Discord
+        </a>
+        <a class="as-btn as-btn--secondary as-btn--lg" href="#hardware">What hardware do I need?</a>
+      </div>
+      <p class="u-text-xs as-muted">
+        The screening room is a paid module and it uses metered bandwidth — both of which this page
+        explains before you get anywhere near a card.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ THE PLAYER ============================ -->
+<section class="as-section as-section--tight">
+  <div class="as-container">
+    <div class="as-split as-split--aside-right">
+
+      <!-- player -->
+      <div class="as-player" data-as-reveal>
+        <div class="as-player__stage">
+          <div class="as-player__badges">
+            <span class="as-badge as-badge--live"><span class="as-dot"></span> <span id="pl-livelabel">Live</span></span>
+            <span class="as-badge as-badge--plain" id="pl-quality">1080p · NVENC</span>
+          </div>
+          <svg class="as-player__glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" aria-hidden="true" id="pl-glyph">
+            <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/>
+          </svg>
+          <div class="as-player__meta">
+            <div class="as-player__title" id="pl-title">The Northman</div>
+            <div class="as-player__sub" id="pl-sub">2022 · Film · started by Hallr</div>
+          </div>
+        </div>
+
+        <div class="as-player__controls">
+          <button class="as-btn as-btn--ghost as-btn--icon as-btn--sm" id="pl-play" type="button" aria-label="Pause"></button>
+          <button class="as-btn as-btn--ghost as-btn--icon as-btn--sm" id="pl-mute" type="button" aria-label="Mute"></button>
+          <span class="as-player__time" id="pl-elapsed">52:22</span>
+          <input class="as-range as-player__scrub" id="pl-scrub" type="range" min="0" max="1000" value="382"
+                 aria-label="Seek within the stream">
+          <span class="as-player__time" id="pl-total">2:17:00</span>
+        </div>
+
+        <div class="as-panel__footer as-row as-row--between">
+          <div class="as-row" style="gap:.6rem">
+            <div class="as-avatar-stack" id="pl-viewers"></div>
+            <span class="u-text-xs as-muted"><strong id="pl-count">6</strong> on the stream</span>
+          </div>
+          <button class="as-btn as-btn--primary as-btn--sm" type="button" data-as-modal-open="#link-modal">
+            <span data-as-icon="link"></span> Get my link
+          </button>
+        </div>
+      </div>
+
+      <!-- source picker -->
+      <div class="as-panel" data-as-reveal="90">
+        <div class="as-panel__header">
+          <span class="as-panel__title">Pick something</span>
+          <span class="u-text-xs as-muted">Screen 1 of 2</span>
+        </div>
+        <div style="padding:0 var(--as-space-5)">
+          <div class="as-tabs" role="tablist" aria-label="Source" data-as-tabs>
+            <button class="as-tab" role="tab" id="tab-lib" aria-controls="panel-lib" aria-selected="true" type="button">Library</button>
+            <button class="as-tab" role="tab" id="tab-tv" aria-controls="panel-tv" aria-selected="false" type="button">Live TV</button>
+          </div>
+        </div>
+        <div class="as-panel__body">
+          <div class="as-tabpanel" role="tabpanel" id="panel-lib" aria-labelledby="tab-lib" tabindex="0" style="padding-top:0">
+            <div class="as-stack--2" id="lib-list" style="display:flex;flex-direction:column;gap:.5rem"></div>
+          </div>
+          <div class="as-tabpanel" role="tabpanel" id="panel-tv" aria-labelledby="tab-tv" tabindex="0" hidden style="padding-top:0">
+            <div class="as-stack--2" id="tv-list" style="display:flex;flex-direction:column;gap:.5rem"></div>
+          </div>
+        </div>
+        <div class="as-panel__footer u-text-xs as-muted" id="queue-note"></div>
+      </div>
+
+    </div>
+
+    <p class="u-text-xs as-muted u-mt-6">
+      This player is a mock-up on this marketing page — nothing is streaming. Everything it shows
+      (titles, channels, viewers) comes from <code>assets/mock-data.js</code>. The controls work:
+      play, mute, seek and picking a title all change what it says.
+    </p>
+  </div>
+</section>
+
+<!-- ============================ ONE LINK ============================ -->
+<section class="as-section as-section--elev" id="onelink">
+  <div class="as-container">
+    <div class="as-split as-split--aside-right">
+      <div class="as-stack--6" style="display:flex;flex-direction:column;gap:1.5rem">
+        <div class="as-section__head" style="margin-bottom:0">
+          <span class="as-eyebrow">One link, no account</span>
+          <h2 class="as-display as-display--xl">Three taps from “want to watch?” to watching.</h2>
+          <p class="as-lead">
+            The friction in every other approach is the account. Plex wants a login. A screen-share wants
+            everyone in one voice channel on a desktop client. Asbern hands out a link.
+          </p>
+        </div>
+        <ol class="as-steps">
+          <li class="as-step">
+            <div>
+              <div class="as-step__title">Someone starts a screening</div>
+              <div class="as-step__body">
+                From the menu: pick a film, an episode or a channel. You have to be in a voice channel to
+                start one, and that voice channel's screen is the one you are steering — so two groups can
+                never fight over the same picture.
+              </div>
+            </div>
+          </li>
+          <li class="as-step">
+            <div>
+              <div class="as-step__title">Everyone taps <em>Watch</em></div>
+              <div class="as-step__body">
+                Each tap mints a single-use link for that person. It opens in a browser. There is no app,
+                no login, and no “can someone invite me”.
+              </div>
+            </div>
+          </li>
+          <li class="as-step">
+            <div>
+              <div class="as-step__title">The room knows who arrived</div>
+              <div class="as-step__body">
+                Because the link is per-person and the stream is authorised on every segment, presence is
+                measured at the player. That drives watch-time payouts, resume points, the end-of-film
+                roster, the auto-advance to the next episode, and the fifteen-minute empty-room shutdown.
+              </div>
+            </div>
+          </li>
+        </ol>
+        <div class="as-row">
+          <button class="as-btn as-btn--secondary" type="button" data-as-modal-open="#link-modal">
+            <span data-as-icon="ticket"></span> See what the link looks like
+          </button>
+        </div>
+      </div>
+
+      <div class="as-stack--6" style="display:flex;flex-direction:column;gap:1.5rem">
+        <div class="as-card as-stack">
+          <span class="as-plate as-plate--frost" data-as-icon="grid"></span>
+          <h3>Two screens, independently</h3>
+          <p class="u-text-sm">
+            A second screen is an admin toggle with its own engine and its own public link, so two Discord
+            categories can watch different things at the same time. Each screen plays one thing at a
+            time — there is deliberately no queue. The controls on a now-playing card carry their own
+            screen's id, so Stop can never hit the wrong picture.
+          </p>
+        </div>
+        <div class="as-card as-stack">
+          <span class="as-plate as-plate--frost" data-as-icon="clock"></span>
+          <h3>It cleans up after itself</h3>
+          <p class="u-text-sm">
+            A series advances episode to episode while anyone is still watching. A film ends where it
+            ends. Either way the screen shuts off after fifteen minutes with nobody on it, and the channel
+            keeps exactly one live now-playing card rather than a graveyard of dead embeds.
+          </p>
+        </div>
+        <div class="as-card as-stack">
+          <span class="as-plate as-plate--frost" data-as-icon="spark"></span>
+          <h3>“Tell me when it lands”</h3>
+          <p class="u-text-sm">
+            Ask for something that is not in the library and Asbern remembers — across restarts. When it
+            arrives, everyone who asked gets pinged with a one-tap start button. For a series that fires
+            the moment S1E1 exists, not when the whole run is there.
+          </p>
+          <p class="u-text-xs as-muted">
+            Asbern reads your library. It is never wired to acquisition — no Radarr, no Sonarr, no torrent
+            client, by design.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ HARDWARE ============================ -->
+<section class="as-section" id="hardware">
+  <div class="as-container">
+    <div class="as-section__head">
+      <span class="as-eyebrow">The unglamorous part</span>
+      <h2 class="as-display as-display--xl">What this actually needs from your machine.</h2>
+      <p class="as-lead">
+        The transcode has to sit next to your files, so it runs on your hardware. That means the encoder
+        question is real, and we would rather answer it here than in a support ticket at nine on a Friday.
+      </p>
+    </div>
+
+    <div class="as-note as-note--warn u-mb-6">
+      <span data-as-icon="alert"></span>
+      <div>
+        <strong>Intel QuickSync does not work inside Docker on Windows or WSL2.</strong> This is measured,
+        not assumed — it is what cancelled an entire hardware migration plan on our own deployment. On
+        Windows you want NVENC. On Linux, QuickSync is fine with device passthrough.
+      </div>
+    </div>
+
+    <div class="as-table-wrap">
+      <table class="as-table">
+        <caption class="as-visually-hidden">Hardware encoder support by host operating system</caption>
+        <thead>
+          <tr><th scope="col">Host</th><th scope="col">Encoder</th><th scope="col">Works</th><th scope="col">Notes</th></tr>
+        </thead>
+        <tbody id="encoder-rows"></tbody>
+      </table>
+    </div>
+
+    <h3 class="u-mt-12 u-mb-4">Minimum specs</h3>
+    <div class="as-table-wrap">
+      <table class="as-table as-table--compact">
+        <caption class="as-visually-hidden">Minimum hardware by intended use</caption>
+        <thead>
+          <tr>
+            <th scope="col">Use</th><th scope="col">CPU</th><th scope="col">RAM</th>
+            <th scope="col">Upload</th><th scope="col">Notes</th>
+          </tr>
+        </thead>
+        <tbody id="spec-rows"></tbody>
+      </table>
+    </div>
+    <p class="u-text-xs as-muted u-mt-4">
+      The installer detects your encoder at setup and states which one it is going to use — before your
+      first watch party, not during it.
+    </p>
+  </div>
+</section>
+
+<!-- ============================ BANDWIDTH / RELAY ============================ -->
+<section class="as-section as-section--elev" id="bridge">
+  <div class="as-container">
+    <div class="as-section__head">
+      <span class="as-eyebrow">Why the relay exists</span>
+      <h2 class="as-display as-display--xl">Your upload speed is the real ceiling.</h2>
+      <p class="as-lead">
+        A stream is cheap to make and expensive to hand out. Twenty viewers at five megabits is a hundred
+        megabits of upstream, and almost no residential line has that. This is the single technical reason
+        the hosted relay is the piece we charge for.
+      </p>
+    </div>
+
+    <div class="as-grid as-grid--2">
+      <div class="as-card as-stack as-card--quiet" style="border:1px dashed var(--as-border-strong)">
+        <span class="as-badge as-badge--danger">Without a relay</span>
+        <div class="as-stat__value" id="bw-direct">100 Mbps</div>
+        <p class="u-text-sm">
+          Your machine sends the whole stream to every single viewer. Twenty people at 5 Mbps each. Your
+          upstream is saturated, everything else on your network suffers, and the twenty-first person
+          cannot join.
+        </p>
+        <div class="as-progress as-progress--lg" aria-hidden="true"><div class="as-progress__bar" style="width:100%;background:var(--as-danger)"></div></div>
+      </div>
+
+      <div class="as-card as-stack as-card--accent">
+        <span class="as-badge as-badge--success">With the relay</span>
+        <div class="as-stat__value" id="bw-relay">8 Mbps</div>
+        <p class="u-text-sm">
+          Your machine pushes <strong>one</strong> stream up. We fan it out. Twenty viewers, two hundred
+          viewers — your upstream does not change, and neither does your Friday night.
+        </p>
+        <div class="as-progress as-progress--lg" aria-hidden="true"><div class="as-progress__bar" id="bw-bar" style="width:8%"></div></div>
+      </div>
+    </div>
+
+    <div class="as-note as-note--frost u-mt-6">
+      <span data-as-icon="info"></span>
+      <div id="egress-note"></div>
+    </div>
+
+    <div class="as-split as-split--aside-right u-mt-12">
+      <div>
+        <h3 class="u-mb-4">The bridge, in one paragraph</h3>
+        <p class="u-text-sm">
+          A cloud service cannot reach into a home network — NAT, dynamic addresses, no port forwarding,
+          and asking people to open ports is both a support burden and a genuine security liability. So
+          the agent on your machine <strong>dials out</strong> and holds the connection open, the same way
+          a CI runner does. It declares what it can do; the platform may never ask for more than it
+          declared. If it vanishes mid-operation, the answer your members see is <em>“offline”</em> —
+          a stated condition, never a guess that something is fine.
+        </p>
+        <p class="u-text-sm u-mt-4">
+          <span class="as-badge as-badge--warn">Planned</span>
+          The agent pattern is in production today, but it currently dials <em>inward</em> across a LAN.
+          The outbound bridge and the signed installer are on the roadmap and are not shipped.
+          <a href="features.html#roadmap">See what is and is not built.</a>
+        </p>
+      </div>
+      <div>
+        <pre class="as-code"><b>YOUR HARDWARE</b>                    <b>ASBERN CLOUD</b>
+┌──────────────────────┐          ┌────────────────────┐
+│ bridge agent         │ outbound │ platform           │
+│  · pairs with a code │══ WSS ══▶│  · routes by guild │
+│  · declares what it  │          │  · never dials in  │
+│    can do            │◀═ cmds ══│                    │
+└──┬────────┬──────────┘          └────────────────────┘
+   │        │
+┌──▼───┐ ┌──▼────┐
+│ Plex │ │ game  │
+│engine│ │servers│
+└──────┘ └───────┘</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ FAQ ============================ -->
+<section class="as-section">
+  <div class="as-container as-container--narrow">
+    <div class="as-section__head">
+      <span class="as-eyebrow">Questions people actually ask</span>
+      <h2 class="as-display as-display--lg">Screening room FAQ</h2>
+    </div>
+    <div class="as-accordion">
+      <details class="as-acc" open>
+        <summary class="as-acc__summary">Does Asbern host or provide any content?</summary>
+        <div class="as-acc__body">
+          No. Asbern reads a Plex server that you run, and an IPTV source that you supply. It has no
+          library of its own, no acquisition tooling, and no integration with any downloader — that
+          separation is deliberate and it is enforced in the code, not in a policy.
+        </div>
+      </details>
+      <details class="as-acc">
+        <summary class="as-acc__summary">Do viewers need Plex, or an account of any kind?</summary>
+        <div class="as-acc__body">
+          No. A viewer needs a browser and the link the bot gave them. That is the whole point — the
+          people you most want at a watch party are the ones who will not install anything.
+        </div>
+      </details>
+      <details class="as-acc">
+        <summary class="as-acc__summary">How many people can watch at once?</summary>
+        <div class="as-acc__body">
+          Through the relay, more than a Discord server realistically needs; the limit is your plan's
+          included viewer-hours and then metered overage. Without the relay, your upload speed divided by
+          about five megabits.
+        </div>
+      </details>
+      <details class="as-acc">
+        <summary class="as-acc__summary">Is it synchronised, or does everyone drift?</summary>
+        <div class="as-acc__body">
+          It is a broadcast, not a set of independent playbacks — everyone is receiving the same live
+          stream, so there is nothing to drift out of sync. The trade-off is the other way around: nobody
+          can pause it for themselves, because there is only one picture.
+        </div>
+      </details>
+      <details class="as-acc">
+        <summary class="as-acc__summary">What happens if a live channel dies mid-stream?</summary>
+        <div class="as-acc__body">
+          It is caught two ways — it never comes up, or it drops partway — and both do the same three
+          things: log it, tell the room it has been flagged, and sweep the stale card. Repeat offenders
+          accumulate a count that moderators can see.
+        </div>
+      </details>
+      <details class="as-acc">
+        <summary class="as-acc__summary">Can I run this without a GPU?</summary>
+        <div class="as-acc__body">
+          Yes, and it will work — software transcode costs roughly four to six CPU cores per concurrent
+          stream. On a machine that is also hosting game servers, that is the difference between a quiet
+          evening and a loud one.
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="as-section as-section--edge">
+  <div class="as-container as-container--narrow u-text-center">
+    <h2 class="as-display as-display--xl">The cinema is the reason to switch.</h2>
+    <p class="as-lead u-mt-4" style="margin-inline:auto">
+      Everything else Asbern does, something else on the market also does — usually less carefully. This
+      one thing has no competitor.
+    </p>
+    <div class="as-row as-row--center u-mt-8">
+      <a class="as-btn as-btn--primary as-btn--lg" href="install.html">
+        <span data-as-icon="discord"></span> Add to Discord
+      </a>
+      <a class="as-btn as-btn--secondary as-btn--lg" href="pricing.html">See pricing</a>
+      <a class="as-btn as-btn--ghost as-btn--lg" href="features.html">All modules</a>
+    </div>
+    <p class="u-text-xs as-muted u-mt-4">Pricing is per Discord server, on every plan.</p>
+  </div>
+</section>
+
+</main>
+
+<!-- ============================ LINK MODAL ============================ -->
+<dialog class="as-modal" id="link-modal" aria-labelledby="link-modal-title">
+  <div class="as-modal__header">
+    <span class="as-modal__title" id="link-modal-title">Your link to this screening</span>
+    <button class="as-btn as-btn--ghost as-btn--icon as-btn--sm" type="button" data-as-modal-close
+            aria-label="Close" data-as-icon="x"></button>
+  </div>
+  <div class="as-modal__body as-stack">
+    <p class="u-text-sm">
+      Single use, tied to you, and it expires. Open it in any browser — there is nothing to install and
+      nothing to sign into.
+    </p>
+    <div class="as-field">
+      <label class="as-label" for="watch-link">Watch link</label>
+      <input class="as-input u-mono" id="watch-link" readonly
+             value="https://screen.asbern.app/w/9c1f4ae2-3d77-4b6a-a1e0">
+      <span class="as-hint">Example only — this address does not exist.</span>
+    </div>
+    <div class="as-note as-note--frost u-text-xs">
+      <span data-as-icon="info"></span>
+      <span>Because the link is yours, the bot can tell that you actually showed up. That is what pays
+        your watch time and what puts you on the end-of-film roster.</span>
+    </div>
+  </div>
+  <div class="as-modal__footer">
+    <button class="as-btn as-btn--ghost" type="button" data-as-modal-close>Close</button>
+    <button class="as-btn as-btn--primary" type="button"
+            data-as-copy="https://screen.asbern.app/w/9c1f4ae2-3d77-4b6a-a1e0">
+      <span data-as-icon="link"></span> Copy link
+    </button>
+  </div>
+</dialog>
+
+<footer class="as-footer">
+  <div class="as-container">
+    <div class="as-footer__grid">
+      <div class="as-footer__brand" style="display:flex;flex-direction:column;gap:.75rem">
+        <a class="as-wordmark" href="index.html">
+          <svg class="as-mark" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+          </svg>
+          Asbern
+        </a>
+        <p class="u-text-xs as-muted">
+          Old Norse <em>Ásbjǫrn</em> — “god-bear”. The mark is a bind-rune: one stave, Ansuz on the left,
+          Bjarkan on the right.
+        </p>
+      </div>
+      <div>
+        <div class="as-footer__title">Product</div>
+        <div class="as-footer__links">
+          <a href="screening.html">Screening Room</a>
+          <a href="features.html">All modules</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="features.html#deployment">Self-hosting</a>
+          <a href="install.html">Add to Discord</a>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Developers</div>
+        <div class="as-footer__links">
+          <a href="dashboard.html">Dashboard preview</a>
+          <a href="bridge.html">Bridge agent</a>
+          <span class="as-footer__soon">Documentation <span class="as-badge as-badge--plain">Soon</span></span>
+          <span class="as-footer__soon">Status <span class="as-badge as-badge--plain">Soon</span></span>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Company</div>
+        <div class="as-footer__links">
+          <span class="as-footer__soon">Support server <span class="as-badge as-badge--plain">Soon</span></span>
+          <span class="as-footer__soon">Contact <span class="as-badge as-badge--plain">Soon</span></span>
+          <a href="features.html#roadmap">Roadmap</a>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Legal</div>
+        <div class="as-footer__links">
+          <a href="privacy.html">Privacy policy <span class="as-badge as-badge--warn">Draft</span></a>
+          <a href="terms.html">Terms of service <span class="as-badge as-badge--warn">Draft</span></a>
+          <a href="privacy.html#retention">Data &amp; retention</a>
+        </div>
+      </div>
+    </div>
+    <div class="as-footer__bottom">
+      <span>© <span data-as-year></span> Asbern. Not affiliated with Discord Inc.</span>
+      <span>Documentation, status and legal pages are not published yet — this site is a preview.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/mock-data.js"></script>
+<script src="assets/asbern.js"></script>
+<script>
+(function () {
+  var A = Asbern, S = AsbernMock.screening;
+
+  /* ------------------------------------------------------------------ */
+  /*  PLAYER — mock state machine. Nothing streams; the UI is real.       */
+  /* ------------------------------------------------------------------ */
+
+  var state = {
+    title: S.nowPlaying.title,
+    sub: S.nowPlaying.year + ' · Film · started by ' + S.nowPlaying.startedBy,
+    live: false,
+    playing: true,
+    muted: false,
+    elapsed: S.nowPlaying.elapsedSec,
+    total: S.nowPlaying.runtimeMin * 60
+  };
+
+  var $ = A.$;
+  var elTitle = $('#pl-title'), elSub = $('#pl-sub'), elElapsed = $('#pl-elapsed'),
+      elTotal = $('#pl-total'), elScrub = $('#pl-scrub'), elPlay = $('#pl-play'),
+      elMute = $('#pl-mute'), elLive = $('#pl-livelabel'), elQuality = $('#pl-quality');
+
+  function render() {
+    elTitle.textContent = state.title;
+    elSub.textContent = state.sub;
+    elElapsed.textContent = A.clock(state.elapsed);
+    elTotal.textContent = state.live ? 'LIVE' : A.clock(state.total);
+    elScrub.value = String(Math.round((state.elapsed / state.total) * 1000));
+    elScrub.disabled = state.live;
+    elPlay.innerHTML = A.icon(state.playing ? 'pause' : 'play');
+    elPlay.setAttribute('aria-label', state.playing ? 'Pause' : 'Play');
+    elMute.innerHTML = A.icon(state.muted ? 'mute' : 'volume');
+    elMute.setAttribute('aria-label', state.muted ? 'Unmute' : 'Mute');
+    elLive.textContent = state.live ? 'Live TV' : (state.playing ? 'On screen now' : 'Paused');
+    elQuality.textContent = state.live ? '1080p · re-encoded' : S.nowPlaying.quality;
+  }
+
+  elPlay.addEventListener('click', function () {
+    state.playing = !state.playing;
+    render();
+    A.toast(state.playing ? 'Resumed for everyone on the stream' : 'Paused for everyone on the stream',
+            { variant: state.playing ? 'success' : 'accent' });
+  });
+  elMute.addEventListener('click', function () { state.muted = !state.muted; render(); });
+  elScrub.addEventListener('input', function () {
+    state.elapsed = Math.round((elScrub.value / 1000) * state.total);
+    elElapsed.textContent = A.clock(state.elapsed);
+  });
+
+  /* elapsed creeps forward while "playing" */
+  setInterval(function () {
+    if (!state.playing) return;
+    state.elapsed = state.live ? state.elapsed + 1 : Math.min(state.total, state.elapsed + 1);
+    elElapsed.textContent = A.clock(state.elapsed);
+    if (!state.live) elScrub.value = String(Math.round((state.elapsed / state.total) * 1000));
+  }, 1000);
+
+  /* ---- source lists ---- */
+  function row(html, onClick) {
+    var b = A.el('button', { type: 'button', class: 'as-btn as-btn--ghost', style: 'justify-content:flex-start;text-align:left;height:auto;padding:.6rem .7rem;width:100%' }, html);
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  var libList = $('#lib-list');
+  S.library.forEach(function (item) {
+    libList.appendChild(row(
+      '<span class="as-plate" style="width:2rem;height:2rem">' + A.icon(item.kind === 'tv' ? 'tv' : 'film') + '</span>' +
+      '<span style="display:flex;flex-direction:column;gap:.1rem;min-width:0">' +
+        '<span style="font-weight:650;color:var(--as-text-1)">' + A.escapeHtml(item.title) + '</span>' +
+        '<span class="u-text-xs as-muted" style="font-weight:400">' + item.year + ' · ' + A.escapeHtml(item.runtime) + '</span>' +
+      '</span>',
+      function () {
+        state.title = item.title;
+        state.sub = item.year + ' · ' + (item.kind === 'tv' ? 'Series' : 'Film') + ' · started by you';
+        state.live = false;
+        state.playing = true;
+        state.elapsed = 0;
+        state.total = item.kind === 'tv' ? 45 * 60 : 118 * 60;
+        render();
+        A.toast('Now showing “' + item.title + '” on screen 1', { variant: 'success' });
+      }
+    ));
+  });
+
+  var tvList = $('#tv-list');
+  S.channels.forEach(function (ch) {
+    tvList.appendChild(row(
+      '<span class="as-plate" style="width:2rem;height:2rem">' + A.icon('tv') + '</span>' +
+      '<span style="display:flex;flex-direction:column;gap:.1rem;min-width:0">' +
+        '<span style="font-weight:650;color:var(--as-text-1)">' + A.escapeHtml(ch.name) + '</span>' +
+        '<span class="u-text-xs as-muted" style="font-weight:400">' + A.escapeHtml(ch.now) + ' · until ' + ch.ends + '</span>' +
+      '</span>',
+      function () {
+        state.title = ch.now;
+        state.sub = ch.name + ' · ' + ch.group + ' · until ' + ch.ends;
+        state.live = true;
+        state.playing = true;
+        state.elapsed = 1_284;
+        state.total = 7_200;
+        render();
+        A.toast('Switched screen 1 to ' + ch.name, { variant: 'success' });
+      }
+    ));
+  });
+
+  $('#queue-note').textContent = S.queueNote;
+
+  /* ---- viewers ---- */
+  $('#pl-viewers').innerHTML = S.viewers.slice(0, 5).map(function (v) {
+    return '<span class="as-avatar as-avatar--sm' + (v.host ? ' as-avatar--accent' : '') +
+      '" title="' + A.escapeHtml(v.name) + ' · ' + v.joinedMin + ' min">' + A.escapeHtml(v.initials) + '</span>';
+  }).join('');
+  $('#pl-count').textContent = String(S.viewers.length);
+
+  /* ------------------------------------------------------------------ */
+  /*  HARDWARE + SPEC TABLES                                             */
+  /* ------------------------------------------------------------------ */
+
+  var verdictBadge = {
+    ok:   '<span class="as-badge as-badge--success">Yes</span>',
+    no:   '<span class="as-badge as-badge--danger">No</span>',
+    warn: '<span class="as-badge as-badge--warn">Slow</span>'
+  };
+  $('#encoder-rows').innerHTML = S.encoders.map(function (e) {
+    return '<tr><th scope="row" style="color:var(--as-text-1);font-weight:600">' + A.escapeHtml(e.host) + '</th>' +
+      '<td>' + A.escapeHtml(e.encoder) + '</td>' +
+      '<td>' + verdictBadge[e.verdict] + '</td>' +
+      '<td class="u-text-sm">' + A.escapeHtml(e.note) + '</td></tr>';
+  }).join('');
+
+  $('#spec-rows').innerHTML = S.specs.map(function (s) {
+    return '<tr><th scope="row" style="color:var(--as-text-1);font-weight:600">' + A.escapeHtml(s.use) + '</th>' +
+      '<td>' + A.escapeHtml(s.cpu) + '</td><td>' + A.escapeHtml(s.ram) + '</td>' +
+      '<td class="u-nowrap">' + A.escapeHtml(s.up) + '</td>' +
+      '<td class="u-text-sm as-muted">' + A.escapeHtml(s.note) + '</td></tr>';
+  }).join('');
+
+  /* ------------------------------------------------------------------ */
+  /*  BANDWIDTH                                                          */
+  /* ------------------------------------------------------------------ */
+
+  var b = S.bandwidth;
+  $('#bw-direct').textContent = b.directUpMbps + ' Mbps';
+  $('#bw-relay').textContent = b.relayUpMbps + ' Mbps';
+  $('#bw-bar').style.width = Math.round((b.relayUpMbps / b.directUpMbps) * 100) + '%';
+  $('#egress-note').innerHTML =
+    'A measured figure to plan against: a <strong>' + b.partyHours + '-hour watch party for ' +
+    b.viewers + ' viewers moves roughly ' + b.partyGB + ' GB</strong>. That single number dwarfs every ' +
+    'other running cost of the platform combined, which is why relay hours are metered rather than ' +
+    'buried in a flat fee.';
+
+  A.mount(document);
+  render();
+})();
+</script>
+</body>
+</html>

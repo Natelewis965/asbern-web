@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pricing — Asbern</title>
+<meta name="description" content="Asbern pricing: the subscription buys features; bandwidth and AI are usage-based, opt-in and hard-capped. Pick the features you want and see which plan you need.">
+<meta name="color-scheme" content="dark light">
+<script>
+(function(){try{var p=localStorage.getItem('asbern.theme')||'system';
+var r=p==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):p;
+document.documentElement.setAttribute('data-theme',r);
+document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
+</script>
+<link rel="stylesheet" href="assets/asbern.css">
+</head>
+<body>
+
+<a class="as-btn as-btn--secondary as-skip" href="#main">Skip to content</a>
+
+<header class="as-nav">
+  <div class="as-nav__inner">
+    <a class="as-wordmark" href="index.html" aria-label="Asbern — home">
+      <svg class="as-mark" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+      </svg>
+      Asbern
+    </a>
+    <nav class="as-nav__links" aria-label="Primary">
+      <a class="as-nav__link" href="screening.html">Screening Room</a>
+      <a class="as-nav__link" href="features.html">Modules</a>
+      <a class="as-nav__link" href="pricing.html" aria-current="page">Pricing</a>
+    </nav>
+    <div class="as-nav__actions">
+      <button class="as-btn as-btn--ghost as-btn--icon" data-as-theme-toggle type="button" aria-label="Switch theme"></button>
+      <a class="as-btn as-btn--secondary as-btn--sm u-desktop-only" href="dashboard.html">Dashboard</a>
+      <a class="as-btn as-btn--primary as-btn--sm as-nav__cta" href="install.html">
+        <span data-as-icon="discord"></span> Add to Discord
+      </a>
+      <button class="as-btn as-btn--ghost as-btn--icon as-nav__burger" type="button"
+              data-as-drawer="#nav-drawer" aria-expanded="false" aria-controls="nav-drawer"
+              aria-label="Open menu" data-as-icon="menu"></button>
+    </div>
+  </div>
+</header>
+<div class="as-drawer" id="nav-drawer" data-as-drawer-panel hidden>
+  <a href="screening.html">Screening Room</a>
+  <a href="features.html">Modules</a>
+  <a href="pricing.html">Pricing</a>
+  <a class="as-btn as-btn--primary u-mt-2" href="#picker">Find my plan</a>
+</div>
+
+<main id="main">
+
+<!-- ============================ HERO ============================ -->
+<section class="as-hero">
+  <div class="as-container">
+    <div class="as-hero__grid">
+      <div class="as-hero__copy">
+        <span class="as-eyebrow">Pricing</span>
+        <h1 class="as-display as-display--hero">The plan buys features.<br>Bandwidth is metered.</h1>
+        <p class="as-lead" id="principle"></p>
+        <p class="as-lead as-muted" id="platform-note"></p>
+      </div>
+
+      <div class="as-stack" data-as-reveal>
+        <div class="as-note as-note--warn">
+          <span data-as-icon="alert"></span>
+          <div>
+            <strong>These numbers are provisional and are already being revised downward.</strong>
+            The source document is marked <em>“proposal, not committed”</em>, the bandwidth cost the whole
+            ladder is sized on has no signed contract behind it, and the owner has since decided to price
+            further under the market. Treat the shape as settled and the amounts as drafts.
+          </div>
+        </div>
+        <div class="as-card as-stack--3" style="display:flex;flex-direction:column;gap:.75rem">
+          <span class="as-eyebrow as-eyebrow--frost">The three rules</span>
+          <ul class="as-list">
+            <li class="as-list__item"><span data-as-icon="check"></span>
+              <span><strong>No base fee.</strong> No setup fee, no per-seat charge. The plan price is the whole fixed cost.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span>
+              <span><strong>Metering defaults to off.</strong> The failure mode is the feature stopping, never an invoice you did not expect.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span>
+              <span><strong>Nothing is deleted to make you pay.</strong> Lapsing makes paid modules read-only; balances and levels are untouched.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ TIERS ============================ -->
+<section class="as-section as-section--tight">
+  <div class="as-container">
+
+    <div class="as-row as-row--center u-mb-4">
+      <span class="as-badge as-badge--accent">Every price is per Discord server</span>
+    </div>
+    <div class="as-row as-row--center u-mb-8">
+      <fieldset class="as-segmented" id="period">
+        <legend class="as-visually-hidden">Billing period</legend>
+        <label class="as-segmented__opt">
+          <input type="radio" name="period" value="monthly" checked>
+          <span>Monthly</span>
+        </label>
+        <label class="as-segmented__opt">
+          <input type="radio" name="period" value="annual">
+          <span>Annual <span class="as-badge as-badge--success" style="margin-left:.3rem">Save ~17%</span></span>
+        </label>
+      </fieldset>
+    </div>
+
+    <div class="as-grid as-grid--gap-6" id="tier-grid"
+         style="grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr));align-items:stretch"></div>
+
+    <p class="u-text-xs as-muted u-mt-6 u-text-center" id="period-note"></p>
+
+    <h3 class="u-mt-12 u-mb-4">Other ways to run it</h3>
+    <div class="as-grid as-grid--2" id="tier-alt"></div>
+    <p class="u-text-sm as-muted u-mt-4" id="selfhost-note"></p>
+    <p class="u-text-sm as-muted u-mt-2" id="multiguild-note"></p>
+  </div>
+</section>
+
+<!-- ============================ COMPARISON ============================ -->
+<section class="as-section as-section--elev">
+  <div class="as-container">
+    <div class="as-section__head">
+      <span class="as-eyebrow">Everything, side by side</span>
+      <h2 class="as-display as-display--lg">The whole registry, nothing hidden</h2>
+      <p class="as-lead">
+        Every module Asbern knows about, including the ones that are not built and the one that is built
+        but not for sale. If a row says planned, there is no code behind it — this table is the reason you
+        will not find a surprise later.
+      </p>
+    </div>
+    <div class="as-row u-mb-4" role="group" aria-label="Filter the registry" id="reg-filters">
+      <button class="as-chip is-active" type="button" data-reg="all" aria-pressed="true">Everything</button>
+      <button class="as-chip" type="button" data-reg="shipped" aria-pressed="false">Built &amp; shipping</button>
+      <button class="as-chip" type="button" data-reg="rest" aria-pressed="false">Planned or partial</button>
+    </div>
+    <div class="as-table-wrap">
+      <table class="as-table as-table--compact" id="compare">
+        <caption class="as-visually-hidden">Module availability by plan</caption>
+        <thead><tr id="compare-head"><th scope="col">Module</th></tr></thead>
+        <tbody id="compare-rows"></tbody>
+      </table>
+    </div>
+    <p class="u-text-xs as-muted u-mt-4">
+      Scroll the table sideways on a narrow screen — the page itself will not move. Sovereign carries every
+      paid module with no plan gating at all, which is why its column is solid.
+    </p>
+  </div>
+</section>
+
+<!-- ============================ PICKER ============================ -->
+<section class="as-section as-section--elev" id="picker">
+  <div class="as-container">
+    <div class="as-section__head">
+      <span class="as-eyebrow">Find your plan</span>
+      <h2 class="as-display as-display--xl">Tick what you want. We’ll name the plan.</h2>
+      <p class="as-lead">
+        There is no à-la-carte purchase path — plans are cumulative, so the answer is always the lowest
+        one that covers everything you ticked. Only features that actually exist can be ticked; anything
+        planned or switched off is listed but cannot be selected.
+      </p>
+    </div>
+
+    <div class="as-split as-split--aside-right">
+      <div id="pick-groups" class="as-stack--6" style="display:flex;flex-direction:column;gap:1.5rem"></div>
+
+      <!-- running answer -->
+      <div class="as-sticky">
+        <div class="as-panel as-card--accent">
+          <div class="as-panel__header">
+            <span class="as-panel__title">Your plan</span>
+            <span class="as-badge as-badge--accent" id="sum-period">Monthly</span>
+          </div>
+          <div class="as-panel__body as-stack">
+            <div>
+              <div class="as-tier__name" id="sum-tier">Free</div>
+              <div class="as-tier__epithet" id="sum-epithet"></div>
+            </div>
+            <div class="as-tier__price">
+              <span class="as-tier__amount" id="sum-price">$0</span>
+              <span class="as-tier__per" id="sum-per">/ server / mo</span>
+            </div>
+            <div class="u-text-xs as-muted" id="sum-billed"></div>
+
+            <hr style="margin:.25rem 0">
+
+            <div class="as-stat__label">Because you ticked</div>
+            <div id="sum-drivers" class="as-stack--2" style="display:flex;flex-direction:column;gap:.35rem"></div>
+
+            <div id="sum-egress"></div>
+
+            <button class="as-btn as-btn--primary as-btn--block u-mt-2" type="button" id="sum-cta">
+              Start on Free
+            </button>
+            <p class="u-text-xs as-muted u-text-center">
+              Lapsing makes paid modules read-only. It never deletes data, zeroes a balance, or resets a level.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ METERED ============================ -->
+<section class="as-section" id="metered">
+  <div class="as-container">
+    <div class="as-section__head">
+      <span class="as-eyebrow as-eyebrow--frost">Usage-based, separately</span>
+      <h2 class="as-display as-display--xl">Two things are metered, and both default to off.</h2>
+      <p class="as-lead">
+        A subscription cannot be both cheap and quietly pay for somebody else’s movie night. So the two
+        costs that genuinely scale with use sit outside the plan — and both are built so that the failure
+        mode is <strong>the feature stopping</strong>, never a surprise invoice.
+      </p>
+    </div>
+
+    <div class="as-grid as-grid--2" id="metered-grid"></div>
+
+    <h3 class="u-mt-12 u-mb-4">What actually happens when the bandwidth runs out</h3>
+    <div class="as-table-wrap">
+      <table class="as-table">
+        <caption class="as-visually-hidden">Bandwidth allowance degradation ladder</caption>
+        <thead><tr><th scope="col">Allowance used</th><th scope="col">What happens</th></tr></thead>
+        <tbody id="ladder-rows"></tbody>
+      </table>
+    </div>
+    <p class="u-text-xs as-muted u-mt-4">
+      “A screening already playing runs to its end” is not generosity — it is the same rule the rest of the
+      system runs on: fail towards the recoverable side. Killing a film eighty minutes in to save 20 GB is
+      the unrecoverable side.
+    </p>
+
+    <!-- estimator -->
+    <div class="as-split as-split--aside-right u-mt-12">
+      <div class="as-card">
+        <h3 class="u-mb-4">Estimate your bandwidth</h3>
+        <div class="as-stack--6" style="display:flex;flex-direction:column;gap:1.25rem">
+          <div class="as-field">
+            <label class="as-label" for="r-plan">Plan</label>
+            <select class="as-select" id="r-plan"></select>
+          </div>
+          <div class="as-field">
+            <label class="as-label" for="r-viewers">Typical viewers — <strong id="r-viewers-out">10</strong></label>
+            <input class="as-range" type="range" id="r-viewers" min="1" max="60" step="1" value="10">
+          </div>
+          <div class="as-field">
+            <label class="as-label" for="r-hours">Hours of watching a month — <strong id="r-hours-out">15</strong></label>
+            <input class="as-range" type="range" id="r-hours" min="0" max="80" step="1" value="15">
+          </div>
+        </div>
+      </div>
+
+      <div class="as-card">
+        <div class="as-row as-row--between u-mb-4">
+          <h3 style="font-size:var(--as-text-base)">Estimate</h3>
+          <span class="as-badge as-badge--frost" id="r-state">Within allowance</span>
+        </div>
+        <div class="as-stack--3" style="display:flex;flex-direction:column;gap:.75rem">
+          <div class="as-row as-row--between u-text-sm"><span class="as-muted">Viewer-hours</span><span class="u-tabular as-strong" id="r-vh">150</span></div>
+          <div class="as-row as-row--between u-text-sm"><span class="as-muted">Delivered</span><span class="u-tabular as-strong" id="r-gb">251 GB</span></div>
+          <div class="as-row as-row--between u-text-sm"><span class="as-muted">Included</span><span class="u-tabular" id="r-inc">250 GB</span></div>
+          <div class="as-progress as-progress--frost" aria-hidden="true"><div class="as-progress__bar" id="r-bar" style="width:60%"></div></div>
+          <div class="as-row as-row--between u-text-sm"><span class="as-muted">Overage, if you switch it on</span><span class="u-tabular as-strong" id="r-cost">$0.00</span></div>
+          <div id="r-verdict"></div>
+          <p class="u-text-xs as-muted" id="r-note"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ LAPSE ============================ -->
+<section class="as-section">
+  <div class="as-container">
+    <div class="as-split as-split--aside-right">
+      <div>
+        <span class="as-eyebrow">If a payment fails</span>
+        <h2 class="as-display as-display--lg u-mt-4 u-mb-4">Nothing is deleted to make you pay.</h2>
+        <p class="u-text-sm">
+          A lapsed server’s economy is never zeroed, reset or recalculated. The data is yours; it is the
+          access that lapsed. The same is true of downgrading — the stats collector keeps writing history
+          your plan cannot yet read, so upgrading later reveals all of it instantly rather than starting
+          you from today.
+        </p>
+        <p class="u-text-sm u-mt-4 as-muted">
+          The same principle governs member limits. If your server outgrows a band we tell you and invite
+          you up. <strong>A member ceiling is never a kill switch</strong> — switching off a
+          12,000-member community’s economy because it recruited well is how you generate a public incident.
+        </p>
+      </div>
+      <div class="as-table-wrap">
+        <table class="as-table as-table--compact">
+          <caption class="as-visually-hidden">What happens after a failed payment</caption>
+          <thead><tr><th scope="col">When</th><th scope="col">State</th></tr></thead>
+          <tbody id="lapse-rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ FAQ ============================ -->
+<section class="as-section as-section--edge">
+  <div class="as-container as-container--narrow">
+    <div class="as-section__head">
+      <span class="as-eyebrow">Before you ask</span>
+      <h2 class="as-display as-display--lg">Pricing FAQ</h2>
+    </div>
+    <div class="as-accordion" id="faq"></div>
+
+    <div class="as-card u-mt-8" id="founding"></div>
+  </div>
+</section>
+
+<section class="as-section">
+  <div class="as-container as-container--narrow u-text-center">
+    <h2 class="as-display as-display--xl">Start free. Genuinely.</h2>
+    <p class="as-lead u-mt-4" style="margin-inline:auto">
+      The Free plan is not a trial with a clock on it. It is levels, moderation, 163 of the 221 console controls
+      and stats, permanently — which is most of what the market currently charges for.
+    </p>
+    <div class="as-row as-row--center u-mt-8">
+      <a class="as-btn as-btn--primary as-btn--lg" href="install.html">
+        <span data-as-icon="discord"></span> Add to Discord
+      </a>
+      <a class="as-btn as-btn--secondary as-btn--lg" href="#picker">Find my plan</a>
+      <a class="as-btn as-btn--ghost as-btn--lg" href="features.html#roadmap">What is not built yet</a>
+    </div>
+    <p class="u-text-xs as-muted u-mt-4">Per Discord server, on every plan. Additional servers 25% off each.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="as-footer">
+  <div class="as-container">
+    <div class="as-footer__grid">
+      <div class="as-footer__brand" style="display:flex;flex-direction:column;gap:.75rem">
+        <a class="as-wordmark" href="index.html">
+          <svg class="as-mark" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+          </svg>
+          Asbern
+        </a>
+        <p class="u-text-xs as-muted">
+          Old Norse <em>Ásbjǫrn</em> — “god-bear”. The mark is a bind-rune: one stave, Ansuz on the left,
+          Bjarkan on the right.
+        </p>
+      </div>
+      <div>
+        <div class="as-footer__title">Product</div>
+        <div class="as-footer__links">
+          <a href="screening.html">Screening Room</a>
+          <a href="features.html">All modules</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="features.html#deployment">Self-hosting</a>
+          <a href="install.html">Add to Discord</a>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Developers</div>
+        <div class="as-footer__links">
+          <a href="dashboard.html">Dashboard preview</a>
+          <a href="bridge.html">Bridge agent</a>
+          <span class="as-footer__soon">Documentation <span class="as-badge as-badge--plain">Soon</span></span>
+          <span class="as-footer__soon">Status <span class="as-badge as-badge--plain">Soon</span></span>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Company</div>
+        <div class="as-footer__links">
+          <span class="as-footer__soon">Support server <span class="as-badge as-badge--plain">Soon</span></span>
+          <span class="as-footer__soon">Contact <span class="as-badge as-badge--plain">Soon</span></span>
+          <a href="features.html#roadmap">Roadmap</a>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Legal</div>
+        <div class="as-footer__links">
+          <a href="privacy.html">Privacy policy <span class="as-badge as-badge--warn">Draft</span></a>
+          <a href="terms.html">Terms of service <span class="as-badge as-badge--warn">Draft</span></a>
+          <a href="privacy.html#retention">Data &amp; retention</a>
+        </div>
+      </div>
+    </div>
+    <div class="as-footer__bottom">
+      <span>© <span data-as-year></span> Asbern. Not affiliated with Discord Inc.</span>
+      <span>Documentation, status and legal pages are not published yet — this site is a preview.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/mock-data.js"></script>
+<script src="assets/asbern.js"></script>
+<script>
+(function () {
+  var A = Asbern, M = AsbernMock, P = M.pricing;
+  var period = 'monthly';
+  var $ = A.$, $$ = A.$$;
+
+  /* Every string and number below comes from AsbernMock.pricing. Nothing on this
+     page is a literal — swapping the model is a one-object edit. */
+
+  $('#principle').textContent = P.principle;
+  $('#platform-note').textContent = P.platformFeeNote;
+  $('#selfhost-note').textContent = P.freeSelfHostNote;
+  $('#multiguild-note').textContent = P.multiGuild.note;
+
+  function fmt(n) { return n % 1 === 0 ? A.money(n) : A.money2(n); }
+
+  /* ------------------------------------------------------------------ */
+  /*  TIER CARDS                                                         */
+  /* ------------------------------------------------------------------ */
+
+  function tierCard(t) {
+    var price = M.tierPrice(t, period);
+    var billed = M.tierBilled(t, period);
+    return '<article class="as-card as-tier' + (t.popular ? ' as-tier--popular' : '') + '">' +
+      (t.popular ? '<span class="as-tier__flag as-badge as-badge--accent">Most chosen</span>' : '') +
+      (t.selfHost ? '<span class="as-tier__flag as-badge as-badge--frost">Your hardware</span>' : '') +
+      '<div>' +
+        '<div class="as-tier__name">' + A.escapeHtml(t.name) + '</div>' +
+        '<div class="as-tier__epithet">' + A.escapeHtml(t.epithet) + '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="as-tier__price">' +
+          '<span class="as-tier__amount">' + (price === null ? 'Custom' : price === 0 ? 'Free' : fmt(price)) + '</span>' +
+          (price ? '<span class="as-tier__per">/ server / mo</span>' : '') +
+        '</div>' +
+        '<div class="u-text-xs as-muted">' +
+          (price === null ? 'Negotiated' :
+           price === 0 ? 'Forever, not a trial' :
+           period === 'annual' ? A.money(billed) + ' billed yearly' : 'Billed monthly') +
+        '</div>' +
+      '</div>' +
+      '<p class="u-text-sm">' + A.escapeHtml(t.blurb) + '</p>' +
+      (t.egressGB
+        ? '<div class="as-badge as-badge--frost" style="align-self:flex-start" data-as-tip="' +
+            A.escapeHtml(t.egressHuman) + '" tabindex="0">' + A.num(t.egressGB) + ' GB streaming</div>'
+        : '') +
+      '<div class="as-tier__body"><ul class="as-list">' +
+        t.highlights.map(function (l) {
+          return '<li class="as-list__item">' + A.icon('check') + '<span>' + A.escapeHtml(l) + '</span></li>';
+        }).join('') +
+        t.excluded.map(function (l) {
+          return '<li class="as-list__item as-list__item--no">' + A.icon('minus') + '<span>' + A.escapeHtml(l) + '</span></li>';
+        }).join('') +
+      '</ul></div>' +
+      '<button class="as-btn ' + (t.popular ? 'as-btn--primary' : 'as-btn--secondary') +
+        ' as-btn--block" type="button" data-tier="' + t.id + '">' + A.escapeHtml(t.cta) + '</button>' +
+    '</article>';
+  }
+
+  function renderTiers() {
+    $('#tier-grid').innerHTML = P.tiers
+      .filter(function (t) { return !t.selfHost && !t.custom; })
+      .map(tierCard).join('');
+    $('#tier-alt').innerHTML = P.tiers
+      .filter(function (t) { return t.selfHost || t.custom; })
+      .map(tierCard).join('');
+    A.mount($('#tier-grid'));
+  }
+
+  A.on('change', '#period input', function (ev, input) {
+    period = input.value;
+    renderTiers();
+    resolve();
+    $('#sum-period').textContent = period === 'annual' ? 'Annual' : 'Monthly';
+    $('#period-note').textContent = period === 'annual'
+      ? 'Billed yearly. Prices shown are the monthly equivalent — roughly ten months for twelve.'
+      : 'Billed monthly. Annual works out about 17% cheaper.';
+  });
+
+  A.on('click', '[data-tier]', function (ev, btn) {
+    var t = M.tierById(btn.getAttribute('data-tier'));
+    A.toast('“' + t.name + '” — checkout is not wired up in this preview.', { variant: 'accent' });
+  });
+
+  /* ------------------------------------------------------------------ */
+  /*  PICKER — grouped by the plan a feature needs                        */
+  /* ------------------------------------------------------------------ */
+
+  var pickable = P.registry.filter(function (r) { return r.pickable && r.sellable; });
+  var groups = [];
+  P.tiers.forEach(function (t) {
+    if (t.selfHost || t.custom) return;
+    var rows = pickable.filter(function (r) { return r.minTier === t.id; });
+    if (rows.length) groups.push({ tier: t, rows: rows });
+  });
+
+  $('#pick-groups').innerHTML = groups.map(function (g) {
+    return '<div>' +
+      '<div class="as-row as-row--between u-mb-3">' +
+        '<h3 style="font-size:var(--as-text-base)">Needs ' + A.escapeHtml(g.tier.name) + '</h3>' +
+        '<span class="as-badge ' + (g.tier.monthly === 0 ? 'as-badge--success' : 'as-badge--accent') + '">' +
+          (g.tier.monthly === 0 ? 'Free' : fmt(g.tier.monthly) + '/mo') + '</span>' +
+      '</div>' +
+      '<div class="as-grid as-grid--2" style="gap:.6rem">' +
+        g.rows.map(function (r) {
+          var pre = ['leveling', 'moderation', 'admin-console', 'stats-basic'].indexOf(r.id) !== -1;
+          return '<label class="as-pick">' +
+            '<input type="checkbox" value="' + r.id + '"' + (pre ? ' checked' : '') + '>' +
+            '<span class="as-pick__box">' +
+              '<span style="display:flex;flex-direction:column;gap:.15rem;min-width:0;flex:1">' +
+                '<span class="as-row as-row--between as-row--nowrap" style="gap:.5rem">' +
+                  '<span class="as-pick__name">' + A.escapeHtml(r.name) + '</span>' +
+                  (r.metered === 'egress' ? '<span class="as-badge as-badge--frost">Metered</span>' : '') +
+                '</span>' +
+                (r.note ? '<span class="as-pick__desc">' + A.escapeHtml(r.note) + '</span>' : '') +
+              '</span>' +
+            '</span>' +
+          '</label>';
+        }).join('') +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  function selected() {
+    return $$('#pick-groups input[type="checkbox"]:checked').map(function (c) { return c.value; });
+  }
+
+  function resolve() {
+    var ids = selected();
+    var t = M.requiredTier(ids);
+    var price = M.tierPrice(t, period);
+    var billed = M.tierBilled(t, period);
+
+    $('#sum-tier').textContent = t.name;
+    $('#sum-epithet').textContent = t.epithet;
+    $('#sum-price').textContent = price === 0 ? 'Free' : fmt(price);
+    $('#sum-per').textContent = price === 0 ? '' : (period === 'annual' ? '/ mo, billed yearly' : '/ server / mo');
+    $('#sum-billed').textContent = price === 0
+      ? 'No card, no clock on it.'
+      : (period === 'annual' ? A.money(billed) + ' a year, per server.' : A.money(billed) + ' a month, per server.');
+    $('#sum-cta').textContent = price === 0 ? 'Start on Free' : 'Choose this plan · ' + fmt(price) + '/mo';
+
+    /* Which ticks forced this plan? */
+    var drivers = ids
+      .map(function (id) { return M.registryById(id); })
+      .filter(function (r) { return r && r.minTier === t.id; });
+    $('#sum-drivers').innerHTML = drivers.length
+      ? drivers.map(function (r) {
+          return '<span class="as-row" style="gap:.5rem"><span style="color:var(--as-accent);display:inline-flex;width:.9rem">' +
+            A.icon('check') + '</span><span class="u-text-sm">' + A.escapeHtml(r.name) + '</span></span>';
+        }).join('')
+      : '<span class="u-text-sm as-muted">Nothing above the Free set.</span>';
+
+    /* Does the selection consume bandwidth? */
+    var usesEgress = ids.some(function (id) {
+      var r = M.registryById(id); return r && r.metered === 'egress';
+    });
+    $('#sum-egress').innerHTML = usesEgress
+      ? '<div class="as-note as-note--frost u-text-xs">' + A.icon('wifi') +
+        '<div>Includes <strong>' + A.num(t.egressGB) + ' GB</strong> of streaming a month — ' +
+        A.escapeHtml(t.egressHuman) + '. Beyond that, overage is <strong>off by default</strong>.</div></div>'
+      : '<div class="as-note u-text-xs">' + A.icon('check') +
+        '<div>Nothing you ticked uses metered bandwidth. Your bill cannot vary.</div></div>';
+
+    /* Keep the estimator honest about which allowance applies. */
+    var sel = $('#r-plan');
+    if (sel && sel.value !== t.id && t.egressGB) { sel.value = t.id; }
+    estimate();
+  }
+
+  A.on('change', '#pick-groups input', function () { resolve(); });
+  $('#sum-cta').addEventListener('click', function () {
+    A.toast('Checkout is not wired up in this preview.', { variant: 'accent' });
+  });
+
+  /* ------------------------------------------------------------------ */
+  /*  METERED CARDS                                                      */
+  /* ------------------------------------------------------------------ */
+
+  $('#metered-grid').innerHTML = P.metered.map(function (m) {
+    return '<article class="as-card as-stack' + (m.onSale ? ' as-card--frost' : '') + '">' +
+      '<div class="as-row as-row--between" style="align-items:flex-start">' +
+        '<span class="as-plate as-plate--lg' + (m.onSale ? ' as-plate--frost' : '') + '" data-as-icon="' + m.icon + '"></span>' +
+        '<span class="as-badge ' + (m.onSale ? 'as-badge--frost' : 'as-badge--warn') + '">' +
+          (m.onSale ? 'Available' : 'Not on sale yet') + '</span>' +
+      '</div>' +
+      '<h3>' + A.escapeHtml(m.name) + '</h3>' +
+      (m.price
+        ? '<div class="as-tier__price"><span class="as-tier__amount">' + A.money2(m.price) +
+          '</span><span class="as-tier__per">' + A.escapeHtml(m.priceUnit) + '</span></div>'
+        : '<div class="as-tier__price"><span class="as-tier__amount" style="font-size:var(--as-text-lg)">Prepaid credit</span></div>') +
+      '<p class="u-text-sm">' + A.escapeHtml(m.unitNote) + '</p>' +
+      '<div class="as-stack--2" style="display:flex;flex-direction:column;gap:.4rem">' +
+        '<div class="as-row as-row--between u-text-sm"><span class="as-muted">Included in a plan</span><span class="u-text-sm as-strong u-text-right">' + A.escapeHtml(m.included) + '</span></div>' +
+        '<div class="as-row as-row--between u-text-sm"><span class="as-muted">Default</span><span class="as-badge as-badge--success">' + A.escapeHtml(m.defaultState) + '</span></div>' +
+        '<div class="as-row as-row--between u-text-sm"><span class="as-muted">Opt-in</span><span class="as-strong">' + (m.optIn ? 'Per server' : 'No') + '</span></div>' +
+      '</div>' +
+      '<div class="as-note as-note--warn u-text-sm">' + A.icon('lock') +
+        '<div><strong>Hard cap.</strong> ' + A.escapeHtml(m.cap) + '</div></div>' +
+      '<div class="as-note u-text-sm">' + A.icon('info') +
+        '<div>' + A.escapeHtml(m.failureMode) + '</div></div>' +
+      (m.whyNotBundled ? '<p class="u-text-sm as-muted">' + A.escapeHtml(m.whyNotBundled) + '</p>' : '') +
+      (m.blocker
+        ? '<div class="as-note as-note--danger u-text-sm">' + A.icon('alert') +
+          '<div><strong>Why it is not on sale.</strong> ' + A.escapeHtml(m.blocker) + '</div></div>'
+        : '') +
+    '</article>';
+  }).join('');
+
+  var toneCls = { ok: 'as-badge--success', warn: 'as-badge--warn', danger: 'as-badge--danger' };
+  $('#ladder-rows').innerHTML = P.egressLadder.map(function (s) {
+    return '<tr><th scope="row" class="u-nowrap"><span class="as-badge ' + toneCls[s.tone] + '">' +
+      A.escapeHtml(s.at) + '</span></th><td>' + A.escapeHtml(s.what) + '</td></tr>';
+  }).join('');
+
+  /* ------------------------------------------------------------------ */
+  /*  ESTIMATOR                                                          */
+  /* ------------------------------------------------------------------ */
+
+  var egress = M.meteredById('egress');
+  $('#r-plan').innerHTML = P.tiers
+    .filter(function (t) { return t.egressGB; })
+    .map(function (t) { return '<option value="' + t.id + '">' + A.escapeHtml(t.name) + ' — ' + A.num(t.egressGB) + ' GB</option>'; })
+    .join('');
+
+  function estimate() {
+    var tier = M.tierById($('#r-plan').value) || M.tierById('pro');
+    var v = parseInt($('#r-viewers').value, 10);
+    var h = parseInt($('#r-hours').value, 10);
+    var e = M.egressEstimate(v, h, tier.egressGB);
+
+    $('#r-viewers-out').textContent = String(v);
+    $('#r-hours-out').textContent = String(h);
+    $('#r-vh').textContent = A.num(e.viewerHours);
+    $('#r-gb').textContent = A.num(Math.round(e.gb)) + ' GB';
+    $('#r-inc').textContent = A.num(e.allowanceGB) + ' GB';
+    $('#r-cost').textContent = A.money2(e.cost);
+    $('#r-bar').style.width = Math.min(100, e.pctUsed) + '%';
+
+    var over = e.overGB > 0;
+    var state = $('#r-state');
+    state.textContent = over ? 'Over allowance' : 'Within allowance';
+    state.className = 'as-badge ' + (over ? 'as-badge--warn' : 'as-badge--frost');
+
+    $('#r-verdict').innerHTML = over
+      ? '<div class="as-note as-note--warn u-text-xs">' + A.icon('alert') +
+        '<div>You would go about <strong>' + A.num(Math.round(e.overGB)) + ' GB</strong> over. ' +
+        'With overage <strong>off</strong> — the default — the picture drops to 720p and keeps playing. ' +
+        'With it on, that is ' + e.blocks + ' block' + (e.blocks === 1 ? '' : 's') + ' at ' +
+        A.money2(egress.price) + ', capped wherever you set the ceiling.</div></div>'
+      : '<div class="as-note as-note--frost u-text-xs">' + A.icon('check') +
+        '<div>Comfortably inside the allowance. Your bill is the plan price and nothing else.</div></div>';
+
+    $('#r-note').textContent = egress.unitNote;
+  }
+
+  $('#r-plan').addEventListener('change', estimate);
+  $('#r-viewers').addEventListener('input', estimate);
+  $('#r-hours').addEventListener('input', estimate);
+
+  /* ------------------------------------------------------------------ */
+  /*  COMPARISON TABLE                                                   */
+  /* ------------------------------------------------------------------ */
+
+  var cols = P.tiers.filter(function (t) { return !t.custom; });
+
+  $('#compare-head').innerHTML = '<th scope="col">Module</th>' +
+    cols.map(function (t) { return '<th scope="col" class="u-text-center">' + A.escapeHtml(t.name) + '</th>'; }).join('');
+
+  $('#compare-rows').innerHTML = P.registry.map(function (r) {
+    var badge = r.status === 'shipped' ? '' :
+      ' <span class="as-badge ' + (r.badge.tone === 'plain' ? 'as-badge--plain' : 'as-badge--warn') + '">' +
+      A.escapeHtml(r.badge.label) + '</span>';
+    return '<tr data-status="' + r.status + '">' +
+      '<th scope="row" style="color:var(--as-text-1);font-weight:600">' + A.escapeHtml(r.name) + badge +
+        (r.note ? '<div class="u-text-xs as-muted" style="font-weight:400;max-width:34rem">' + A.escapeHtml(r.note) + '</div>' : '') +
+      '</th>' +
+      cols.map(function (t) {
+        var yes = r.sellable && (t.selfHost || (r.minTier && M.tierById(r.minTier).rank <= t.rank));
+        return '<td class="u-text-center" style="color:var(--as-' + (yes ? 'success' : 'text-3') + ')">' +
+          '<span class="as-visually-hidden">' + (yes ? 'Included' : 'Not included') + '</span>' +
+          '<span aria-hidden="true" style="display:inline-flex;width:1rem">' + A.icon(yes ? 'check' : 'minus') + '</span></td>';
+      }).join('') + '</tr>';
+  }).join('');
+
+  A.on('click', '#reg-filters .as-chip', function (ev, btn) {
+    var want = btn.getAttribute('data-reg');
+    $$('#reg-filters .as-chip').forEach(function (c) {
+      var on = c === btn;
+      c.classList.toggle('is-active', on);
+      c.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    $$('#compare-rows tr').forEach(function (tr) {
+      var s = tr.getAttribute('data-status');
+      tr.hidden = want === 'shipped' ? s !== 'shipped'
+                : want === 'rest'    ? s === 'shipped'
+                : false;
+    });
+  });
+
+  /* ------------------------------------------------------------------ */
+  /*  LAPSE · FAQ · FOUNDING                                             */
+  /* ------------------------------------------------------------------ */
+
+  $('#lapse-rows').innerHTML = P.lapse.map(function (l) {
+    return '<tr><th scope="row" class="u-nowrap" style="color:var(--as-text-1);font-weight:600">' +
+      A.escapeHtml(l.when) + '</th><td>' + A.escapeHtml(l.what) + '</td></tr>';
+  }).join('');
+
+  $('#faq').innerHTML = P.faq.map(function (f, i) {
+    return '<details class="as-acc"' + (i === 0 ? ' open' : '') + '>' +
+      '<summary class="as-acc__summary">' + A.escapeHtml(f.q) + '</summary>' +
+      '<div class="as-acc__body">' + A.escapeHtml(f.a) + '</div></details>';
+  }).join('');
+
+  $('#founding').innerHTML =
+    '<div class="as-row as-row--between u-mb-3">' +
+      '<h3 style="font-size:var(--as-text-md)">' + A.escapeHtml(P.founding.name) + '</h3>' +
+      '<span class="as-badge as-badge--warn">Provisional</span>' +
+    '</div>' +
+    '<p class="u-text-sm u-mb-4">' + A.escapeHtml(P.founding.blurb) + '</p>' +
+    '<ul class="as-list">' + P.founding.terms.map(function (t) {
+      return '<li class="as-list__item">' + A.icon('check') + '<span>' + A.escapeHtml(t) + '</span></li>';
+    }).join('') + '</ul>' +
+    '<p class="u-text-xs as-muted u-mt-4">' + A.escapeHtml(P.founding.note) + '</p>';
+
+  /* ---- go ---- */
+  renderTiers();
+  resolve();
+  estimate();
+  $('#period-note').textContent = 'Billed monthly. Annual works out about 17% cheaper.';
+  A.mount(document);
+})();
+</script>
+
+<noscript>
+  <div class="as-container as-section--tight">
+    <div class="as-note as-note--warn">
+      This preview builds its plan table, picker and estimator from a shared data module with
+      JavaScript. The page structure, typography and both themes work without it, but the numbers
+      will be missing.
+    </div>
+  </div>
+</noscript>
+
+</body>
+</html>

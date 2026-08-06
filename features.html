@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Modules — Asbern</title>
+<meta name="description" content="Every Asbern module in depth, and an honest list of what is not built yet: screening room, live TV, economy and casino, levelling, stats, challenges, game servers, moderation, AI companions, music.">
+<meta name="color-scheme" content="dark light">
+<script>
+(function(){try{var p=localStorage.getItem('asbern.theme')||'system';
+var r=p==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):p;
+document.documentElement.setAttribute('data-theme',r);
+document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
+</script>
+<link rel="stylesheet" href="assets/asbern.css">
+</head>
+<body>
+
+<a class="as-btn as-btn--secondary as-skip" href="#main">Skip to content</a>
+
+<header class="as-nav">
+  <div class="as-nav__inner">
+    <a class="as-wordmark" href="index.html" aria-label="Asbern — home">
+      <svg class="as-mark" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+      </svg>
+      Asbern
+    </a>
+    <nav class="as-nav__links" aria-label="Primary">
+      <a class="as-nav__link" href="screening.html">Screening Room</a>
+      <a class="as-nav__link" href="features.html" aria-current="page">Modules</a>
+      <a class="as-nav__link" href="pricing.html">Pricing</a>
+    </nav>
+    <div class="as-nav__actions">
+      <button class="as-btn as-btn--ghost as-btn--icon" data-as-theme-toggle type="button" aria-label="Switch theme"></button>
+      <a class="as-btn as-btn--secondary as-btn--sm u-desktop-only" href="dashboard.html">Dashboard</a>
+      <a class="as-btn as-btn--primary as-btn--sm as-nav__cta" href="install.html">
+        <span data-as-icon="discord"></span> Add to Discord
+      </a>
+      <button class="as-btn as-btn--ghost as-btn--icon as-nav__burger" type="button"
+              data-as-drawer="#nav-drawer" aria-expanded="false" aria-controls="nav-drawer"
+              aria-label="Open menu" data-as-icon="menu"></button>
+    </div>
+  </div>
+</header>
+<div class="as-drawer" id="nav-drawer" data-as-drawer-panel hidden>
+  <a href="screening.html">Screening Room</a>
+  <a href="features.html">Modules</a>
+  <a href="pricing.html">Pricing</a>
+  <a href="dashboard.html">Dashboard</a>
+  <a class="as-btn as-btn--primary u-mt-2" href="install.html">Add to Discord</a>
+</div>
+
+<main id="main">
+
+<!-- ============================ HERO ============================ -->
+<section class="as-hero">
+  <div class="as-container">
+    <div class="as-hero__copy" style="max-width:64ch">
+      <span class="as-eyebrow">The modules</span>
+      <h1 class="as-display as-display--hero">What it does, and what it doesn’t.</h1>
+      <p class="as-lead">
+        Ten modules, each switched on independently. Below, every one of them in detail — including the
+        one that is built and shipped switched off, and the one that is not built at all. This repository
+        has already had an incident where a README advertised a feature that had been cut. It is not
+        happening twice.
+      </p>
+      <div class="as-row">
+        <a class="as-btn as-btn--primary as-btn--lg" href="install.html">
+          <span data-as-icon="discord"></span> Add to Discord
+        </a>
+        <a class="as-btn as-btn--secondary as-btn--lg" href="pricing.html">See pricing</a>
+        <a class="as-btn as-btn--ghost as-btn--lg" href="#roadmap">Skip to what is missing</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ MODULES ============================ -->
+<section class="as-section as-section--tight as-section--edge">
+  <div class="as-container">
+
+    <div class="as-row as-row--between u-mb-8" style="align-items:flex-end">
+      <div class="as-row" role="group" aria-label="Filter modules by status" id="filters">
+        <button class="as-chip is-active" type="button" data-filter="all" aria-pressed="true">All <span class="as-muted" id="count-all"></span></button>
+        <button class="as-chip" type="button" data-filter="shipped" aria-pressed="false">Available now <span class="as-muted" id="count-shipped"></span></button>
+        <button class="as-chip" type="button" data-filter="dark" aria-pressed="false">Built, not for sale <span class="as-muted" id="count-dark"></span></button>
+        <button class="as-chip" type="button" data-filter="planned" aria-pressed="false">Planned <span class="as-muted" id="count-planned"></span></button>
+      </div>
+      <span class="u-text-xs as-muted" id="filter-status" role="status" aria-live="polite"></span>
+    </div>
+
+    <div class="as-split as-split--aside-left">
+      <!-- sticky index -->
+      <aside class="as-sticky u-desktop-only" aria-label="Module index">
+        <nav class="as-sidebar" id="module-index"></nav>
+        <div class="as-sidebar__group">Elsewhere</div>
+        <a class="as-sidebar__item" href="#roadmap"><span data-as-icon="alert"></span> Not built yet</a>
+        <a class="as-sidebar__item" href="#deployment"><span data-as-icon="cloud"></span> Cloud vs self-host</a>
+      </aside>
+
+      <div class="as-stack--8" id="module-sections" style="display:flex;flex-direction:column;gap:3rem"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ NOT BUILT ============================ -->
+<section class="as-section as-section--elev" id="roadmap">
+  <div class="as-container">
+    <div class="as-section__head">
+      <span class="as-eyebrow">Honest gaps</span>
+      <h2 class="as-display as-display--xl">Things other bots have that Asbern does not.</h2>
+      <p class="as-lead">
+        If one of these is the reason you are shopping, Asbern is not your answer today, and we would
+        rather you found that out on this page than after paying. Nothing here has code behind it beyond
+        what the note says.
+      </p>
+    </div>
+    <div class="as-table-wrap">
+      <table class="as-table">
+        <caption class="as-visually-hidden">Features that are not built</caption>
+        <thead><tr><th scope="col">Feature</th><th scope="col">Status</th></tr></thead>
+        <tbody id="notbuilt-rows"></tbody>
+      </table>
+    </div>
+
+    <div class="as-grid as-grid--2 u-mt-8">
+      <div class="as-note as-note--accent">
+        <span data-as-icon="spark"></span>
+        <div>
+          <strong>Deliberately out of scope.</strong> Collectible/gacha mechanics, YouTube-sourced music
+          (the two biggest music bots were shut down over exactly that, and the risk gets worse once real
+          money is in the same product), cross-server alt detection, and an unbounded general-purpose
+          chatbot. These are decisions, not gaps.
+        </div>
+      </div>
+      <div class="as-note">
+        <span data-as-icon="info"></span>
+        <div>
+          <strong>What is coming next.</strong> The highest-priority missing feature is importing levels
+          from MEE6 and Arcane, because it removes the “we would lose our levels” objection outright.
+          After that: the web dashboard, generated from the same 221-control registry the Discord console
+          already renders.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ DEPLOYMENT ============================ -->
+<section class="as-section" id="deployment">
+  <div class="as-container">
+    <div class="as-section__head">
+      <span class="as-eyebrow">Cloud or your own hardware</span>
+      <h2 class="as-display as-display--xl">Where each piece runs.</h2>
+      <p class="as-lead" id="deploy-rule"></p>
+    </div>
+    <div class="as-table-wrap">
+      <table class="as-table">
+        <caption class="as-visually-hidden">Which components run where</caption>
+        <thead><tr><th scope="col">Component</th><th scope="col">Self-hosted</th><th scope="col">Cloud</th></tr></thead>
+        <tbody id="split-rows"></tbody>
+      </table>
+    </div>
+    <div class="as-note as-note--warn u-mt-6">
+      <span data-as-icon="alert"></span>
+      <div>
+        <strong>Self-hosting is not finished.</strong> The agent pattern runs in production today, but it
+        currently dials inward across a local network. The outbound bridge, the pairing flow and the
+        signed installer are on the roadmap and are not shipped. Until they are, self-hosting means Docker
+        Compose and a willingness to read logs.
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="as-section as-section--edge">
+  <div class="as-container as-container--narrow u-text-center">
+    <h2 class="as-display as-display--xl">Pick the parts you want.</h2>
+    <p class="as-lead u-mt-4" style="margin-inline:auto">
+      Pricing is per module and per server, with a picker that adds up as you tick.
+    </p>
+    <div class="as-row as-row--center u-mt-8">
+      <a class="as-btn as-btn--primary as-btn--lg" href="install.html">
+        <span data-as-icon="discord"></span> Add to Discord
+      </a>
+      <a class="as-btn as-btn--secondary as-btn--lg" href="pricing.html">Find my plan</a>
+      <a class="as-btn as-btn--ghost as-btn--lg" href="screening.html">See the screening room</a>
+    </div>
+    <p class="u-text-xs as-muted u-mt-4">Pricing is per Discord server, on every plan.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="as-footer">
+  <div class="as-container">
+    <div class="as-footer__grid">
+      <div class="as-footer__brand" style="display:flex;flex-direction:column;gap:.75rem">
+        <a class="as-wordmark" href="index.html">
+          <svg class="as-mark" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+          </svg>
+          Asbern
+        </a>
+        <p class="u-text-xs as-muted">
+          Old Norse <em>Ásbjǫrn</em> — “god-bear”. The mark is a bind-rune: one stave, Ansuz on the left,
+          Bjarkan on the right.
+        </p>
+      </div>
+      <div>
+        <div class="as-footer__title">Product</div>
+        <div class="as-footer__links">
+          <a href="screening.html">Screening Room</a>
+          <a href="features.html">All modules</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="features.html#deployment">Self-hosting</a>
+          <a href="install.html">Add to Discord</a>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Developers</div>
+        <div class="as-footer__links">
+          <a href="dashboard.html">Dashboard preview</a>
+          <a href="bridge.html">Bridge agent</a>
+          <span class="as-footer__soon">Documentation <span class="as-badge as-badge--plain">Soon</span></span>
+          <span class="as-footer__soon">Status <span class="as-badge as-badge--plain">Soon</span></span>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Company</div>
+        <div class="as-footer__links">
+          <span class="as-footer__soon">Support server <span class="as-badge as-badge--plain">Soon</span></span>
+          <span class="as-footer__soon">Contact <span class="as-badge as-badge--plain">Soon</span></span>
+          <a href="features.html#roadmap">Roadmap</a>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Legal</div>
+        <div class="as-footer__links">
+          <a href="privacy.html">Privacy policy <span class="as-badge as-badge--warn">Draft</span></a>
+          <a href="terms.html">Terms of service <span class="as-badge as-badge--warn">Draft</span></a>
+          <a href="privacy.html#retention">Data &amp; retention</a>
+        </div>
+      </div>
+    </div>
+    <div class="as-footer__bottom">
+      <span>© <span data-as-year></span> Asbern. Not affiliated with Discord Inc.</span>
+      <span>Documentation, status and legal pages are not published yet — this site is a preview.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/mock-data.js"></script>
+<script src="assets/asbern.js"></script>
+<script>
+(function () {
+  var A = Asbern, M = AsbernMock;
+
+  /* Badges are derived once in mock-data.js so every page agrees. */
+
+  /* ---- sticky index ---- */
+  document.getElementById('module-index').innerHTML =
+    '<div class="as-sidebar__group">Modules</div>' +
+    M.modules.map(function (m) {
+      return '<a class="as-sidebar__item" href="#' + m.id + '" data-index-for="' + m.id + '">' +
+        '<span data-as-icon="' + m.icon + '"></span> ' + A.escapeHtml(m.name) + '</a>';
+    }).join('');
+
+  /* ---- module sections ---- */
+  document.getElementById('module-sections').innerHTML = M.modules.map(function (m) {
+    return '<article class="as-card" id="' + m.id + '" data-status="' + m.status + '" data-as-reveal>' +
+      '<div class="as-row as-row--between u-mb-4" style="align-items:flex-start">' +
+        '<div class="as-row as-row--nowrap" style="gap:.9rem">' +
+          '<span class="as-plate as-plate--lg' + (m.flagship ? ' as-plate--accent' : '') + '" data-as-icon="' + m.icon + '"></span>' +
+          '<div>' +
+            '<h2 style="font-size:var(--as-text-lg)">' + A.escapeHtml(m.name) +
+              (m.flagship ? ' <span class="as-badge as-badge--accent">Flagship</span>' : '') + '</h2>' +
+            '<div class="u-text-sm as-muted">' + A.escapeHtml(m.tagline) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="as-row" style="gap:.4rem;justify-content:flex-end">' +
+          (m.tierBadge ? '<span class="as-badge as-badge--' + m.tierBadge.tone + '"' +
+            (m.sellable ? ' data-as-tip="The lowest plan that includes this module." tabindex="0"' : '') + '>' +
+            A.escapeHtml(m.tierBadge.label) + '</span>' : '') +
+          '<span class="as-badge as-badge--' + m.badge.tone + '" data-as-tip="' +
+            A.escapeHtml(m.badge.note) + '" tabindex="0">' + A.escapeHtml(m.badge.label) + '</span>' +
+        '</div>' +
+      '</div>' +
+
+      '<p class="u-text-sm u-mb-6" style="max-width:70ch">' + A.escapeHtml(m.summary) + '</p>' +
+
+      '<ul class="as-list u-mb-6">' + m.points.map(function (p) {
+        var no = m.status === 'planned';
+        return '<li class="as-list__item' + (no ? ' as-list__item--no' : '') + '">' +
+          A.icon(no ? 'minus' : 'check') + '<span>' + A.escapeHtml(p) + '</span></li>';
+      }).join('') + '</ul>' +
+
+      (m.caveat
+        ? '<div class="as-note ' + (m.status === 'planned' ? 'as-note--warn' : '') + ' u-text-sm">' +
+            A.icon(m.status === 'planned' ? 'alert' : 'info') +
+            '<div><strong>Worth knowing.</strong> ' + A.escapeHtml(m.caveat) + '</div></div>'
+        : '') +
+
+      (m.metered
+        ? '<p class="u-text-xs as-muted u-mt-4">Uses metered ' +
+            (m.metered === 'egress' ? 'streaming bandwidth' : 'AI credit') +
+            ' on top of the plan. <a href="pricing.html#metered">How metering works →</a></p>'
+        : '') +
+    '</article>';
+  }).join('');
+
+  /* ---- filters ---- */
+  var counts = { all: M.modules.length, shipped: 0, dark: 0, planned: 0, partial: 0 };
+  M.modules.forEach(function (m) { counts[m.status] = (counts[m.status] || 0) + 1; });
+  ['all', 'shipped', 'dark', 'planned'].forEach(function (k) {
+    var n = document.getElementById('count-' + k);
+    if (n) n.textContent = '(' + counts[k] + ')';
+  });
+
+  var status = document.getElementById('filter-status');
+  A.on('click', '#filters .as-chip', function (ev, btn) {
+    var want = btn.getAttribute('data-filter');
+    A.$$('#filters .as-chip').forEach(function (c) {
+      var on = c === btn;
+      c.classList.toggle('is-active', on);
+      c.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    var shown = 0;
+    A.$$('#module-sections > article').forEach(function (card) {
+      var match = want === 'all' || card.getAttribute('data-status') === want;
+      card.hidden = !match;
+      if (match) shown++;
+    });
+    A.$$('#module-index .as-sidebar__item').forEach(function (item) {
+      var id = item.getAttribute('data-index-for');
+      var card = document.getElementById(id);
+      item.hidden = !!(card && card.hidden);
+    });
+    status.textContent = 'Showing ' + shown + ' of ' + counts.all + ' modules';
+  });
+  status.textContent = 'Showing ' + counts.all + ' of ' + counts.all + ' modules';
+
+  /* ---- highlight the index entry for whatever is on screen ---- */
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        A.$$('#module-index .as-sidebar__item').forEach(function (i) { i.classList.remove('is-active'); });
+        var item = A.$('#module-index [data-index-for="' + e.target.id + '"]');
+        if (item) item.classList.add('is-active');
+      });
+    }, { rootMargin: '-25% 0px -60% 0px' });
+    A.$$('#module-sections > article').forEach(function (a) { io.observe(a); });
+  }
+
+  /* ---- not built ---- */
+  document.getElementById('notbuilt-rows').innerHTML = M.notBuilt.map(function (f) {
+    var partial = /Partial/.test(f.note);
+    return '<tr><th scope="row" style="color:var(--as-text-1);font-weight:600">' + A.escapeHtml(f.name) + '</th>' +
+      '<td><span class="as-badge ' + (partial ? 'as-badge--warn' : 'as-badge--plain') + '">' +
+      (partial ? 'Partial' : 'Not built') + '</span> <span class="u-text-sm as-muted">' +
+      A.escapeHtml(f.note.replace(/^Partial — /, '')) + '</span></td></tr>';
+  }).join('');
+
+  /* ---- deployment ---- */
+  document.getElementById('deploy-rule').textContent = M.deployment.rule;
+  document.getElementById('split-rows').innerHTML = M.deployment.split.map(function (r) {
+    return '<tr><th scope="row" style="color:var(--as-text-1);font-weight:600">' + A.escapeHtml(r.component) +
+      '</th><td>' + A.escapeHtml(r.self) + '</td><td>' + A.escapeHtml(r.cloud) + '</td></tr>';
+  }).join('');
+
+  A.mount(document);
+})();
+</script>
+</body>
+</html>

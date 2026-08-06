@@ -1,0 +1,53 @@
+# Deploy the Asbern site to GitHub Pages.
+#
+# There is no build step by design — the site is hand-authored HTML/CSS/JS with
+# no dependencies, no bundler and no CDN, so "build" is "upload the directory".
+# That is also why this workflow needs no secrets: the built-in GITHUB_TOKEN is
+# enough to publish to this repo's own Pages.
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race; queue instead of cancelling, so a push during a
+# deploy still ships rather than being silently dropped.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # A cheap gate that catches the one failure this site can actually have:
+      # a page that references an asset that is not there. It has no tests of
+      # its own, so this is the whole of CI.
+      - name: Every referenced local asset exists
+        run: |
+          fail=0
+          for f in *.html; do
+            for ref in $(grep -oE '(href|src)="[^"#:]+"' "$f" | sed -E 's/.*="([^"]+)"/\1/'); do
+              case "$ref" in http*|//*|mailto:*|"") continue ;; esac
+              if [ ! -e "$ref" ]; then echo "::error file=$f::missing asset $ref"; fail=1; fi
+            done
+          done
+          exit $fail
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Terms of service — Asbern</title>
+<meta name="description" content="The terms you agree to by adding Asbern to a Discord server or using it in one: who is responsible for what, acceptable use, the virtual currency, and the limits of the guarantee.">
+<meta name="color-scheme" content="dark light">
+<script>
+(function(){try{var p=localStorage.getItem('asbern.theme')||'system';
+var r=p==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):p;
+document.documentElement.setAttribute('data-theme',r);
+document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
+</script>
+<link rel="stylesheet" href="assets/asbern.css">
+</head>
+<body>
+
+<a class="as-btn as-btn--secondary as-skip" href="#main">Skip to content</a>
+
+<header class="as-nav">
+  <div class="as-nav__inner">
+    <a class="as-wordmark" href="index.html" aria-label="Asbern — home">
+      <svg class="as-mark" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+      </svg>
+      Asbern
+    </a>
+    <nav class="as-nav__links" aria-label="Primary">
+      <a class="as-nav__link" href="screening.html">Screening Room</a>
+      <a class="as-nav__link" href="features.html">Modules</a>
+      <a class="as-nav__link" href="pricing.html">Pricing</a>
+    </nav>
+    <div class="as-nav__actions">
+      <button class="as-btn as-btn--ghost as-btn--icon" data-as-theme-toggle type="button" aria-label="Switch theme"></button>
+      <a class="as-btn as-btn--secondary as-btn--sm u-desktop-only" href="dashboard.html">Dashboard</a>
+      <a class="as-btn as-btn--primary as-btn--sm as-nav__cta" href="install.html">
+        <span data-as-icon="discord"></span> Add to Discord
+      </a>
+      <button class="as-btn as-btn--ghost as-btn--icon as-nav__burger" type="button"
+              data-as-drawer="#nav-drawer" aria-expanded="false" aria-controls="nav-drawer"
+              aria-label="Open menu" data-as-icon="menu"></button>
+    </div>
+  </div>
+</header>
+<div class="as-drawer" id="nav-drawer" data-as-drawer-panel hidden>
+  <a href="screening.html">Screening Room</a>
+  <a href="features.html">Modules</a>
+  <a href="pricing.html">Pricing</a>
+  <a href="dashboard.html">Dashboard</a>
+  <a class="as-btn as-btn--primary u-mt-2" href="install.html">Add to Discord</a>
+</div>
+
+<main id="main">
+
+<section class="as-section as-section--tight">
+  <div class="as-container as-container--narrow">
+    <span class="as-eyebrow">Legal</span>
+    <h1 class="as-display as-display--xl u-mt-2">Terms of service</h1>
+
+    <div class="as-note as-note--warn u-mt-6">
+      <span data-as-icon="alert"></span>
+      <span>
+        <strong>This is a DRAFT and is not yet in force.</strong> It is published here so it can be reviewed,
+        not relied on. Every <span class="as-chip as-chip--todo">placeholder</span> below still needs a real value —
+        including the governing jurisdiction, which is not a detail — and the whole document needs a
+        qualified legal review before any money changes hands. Nothing on this page has been reviewed by a
+        lawyer.
+      </span>
+    </div>
+
+    <p class="u-text-sm as-muted u-mt-4">
+      Last updated: <strong>not yet in force</strong> · Source: <code>docs/_platform/DISCORD-VERIFICATION-DRAFT.md</code> §5
+    </p>
+  </div>
+</section>
+
+<section class="as-section as-section--tight">
+  <div class="as-container">
+    <div class="as-split as-split--aside-left">
+
+      <nav class="as-sticky" aria-label="On this page">
+        <div class="as-footer__title">On this page</div>
+        <div class="as-footer__links">
+          <a href="#agreement">1. Agreement</a>
+          <a href="#what">2. What the Bot is</a>
+          <a href="#responsible">3. Who is responsible</a>
+          <a href="#use">4. Acceptable use</a>
+          <a href="#currency">5. Currency and games</a>
+          <a href="#media">6. Media and third parties</a>
+          <a href="#ai">7. The AI companion</a>
+          <a href="#availability">8. Availability</a>
+          <a href="#warranty">9. No warranty</a>
+          <a href="#liability">10. Liability</a>
+          <a href="#termination">11. Termination</a>
+          <a href="#changes">12. Changes</a>
+          <a href="#law">13. Governing law</a>
+          <a href="#contact">14. Contact</a>
+        </div>
+        <div class="as-footer__title u-mt-8">Also</div>
+        <div class="as-footer__links">
+          <a href="privacy.html">Privacy policy</a>
+        </div>
+      </nav>
+
+      <div class="as-stack--6" style="display:flex;flex-direction:column;gap:1.5rem;max-width:75ch">
+
+        <div id="agreement" style="scroll-margin-top:5rem">
+          <h2>1. Agreement</h2>
+          <p>
+            By adding Asbern (“the Bot”) to a Discord server, or by using it in a server where it is installed,
+            you agree to these terms. If you do not agree, do not use the Bot. These terms are between you and
+            <span class="as-chip as-chip--todo">legal or trading name</span>&nbsp;(“we”, “us”).
+          </p>
+          <p>
+            You must also comply with Discord’s own Terms of Service and Community Guidelines. Nothing here
+            overrides them.
+          </p>
+        </div>
+
+        <div id="what" style="scroll-margin-top:5rem">
+          <h2>2. What the Bot is</h2>
+          <p>
+            The Bot is community-management software for Discord servers, designed to be run by a server owner
+            on their own hardware. It provides activity levels, an in-server virtual economy and games, a shared
+            watch-party feature for media the server owner already possesses, game-server controls, statistics,
+            an administrative console, and an optional voice AI companion.
+          </p>
+        </div>
+
+        <div id="responsible" style="scroll-margin-top:5rem">
+          <h2>3. Who is responsible for what</h2>
+          <ul class="as-list u-text-sm">
+            <li class="as-list__item"><span data-as-icon="check"></span><span><strong>The server owner</strong> installs and runs the Bot, chooses which features are on, configures which channels it uses, holds the data it stores, and is responsible for how it is used in their server.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span><strong>We</strong> provide the software.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span><strong>You</strong> are responsible for your own conduct in the server.</span></li>
+          </ul>
+        </div>
+
+        <div id="use" style="scroll-margin-top:5rem">
+          <h2>4. Acceptable use</h2>
+          <p>You may not:</p>
+          <ul class="as-list u-text-sm">
+            <li class="as-list__item as-list__item--no"><span data-as-icon="x"></span><span>use the Bot to break Discord’s Terms of Service, Community Guidelines, or any law that applies to you;</span></li>
+            <li class="as-list__item as-list__item--no"><span data-as-icon="x"></span><span>attempt to exploit, manipulate or automate the economy or games, including with alternate accounts, scripts, or by abusing a bug rather than reporting it;</span></li>
+            <li class="as-list__item as-list__item--no"><span data-as-icon="x"></span><span>attempt to gain administrative access to the Bot or the machine it runs on;</span></li>
+            <li class="as-list__item as-list__item--no"><span data-as-icon="x"></span><span>interfere with the Bot’s operation for other members, including by flooding, spamming or deliberately triggering rate limits;</span></li>
+            <li class="as-list__item as-list__item--no"><span data-as-icon="x"></span><span>use the Bot’s watch-party feature with material you do not have the right to play to the people you are playing it to.</span></li>
+          </ul>
+          <p>
+            We or the server owner may restrict or remove your access at any time for breaching these terms.
+          </p>
+        </div>
+
+        <div id="currency" style="scroll-margin-top:5rem">
+          <h2>5. The virtual currency and the games</h2>
+          <p>
+            The Bot’s currency and casino games are <strong>entertainment features inside a Discord server</strong>.
+            Specifically, and without exception:
+          </p>
+          <ul class="as-list u-text-sm">
+            <li class="as-list__item"><span data-as-icon="minus"></span><span>The currency has <strong>no real-world value</strong>.</span></li>
+            <li class="as-list__item"><span data-as-icon="minus"></span><span>It <strong>cannot be purchased</strong> with real money.</span></li>
+            <li class="as-list__item"><span data-as-icon="minus"></span><span>It <strong>cannot be exchanged, redeemed, cashed out or transferred</strong> for anything of real-world value.</span></li>
+            <li class="as-list__item"><span data-as-icon="minus"></span><span>It is <strong>not</strong> a security, a token, a deposit or a payment instrument.</span></li>
+            <li class="as-list__item"><span data-as-icon="minus"></span><span>Balances, items and progress may be adjusted, reset or lost as a result of bugs, moderation, data loss or changes to the Bot, and <strong>no compensation of any kind is owed</strong> if that happens.</span></li>
+          </ul>
+          <p>
+            The games are games of chance for entertainment only and are not gambling services.
+          </p>
+          <div class="as-note as-note--frost u-mt-4">
+            <span data-as-icon="info"></span>
+            <span>This is the same rule the product page states and the code enforces: a subscription buys
+            <em>access to features</em>. It never grants currency, alters a balance or changes odds.</span>
+          </div>
+        </div>
+
+        <div id="media" style="scroll-margin-top:5rem">
+          <h2>6. Media, game servers and third-party services</h2>
+          <ul class="as-list u-text-sm">
+            <li class="as-list__item"><span data-as-icon="minus"></span><span>The Bot’s screening-room feature plays media from a media library the server owner already operates. <strong>We do not supply, host, index, distribute or help acquire any media</strong>, and the Bot is deliberately not connected to any download or acquisition tooling. What is played, and whether it may lawfully be played to that audience, is entirely the server owner’s responsibility.</span></li>
+            <li class="as-list__item"><span data-as-icon="minus"></span><span>The Bot can start and stop game servers on the operator’s own machine. Those games are governed by their own publishers’ terms.</span></li>
+            <li class="as-list__item"><span data-as-icon="minus"></span><span>The Bot can talk to third-party services the operator configures — for example a media server, a statistics provider, or an AI provider. Those services have their own terms, and we are not responsible for them.</span></li>
+          </ul>
+        </div>
+
+        <div id="ai" style="scroll-margin-top:5rem">
+          <h2>7. The AI companion</h2>
+          <p>
+            The optional AI companion is off by default. When a server owner turns it on and adds you to its
+            allow-list:
+          </p>
+          <ul class="as-list u-text-sm">
+            <li class="as-list__item"><span data-as-icon="minus"></span><span>Its output is generated by a language model and <strong>may be wrong, inappropriate or nonsensical</strong>. Do not rely on it for anything that matters.</span></li>
+            <li class="as-list__item"><span data-as-icon="minus"></span><span>Its replies are not advice of any kind.</span></li>
+            <li class="as-list__item"><span data-as-icon="minus"></span><span>You can mute it, opt out of profiling, and delete everything it holds about you, at any time, from the Bot’s menu.</span></li>
+          </ul>
+        </div>
+
+        <div id="availability" style="scroll-margin-top:5rem">
+          <h2>8. Availability</h2>
+          <p>
+            The Bot is provided <strong>as is</strong> and <strong>as available</strong>. Because it is
+            self-hosted, it is online only when the machine running it is online. We do not guarantee
+            availability, uptime, data preservation or that any feature will continue to exist.
+          </p>
+        </div>
+
+        <div id="warranty" style="scroll-margin-top:5rem">
+          <h2>9. No warranty</h2>
+          <p>
+            To the maximum extent the law allows, the Bot is provided without warranties of any kind, express
+            or implied, including merchantability, fitness for a particular purpose and non-infringement.
+          </p>
+        </div>
+
+        <div id="liability" style="scroll-margin-top:5rem">
+          <h2>10. Limitation of liability</h2>
+          <p>
+            To the maximum extent the law allows, we are not liable for any indirect, incidental, special,
+            consequential or exemplary damages, or for any loss of data, progress, virtual currency, profits, or
+            server availability, arising from your use of the Bot.
+          </p>
+          <div class="as-note as-note--warn u-mt-4">
+            <span data-as-icon="alert"></span>
+            <span><span class="as-chip as-chip--todo">Outstanding.</span> If a paid subscription is introduced — which is the
+            plan — this section needs a liability cap and a lawyer’s review before the first payment is taken.
+            Shipping a paid product under an uncapped clause is not a rounding error.</span>
+          </div>
+        </div>
+
+        <div id="termination" style="scroll-margin-top:5rem">
+          <h2>11. Termination</h2>
+          <p>
+            You may stop using the Bot at any time. A server owner may remove it at any time. We may discontinue
+            the Bot, or any feature of it, at any time.
+          </p>
+        </div>
+
+        <div id="changes" style="scroll-margin-top:5rem">
+          <h2>12. Changes to these terms</h2>
+          <p>
+            We may update these terms. The “last updated” date will change, and material changes will be
+            announced through <span class="as-chip as-chip--todo">where</span>. Continuing to use the Bot after a change means
+            you accept it.
+          </p>
+        </div>
+
+        <div id="law" style="scroll-margin-top:5rem">
+          <h2>13. Governing law</h2>
+          <p><span class="as-chip as-chip--todo">jurisdiction — must be supplied before this document is in force</span></p>
+        </div>
+
+        <div id="contact" style="scroll-margin-top:5rem">
+          <h2>14. Contact</h2>
+          <p><span class="as-chip as-chip--todo">contact email on a domain we control</span></p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="as-footer">
+  <div class="as-container">
+    <div class="as-footer__grid">
+      <div class="as-footer__brand" style="display:flex;flex-direction:column;gap:.75rem">
+        <a class="as-wordmark" href="index.html">
+          <svg class="as-mark" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+          </svg>
+          Asbern
+        </a>
+        <p class="u-text-xs as-muted">
+          Old Norse <em>Ásbjǫrn</em> — “god-bear”. The mark is a bind-rune: one stave, Ansuz on the left,
+          Bjarkan on the right.
+        </p>
+      </div>
+      <div>
+        <div class="as-footer__title">Product</div>
+        <div class="as-footer__links">
+          <a href="screening.html">Screening Room</a>
+          <a href="features.html">All modules</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="install.html">Add to Discord</a>
+          <a href="features.html#deployment">Self-hosting</a>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Developers</div>
+        <div class="as-footer__links">
+          <a href="dashboard.html">Dashboard preview</a>
+          <a href="bridge.html">Bridge agent</a>
+          <span class="as-footer__soon">Documentation <span class="as-badge as-badge--plain">Soon</span></span>
+          <span class="as-footer__soon">Status <span class="as-badge as-badge--plain">Soon</span></span>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Company</div>
+        <div class="as-footer__links">
+          <span class="as-footer__soon">Support server <span class="as-badge as-badge--plain">Soon</span></span>
+          <span class="as-footer__soon">Contact <span class="as-badge as-badge--plain">Soon</span></span>
+          <a href="features.html#roadmap">Roadmap</a>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Legal</div>
+        <div class="as-footer__links">
+          <a href="privacy.html">Privacy policy <span class="as-badge as-badge--warn">Draft</span></a>
+          <a href="terms.html" aria-current="page">Terms of service <span class="as-badge as-badge--warn">Draft</span></a>
+          <a href="privacy.html#retention">Data &amp; retention</a>
+        </div>
+      </div>
+    </div>
+    <div class="as-footer__bottom">
+      <span>© <span data-as-year></span> Asbern. Not affiliated with Discord Inc.</span>
+      <span>This site is a preview. The two legal documents are drafts and are not yet in force.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/asbern.js"></script>
+</body>
+</html>

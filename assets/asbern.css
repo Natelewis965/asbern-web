@@ -1,0 +1,1914 @@
+/* =============================================================================
+   ASBERN DESIGN SYSTEM
+   assets/asbern.css  ·  hand-authored, zero dependencies, zero build step
+   =============================================================================
+
+   VISUAL DIRECTION — "cold stone, forge-light"
+   -----------------------------------------------------------------------------
+   Asbern is Old Norse Ásbjǫrn, "god-bear". The surfaces are weathered basalt:
+   near-black with a blue undertone, never neutral grey and never purple. The
+   accent is burnished brass — the only warm thing on the page, so it always
+   means "act here". A second cold accent (frost, a glacial steel blue) is
+   reserved for LIVE / streaming state so it can never be confused with a call
+   to action. Display type is a serif; UI type is the system sans. That pairing
+   is the whole identity and it costs zero network requests.
+
+   NAMING CONVENTION — read this before adding anything
+   -----------------------------------------------------------------------------
+   Tokens      --as-<category>-<role>[-<variant>]      --as-surface-2, --as-text-1
+   Blocks      .as-<block>                             .as-card
+   Elements    .as-<block>__<element>                  .as-card__header
+   Modifiers   .as-<block>--<modifier>                 .as-btn--primary
+   State       .is-<state> / aria-* / [data-state]     .is-active, aria-selected
+   Utilities   .u-<property>-<value>                   .u-mt-6, .u-text-center
+   JS hooks    data-as-<behaviour>                     data-as-modal="id"
+
+   Never style a `data-as-*` attribute and never hook JS onto a `.as-*` class.
+   The two vocabularies stay separate so a redesign cannot break behaviour and a
+   behaviour change cannot break the look.
+
+   SURFACE LADDER — the numbers mean ELEVATION, not lightness
+   -----------------------------------------------------------------------------
+   --as-bg         the page canvas
+   --as-surface-1  a card or panel resting on the canvas
+   --as-surface-2  raised — hover, dropdown, popover
+   --as-surface-3  overlay — modal, tooltip
+   --as-sunken     inset — table heads, wells, code, input interiors
+   Elevation always increases contrast against the canvas, in both themes.
+
+   THEMING
+   -----------------------------------------------------------------------------
+   Dark is the default (:root). Light arrives two ways and BOTH must exist:
+     · @media (prefers-color-scheme: light) — for a visitor with no stored choice
+                                              and, importantly, with JS disabled
+     · :root[data-theme="light"]            — the explicit toggle, persisted
+   ⚠ The light palette is therefore written TWICE. They must stay identical.
+     Search for "LIGHT PALETTE" — there are exactly two copies and they are
+     adjacent so a diff catches drift.
+
+   CONTENTS
+     1  Tokens — palette, type, space, radius, shadow, motion, z-index
+     2  Reset
+     3  Base + typography
+     4  Layout — container, section, grid, stack, shell
+     5  Components
+     6  Utilities
+     7  Motion & reduced motion
+   ========================================================================== */
+
+
+/* ==========================================================================
+   1 · TOKENS
+   ========================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* -- DARK PALETTE (default) --------------------------------------------- */
+  --as-bg:              #0b0e12;
+  --as-bg-elev:         #0e1218;
+  --as-surface-1:       #12171e;
+  --as-surface-2:       #1a212a;
+  --as-surface-3:       #222b36;
+  --as-sunken:          #080b0f;
+
+  --as-border:          #262e39;
+  --as-border-strong:   #384454;
+  --as-border-soft:     #1b222b;
+
+  --as-text-1:          #eef1f5;   /* headings, primary copy            */
+  --as-text-2:          #a4afbe;   /* body, secondary                   */
+  /* ⚠ RAISED FOR CONTRAST, 2026-08-05. Was #6b7889 (dark) / #7c8593 (light),
+     which measured 3.61:1 on --as-surface-2 in dark and 3.00:1 on --as-sunken
+     in light — both below WCAG AA's 4.5:1, and this token carries real copy at
+     11–13px: every stat note, every caption, the footer, the "Soon" labels and
+     now the member-surface legal links. The 3:1 large-text exemption does not
+     apply to any of them. New values are the minimum shift that clears 4.5:1
+     on the WORST surface in each theme (dark 4.62 on --as-surface-2, light 4.59
+     on --as-sunken) and they remain a clear step below --as-text-2.
+     ⚠ Every other token already passed and none were touched. If you re-tune
+     the palette, re-measure this one against --as-surface-2 (dark) and
+     --as-sunken (light) — not against --as-bg, which flatters it by ~1.2. */
+  --as-text-3:          #7d8a9b;   /* captions, disabled, placeholders  */
+  --as-text-inverse:    #0b0e12;
+
+  --as-accent:          #d2a75c;   /* burnished brass — the ONLY warm ui colour */
+  --as-accent-hi:       #e9c07c;
+  --as-accent-lo:       #9d7a3f;
+  --as-accent-ink:      #17120a;   /* text on an accent fill            */
+  --as-accent-soft:     rgba(210, 167, 92, 0.13);
+  --as-accent-line:     rgba(210, 167, 92, 0.32);
+
+  --as-frost:           #79aec8;   /* live / streaming / informational  */
+  --as-frost-soft:      rgba(121, 174, 200, 0.13);
+  --as-frost-line:      rgba(121, 174, 200, 0.32);
+
+  --as-success:         #6fba8b;
+  --as-success-soft:    rgba(111, 186, 139, 0.13);
+  --as-warn:            #e2913f;
+  --as-warn-soft:       rgba(226, 145, 63, 0.13);
+  /* ⚠ MEASURED AGAINST surface-3, NOT surface-2. The audit that raised the other
+     tokens measured dark text against --as-surface-2, but --as-surface-3 is the
+     LIGHTER of the two, so it is the worst case and danger failed there at 4.29:1
+     while passing everywhere it was checked. Raised to 5.13:1 against surface-3,
+     which is the real floor. Found by the Android audit, which ported these exact
+     values and re-derived the contrast from scratch instead of trusting them. */
+  --as-danger:          #ea7a72;
+  --as-danger-soft:     rgba(226, 102, 94, 0.13);
+
+  --as-focus:           #e9c07c;
+  --as-hairline:        inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  --as-scrim:           rgba(4, 6, 9, 0.72);
+
+  --as-shadow-sm:  0 1px 2px rgba(0, 0, 0, .5);
+  --as-shadow-md:  0 4px 14px -4px rgba(0, 0, 0, .62);
+  --as-shadow-lg:  0 18px 44px -14px rgba(0, 0, 0, .74);
+  --as-shadow-xl:  0 36px 90px -28px rgba(0, 0, 0, .82);
+  --as-shadow-glow: 0 0 0 1px var(--as-accent-line), 0 10px 34px -12px rgba(210, 167, 92, .34);
+
+  /* -- TYPE --------------------------------------------------------------- */
+  --as-font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI Variable Text",
+                  "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --as-font-display: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino,
+                     Georgia, "Times New Roman", serif;
+  --as-font-mono: ui-monospace, SFMono-Regular, "Cascadia Mono", "Consolas",
+                  "Liberation Mono", Menlo, monospace;
+
+  --as-text-2xs:  0.6875rem;  /* 11 */
+  --as-text-xs:   0.75rem;    /* 12 */
+  --as-text-sm:   0.8125rem;  /* 13 */
+  --as-text-base: 0.9375rem;  /* 15 */
+  --as-text-md:   1.0625rem;  /* 17 */
+  --as-text-lg:   1.25rem;    /* 20 */
+  --as-text-xl:   1.5rem;     /* 24 */
+  --as-text-2xl:  1.875rem;   /* 30 */
+  --as-text-3xl:  2.375rem;   /* 38 */
+  --as-text-4xl:  clamp(2.4rem, 1.6rem + 3.4vw, 3.9rem);
+
+  --as-leading-tight: 1.14;
+  --as-leading-snug:  1.35;
+  --as-leading-body:  1.62;
+
+  --as-tracking-tight: -0.018em;
+  --as-tracking-wide:   0.02em;
+  --as-tracking-caps:   0.13em;
+
+  /* -- SPACE (4px base) ---------------------------------------------------- */
+  --as-space-1:  0.25rem;
+  --as-space-2:  0.5rem;
+  --as-space-3:  0.75rem;
+  --as-space-4:  1rem;
+  --as-space-5:  1.25rem;
+  --as-space-6:  1.5rem;
+  --as-space-8:  2rem;
+  --as-space-10: 2.5rem;
+  --as-space-12: 3rem;
+  --as-space-16: 4rem;
+  --as-space-20: 5rem;
+  --as-space-24: 6rem;
+
+  /* -- SHAPE --------------------------------------------------------------- */
+  --as-radius-xs:   4px;
+  --as-radius-sm:   6px;
+  --as-radius-md:  10px;
+  --as-radius-lg:  14px;
+  --as-radius-xl:  20px;
+  --as-radius-full: 999px;
+
+  /* -- MOTION -------------------------------------------------------------- */
+  --as-ease:      cubic-bezier(0.2, 0.6, 0.2, 1);
+  --as-ease-out:  cubic-bezier(0.16, 1, 0.3, 1);
+  --as-dur-fast:  120ms;
+  --as-dur-base:  190ms;
+  --as-dur-slow:  340ms;
+
+  /* -- LAYERS -------------------------------------------------------------- */
+  --as-z-base:    1;
+  --as-z-sticky:  100;
+  --as-z-nav:     200;
+  --as-z-drawer:  300;
+  --as-z-modal:   400;
+  --as-z-toast:   500;
+  --as-z-tooltip: 600;
+
+  /* -- LAYOUT -------------------------------------------------------------- */
+  --as-container: 1180px;
+  --as-container-narrow: 780px;
+  --as-nav-h: 62px;
+  --as-gutter: clamp(1rem, 4vw, 2.5rem);
+  /* The height of a consumer's fixed BOTTOM bar (a phone tab bar), so anything
+     anchored to the bottom of the viewport — today just .as-toasts — can lift
+     itself clear without that consumer overriding the system rule outright.
+     Zero here because the system itself has no bottom bar; a consumer that adds
+     one sets this on :root (scoped to the width where its bar exists) instead
+     of re-declaring .as-toasts's position. */
+  --as-tabbar-h: 0px;
+}
+
+/* ---- LIGHT PALETTE · copy 1 of 2 — explicit toggle ---------------------- */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --as-bg:              #f3f1ec;   /* warm vellum, not blue-white */
+  --as-bg-elev:         #f7f5f1;
+  --as-surface-1:       #fcfbf9;
+  --as-surface-2:       #ffffff;
+  --as-surface-3:       #ffffff;
+  --as-sunken:          #eae6de;
+
+  --as-border:          #ddd7cb;
+  --as-border-strong:   #bdb4a3;
+  --as-border-soft:     #e8e3d9;
+
+  --as-text-1:          #16191e;
+  --as-text-2:          #4b545f;
+  --as-text-3:          #5e6775;
+  --as-text-inverse:    #fcfbf9;
+
+  --as-accent:          #8a5d18;
+  --as-accent-hi:       #6d4810;
+  --as-accent-lo:       #b08a44;
+  --as-accent-ink:      #fffaf1;
+  --as-accent-soft:     rgba(138, 93, 24, 0.10);
+  --as-accent-line:     rgba(138, 93, 24, 0.28);
+
+  --as-frost:           #26647f;
+  --as-frost-soft:      rgba(38, 100, 127, 0.10);
+  --as-frost-line:      rgba(38, 100, 127, 0.26);
+
+  --as-success:         #257449;
+  --as-success-soft:    rgba(43, 122, 79, 0.11);
+  --as-warn:            #97540d;
+  --as-warn-soft:       rgba(151, 84, 13, 0.11);
+  --as-danger:          #af3830;
+  --as-danger-soft:     rgba(175, 56, 48, 0.11);
+
+  --as-focus:           #8a5d18;
+  --as-hairline:        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --as-scrim:           rgba(30, 26, 20, 0.42);
+
+  --as-shadow-sm:  0 1px 2px rgba(60, 50, 34, .10);
+  --as-shadow-md:  0 4px 14px -4px rgba(60, 50, 34, .16);
+  --as-shadow-lg:  0 18px 44px -16px rgba(60, 50, 34, .22);
+  --as-shadow-xl:  0 36px 90px -30px rgba(60, 50, 34, .28);
+  --as-shadow-glow: 0 0 0 1px var(--as-accent-line), 0 10px 30px -14px rgba(138, 93, 24, .38);
+}
+
+/* ---- LIGHT PALETTE · copy 2 of 2 — system preference, no stored choice ---
+   ⚠ MUST BE IDENTICAL TO COPY 1. CSS cannot share a declaration block across a
+   media-query boundary, and this fallback has to work with JavaScript off.    */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+
+    --as-bg:              #f3f1ec;
+    --as-bg-elev:         #f7f5f1;
+    --as-surface-1:       #fcfbf9;
+    --as-surface-2:       #ffffff;
+    --as-surface-3:       #ffffff;
+    --as-sunken:          #eae6de;
+
+    --as-border:          #ddd7cb;
+    --as-border-strong:   #bdb4a3;
+    --as-border-soft:     #e8e3d9;
+
+    --as-text-1:          #16191e;
+    --as-text-2:          #4b545f;
+    --as-text-3:          #5e6775;
+    --as-text-inverse:    #fcfbf9;
+
+    --as-accent:          #8a5d18;
+    --as-accent-hi:       #6d4810;
+    --as-accent-lo:       #b08a44;
+    --as-accent-ink:      #fffaf1;
+    --as-accent-soft:     rgba(138, 93, 24, 0.10);
+    --as-accent-line:     rgba(138, 93, 24, 0.28);
+
+    --as-frost:           #26647f;
+    --as-frost-soft:      rgba(38, 100, 127, 0.10);
+    --as-frost-line:      rgba(38, 100, 127, 0.26);
+
+    --as-success:         #257449;
+    --as-success-soft:    rgba(43, 122, 79, 0.11);
+    --as-warn:            #97540d;
+    --as-warn-soft:       rgba(151, 84, 13, 0.11);
+    --as-danger:          #af3830;
+    --as-danger-soft:     rgba(175, 56, 48, 0.11);
+
+    --as-focus:           #8a5d18;
+    --as-hairline:        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    --as-scrim:           rgba(30, 26, 20, 0.42);
+
+    --as-shadow-sm:  0 1px 2px rgba(60, 50, 34, .10);
+    --as-shadow-md:  0 4px 14px -4px rgba(60, 50, 34, .16);
+    --as-shadow-lg:  0 18px 44px -16px rgba(60, 50, 34, .22);
+    --as-shadow-xl:  0 36px 90px -30px rgba(60, 50, 34, .28);
+    --as-shadow-glow: 0 0 0 1px var(--as-accent-line), 0 10px 30px -14px rgba(138, 93, 24, .38);
+  }
+}
+
+
+/* ==========================================================================
+   2 · RESET
+   ========================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--as-nav-h) + var(--as-space-6));
+}
+
+body,
+h1, h2, h3, h4, h5, h6,
+p, figure, blockquote, dl, dd, ul, ol, fieldset, legend { margin: 0; padding: 0; }
+
+ul[class], ol[class] { list-style: none; }
+
+img, svg, video, canvas { display: block; max-width: 100%; }
+img, video { height: auto; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; cursor: pointer; }
+
+table { border-collapse: collapse; border-spacing: 0; width: 100%; }
+
+fieldset { border: 0; min-width: 0; }
+
+hr { border: 0; border-top: 1px solid var(--as-border); margin: var(--as-space-8) 0; }
+
+[hidden] { display: none !important; }
+
+
+/* ==========================================================================
+   3 · BASE + TYPOGRAPHY
+   ========================================================================== */
+
+body {
+  background: var(--as-bg);
+  color: var(--as-text-2);
+  font-family: var(--as-font-sans);
+  font-size: var(--as-text-base);
+  line-height: var(--as-leading-body);
+  min-height: 100dvh;
+  /* ⚠ THIS DOES NOT STOP THE PAGE SCROLLING SIDEWAYS, AND IT NEVER DID.
+     The comment here used to read "the page never scrolls sideways". Measured
+     2026-08-05: with this rule in force, `document.documentElement.scrollLeft
+     = 9999` still moved pricing.html 157px and every member-app page 7px. The
+     scrolling box for these documents is the ROOT element, not <body>, so an
+     `overflow-x` on <body> has nothing to clip. It is kept because it is
+     harmless and does clip a stray descendant of <body> itself — but it is not
+     a safety net, and three real overflow bugs hid behind the belief that it
+     was. Fix overflow at its source; test with `documentElement.scrollLeft`,
+     not by dispatching a wheel event (which reports 0 either way). */
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background-color var(--as-dur-base) var(--as-ease),
+              color var(--as-dur-base) var(--as-ease);
+}
+
+/* A very faint vertical light-fall from the top of the canvas. It is the only
+   gradient in the system and it is almost invisible on purpose. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 60vh;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(90rem 34rem at 50% -12rem, var(--as-accent-soft), transparent 70%);
+  opacity: .8;
+}
+body > * { position: relative; z-index: var(--as-z-base); }
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--as-text-1);
+  font-weight: 600;
+  line-height: var(--as-leading-tight);
+  letter-spacing: var(--as-tracking-tight);
+  text-wrap: balance;
+}
+
+h1 { font-size: var(--as-text-3xl); }
+h2 { font-size: var(--as-text-2xl); }
+h3 { font-size: var(--as-text-xl); }
+h4 { font-size: var(--as-text-lg); }
+h5 { font-size: var(--as-text-md); }
+h6 { font-size: var(--as-text-base); }
+
+/* The serif voice. Used for the wordmark and the big headlines only — it is
+   the identity, and it stops being an identity if it is everywhere. */
+.as-display {
+  font-family: var(--as-font-display);
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  line-height: 1.06;
+}
+.as-display--hero { font-size: var(--as-text-4xl); }
+.as-display--xl   { font-size: var(--as-text-3xl); }
+.as-display--lg   { font-size: var(--as-text-2xl); }
+
+p { text-wrap: pretty; }
+
+a {
+  color: var(--as-accent);
+  text-decoration-color: var(--as-accent-line);
+  text-underline-offset: 0.22em;
+  transition: color var(--as-dur-fast) var(--as-ease);
+}
+a:hover { color: var(--as-accent-hi); }
+
+strong, b { color: var(--as-text-1); font-weight: 600; }
+
+small { font-size: var(--as-text-sm); }
+
+code, kbd, samp, pre { font-family: var(--as-font-mono); font-size: 0.9em; }
+
+.as-lead {
+  font-size: var(--as-text-md);
+  line-height: 1.58;
+  color: var(--as-text-2);
+  max-width: 62ch;
+}
+
+.as-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--as-space-2);
+  font-size: var(--as-text-2xs);
+  font-weight: 650;
+  letter-spacing: var(--as-tracking-caps);
+  text-transform: uppercase;
+  color: var(--as-accent);
+}
+.as-eyebrow--frost { color: var(--as-frost); }
+.as-eyebrow::before {
+  content: "";
+  width: 1.6rem;
+  height: 1px;
+  background: currentColor;
+  opacity: .55;
+}
+
+.as-muted  { color: var(--as-text-3); }
+.as-strong { color: var(--as-text-1); }
+
+/* Focus. One rule, everywhere, and it is always visible. */
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid var(--as-focus);
+  outline-offset: 2px;
+  border-radius: var(--as-radius-xs);
+}
+
+::selection { background: var(--as-accent-soft); color: var(--as-text-1); }
+
+.as-skip {
+  position: absolute;
+  left: var(--as-space-4);
+  top: var(--as-space-4);
+  z-index: var(--as-z-toast);
+  transform: translateY(-200%);
+  transition: transform var(--as-dur-base) var(--as-ease);
+}
+.as-skip:focus-visible { transform: translateY(0); }
+
+.as-visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+
+/* ==========================================================================
+   4 · LAYOUT
+   ========================================================================== */
+
+.as-container {
+  width: 100%;
+  max-width: var(--as-container);
+  margin-inline: auto;
+  padding-inline: var(--as-gutter);
+}
+.as-container--narrow { max-width: var(--as-container-narrow); }
+.as-container--wide   { max-width: 1400px; }
+
+.as-section { padding-block: clamp(3.5rem, 7vw, 6.5rem); }
+.as-section--tight { padding-block: clamp(2.5rem, 4vw, 3.5rem); }
+.as-section--edge  { border-top: 1px solid var(--as-border-soft); }
+.as-section--elev  { background: var(--as-bg-elev); border-block: 1px solid var(--as-border-soft); }
+
+.as-section__head {
+  max-width: 58ch;
+  margin-bottom: var(--as-space-10);
+  display: flex;
+  flex-direction: column;
+  gap: var(--as-space-4);
+}
+.as-section__head--center { margin-inline: auto; text-align: center; align-items: center; }
+
+/* Stack — vertical rhythm without margin collapse arguments. */
+.as-stack { display: flex; flex-direction: column; gap: var(--as-space-4); }
+.as-stack--1 { gap: var(--as-space-1); }
+.as-stack--2 { gap: var(--as-space-2); }
+.as-stack--3 { gap: var(--as-space-3); }
+.as-stack--6 { gap: var(--as-space-6); }
+.as-stack--8 { gap: var(--as-space-8); }
+
+.as-row {
+  display: flex;
+  align-items: center;
+  gap: var(--as-space-3);
+  flex-wrap: wrap;
+}
+.as-row--between { justify-content: space-between; }
+.as-row--end     { justify-content: flex-end; }
+.as-row--center  { justify-content: center; }
+.as-row--top     { align-items: flex-start; }
+.as-row--nowrap  { flex-wrap: nowrap; }
+
+/* Grid — auto-fit so it is responsive without a single media query. */
+.as-grid {
+  display: grid;
+  gap: var(--as-space-5);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+}
+.as-grid--2  { grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }
+.as-grid--4  { grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); }
+.as-grid--gap-6 { gap: var(--as-space-6); }
+
+/* Split — content beside a sticky aside. Collapses under 60rem. */
+.as-split {
+  display: grid;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  /* ⚠ Found in browser verification, same bug as .as-shell__side (§4 above):
+     a grid track's default min-width is `auto`, i.e. its content's min-content
+     size, not 0. At the single-column width this collapses to, that content is
+     screening.html's ASCII bridge diagram — a <pre class="as-code"> whose
+     unbroken monospace lines have a large min-content width — which stretched
+     this track, and everything in it, past the viewport. `.as-code` already
+     has its own `overflow-x: auto`, but a child can only scroll inside a track
+     that itself stopped growing; minmax(0, …) is what stops it. The two-column
+     rule below already uses minmax(0, …) on both tracks — this one collapsed
+     to a bare `1fr` and was the one gap. */
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+@media (min-width: 60rem) {
+  .as-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .as-split--aside-right { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+  .as-split--aside-left  { grid-template-columns: 15rem minmax(0, 1fr); }
+}
+.as-sticky { position: sticky; top: calc(var(--as-nav-h) + var(--as-space-6)); }
+
+/* Shell — the app frame the dashboard and member app will use.
+   .as-shell > .as-shell__side + .as-shell__main                             */
+.as-shell {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: calc(100dvh - var(--as-nav-h));
+}
+@media (min-width: 60rem) {
+  .as-shell { grid-template-columns: 15.5rem minmax(0, 1fr); }
+}
+.as-shell__side {
+  /* A grid item's default min-width is auto, so a wide child (a long control
+     id, a code block, an unbreakable string) stretches this track and the
+     whole page overflows sideways. .as-shell__main already had the guard;
+     the sidebar did not, and it is exactly as reachable by real content. */
+  min-width: 0;
+  border-right: 1px solid var(--as-border-soft);
+  padding: var(--as-space-6) var(--as-space-4);
+}
+.as-shell__main { padding: var(--as-space-6) var(--as-gutter); min-width: 0; }
+
+
+/* ==========================================================================
+   5 · COMPONENTS
+   ========================================================================== */
+
+/* -- 5.1 Brand mark -------------------------------------------------------
+   The mark is a bind-rune: one stave, Ansuz arms (Á) on the left, Bjarkan
+   bows (bjǫrn) on the right. Ás-bjǫrn, drawn once.                          */
+
+.as-mark { color: var(--as-accent); flex: none; }
+.as-mark path { stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+
+.as-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--as-space-3);
+  font-family: var(--as-font-display);
+  font-size: var(--as-text-lg);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--as-text-1);
+  text-decoration: none;
+}
+.as-wordmark:hover { color: var(--as-text-1); }
+.as-wordmark:hover .as-mark { color: var(--as-accent-hi); }
+
+
+/* -- 5.2 Buttons ----------------------------------------------------------
+   .as-btn + one of --primary / --secondary / --ghost / --danger
+            + optional --sm / --lg / --block / --icon                        */
+
+.as-btn {
+  --_btn-bg: transparent;
+  --_btn-fg: var(--as-text-1);
+  --_btn-bd: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--as-space-2);
+  padding: 0.62rem 1.05rem;
+  min-height: 2.5rem;
+  border-radius: var(--as-radius-sm);
+  border: 1px solid var(--_btn-bd);
+  background: var(--_btn-bg);
+  color: var(--_btn-fg);
+  font-size: var(--as-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--as-dur-fast) var(--as-ease),
+              border-color var(--as-dur-fast) var(--as-ease),
+              color var(--as-dur-fast) var(--as-ease),
+              transform var(--as-dur-fast) var(--as-ease),
+              box-shadow var(--as-dur-fast) var(--as-ease);
+}
+.as-btn:active { transform: translateY(1px); }
+.as-btn[disabled], .as-btn[aria-disabled="true"] {
+  opacity: .45; cursor: not-allowed; transform: none; pointer-events: none;
+}
+.as-btn svg { width: 1.05em; height: 1.05em; flex: none; }
+
+.as-btn--primary {
+  --_btn-bg: var(--as-accent);
+  --_btn-fg: var(--as-accent-ink);
+  --_btn-bd: var(--as-accent);
+  box-shadow: var(--as-shadow-sm), var(--as-hairline);
+}
+.as-btn--primary:hover { --_btn-bg: var(--as-accent-hi); --_btn-bd: var(--as-accent-hi); color: var(--as-accent-ink); }
+
+.as-btn--secondary {
+  --_btn-bg: var(--as-surface-2);
+  --_btn-fg: var(--as-text-1);
+  --_btn-bd: var(--as-border-strong);
+  box-shadow: var(--as-hairline);
+}
+.as-btn--secondary:hover { --_btn-bg: var(--as-surface-3); --_btn-bd: var(--as-accent-line); color: var(--as-text-1); }
+
+.as-btn--ghost { --_btn-fg: var(--as-text-2); }
+.as-btn--ghost:hover { --_btn-bg: var(--as-surface-2); --_btn-fg: var(--as-text-1); color: var(--as-text-1); }
+
+.as-btn--danger {
+  --_btn-bg: var(--as-danger-soft);
+  --_btn-fg: var(--as-danger);
+  --_btn-bd: transparent;
+}
+.as-btn--danger:hover { --_btn-bg: var(--as-danger); --_btn-fg: var(--as-text-inverse); color: var(--as-text-inverse); }
+
+.as-btn--sm { padding: 0.4rem 0.7rem; min-height: 2rem; font-size: var(--as-text-xs); border-radius: var(--as-radius-xs); }
+.as-btn--lg { padding: 0.85rem 1.5rem; min-height: 3rem; font-size: var(--as-text-base); }
+.as-btn--block { width: 100%; }
+.as-btn--icon { padding: 0; width: 2.5rem; min-height: 2.5rem; }
+.as-btn--icon.as-btn--sm { width: 2rem; min-height: 2rem; }
+
+
+/* -- 5.3 Card & panel -----------------------------------------------------
+   .as-card is the workhorse. .as-panel is a card with no padding, for things
+   that manage their own interior (tables, players, lists).                  */
+
+.as-card, .as-panel {
+  background: var(--as-surface-1);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-lg);
+  box-shadow: var(--as-shadow-sm), var(--as-hairline);
+  min-width: 0;
+}
+.as-card { padding: var(--as-space-6); }
+.as-panel { overflow: hidden; }
+
+.as-card--flush { padding: 0; }
+.as-card--tight { padding: var(--as-space-4); }
+.as-card--accent { border-color: var(--as-accent-line); box-shadow: var(--as-shadow-glow); }
+.as-card--frost  { border-color: var(--as-frost-line); }
+.as-card--quiet  { background: transparent; box-shadow: none; }
+
+.as-card--link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--as-dur-base) var(--as-ease),
+              transform var(--as-dur-base) var(--as-ease),
+              box-shadow var(--as-dur-base) var(--as-ease),
+              background-color var(--as-dur-base) var(--as-ease);
+}
+.as-card--link:hover {
+  border-color: var(--as-accent-line);
+  background: var(--as-surface-2);
+  transform: translateY(-2px);
+  box-shadow: var(--as-shadow-md), var(--as-hairline);
+  color: inherit;
+}
+
+.as-card__header,
+.as-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--as-space-4);
+  padding: var(--as-space-4) var(--as-space-5);
+  border-bottom: 1px solid var(--as-border-soft);
+  background: var(--as-sunken);
+}
+.as-card__header { margin: calc(var(--as-space-6) * -1) calc(var(--as-space-6) * -1) var(--as-space-5); border-radius: var(--as-radius-lg) var(--as-radius-lg) 0 0; }
+.as-card__title, .as-panel__title {
+  font-size: var(--as-text-sm);
+  font-weight: 650;
+  letter-spacing: var(--as-tracking-wide);
+  text-transform: uppercase;
+  color: var(--as-text-3);
+}
+.as-panel__body { padding: var(--as-space-5); }
+.as-card__footer, .as-panel__footer {
+  padding: var(--as-space-4) var(--as-space-5);
+  border-top: 1px solid var(--as-border-soft);
+  background: var(--as-sunken);
+}
+
+/* An icon plate — the square glyph holder used on module cards. */
+.as-plate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem; height: 2.5rem;
+  flex: none;
+  border-radius: var(--as-radius-sm);
+  border: 1px solid var(--as-border);
+  background: var(--as-surface-2);
+  color: var(--as-accent);
+  box-shadow: var(--as-hairline);
+}
+.as-plate svg { width: 1.15rem; height: 1.15rem; }
+.as-plate--accent { background: var(--as-accent-soft); border-color: var(--as-accent-line); }
+.as-plate--frost  { background: var(--as-frost-soft); border-color: var(--as-frost-line); color: var(--as-frost); }
+.as-plate--lg { width: 3rem; height: 3rem; border-radius: var(--as-radius-md); }
+.as-plate--lg svg { width: 1.4rem; height: 1.4rem; }
+
+
+/* -- 5.4 Badges & pills --------------------------------------------------- */
+
+.as-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.22em 0.62em;
+  border-radius: var(--as-radius-full);
+  border: 1px solid var(--as-border);
+  background: var(--as-surface-2);
+  color: var(--as-text-2);
+  font-size: var(--as-text-2xs);
+  font-weight: 650;
+  letter-spacing: var(--as-tracking-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+.as-badge svg { width: 0.85em; height: 0.85em; }
+.as-badge--accent  { background: var(--as-accent-soft);  border-color: var(--as-accent-line);  color: var(--as-accent); }
+.as-badge--frost   { background: var(--as-frost-soft);   border-color: var(--as-frost-line);   color: var(--as-frost); }
+.as-badge--success { background: var(--as-success-soft); border-color: transparent; color: var(--as-success); }
+.as-badge--warn    { background: var(--as-warn-soft);    border-color: transparent; color: var(--as-warn); }
+.as-badge--danger  { background: var(--as-danger-soft);  border-color: transparent; color: var(--as-danger); }
+.as-badge--plain   { background: transparent; }
+
+/* A live indicator with a breathing dot. */
+.as-badge--live { background: var(--as-frost-soft); border-color: var(--as-frost-line); color: var(--as-frost); }
+.as-dot {
+  width: 0.5em; height: 0.5em;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+  box-shadow: 0 0 0 0 currentColor;
+  animation: as-pulse 2.4s var(--as-ease) infinite;
+}
+@keyframes as-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(121, 174, 200, .55); }
+  70%  { box-shadow: 0 0 0 0.42em rgba(121, 174, 200, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(121, 174, 200, 0); }
+}
+
+/* Chips — filter controls, selectable. */
+.as-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--as-space-2);
+  padding: 0.38rem 0.8rem;
+  border-radius: var(--as-radius-full);
+  border: 1px solid var(--as-border);
+  background: var(--as-surface-1);
+  color: var(--as-text-2);
+  font-size: var(--as-text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--as-dur-fast) var(--as-ease);
+}
+.as-chip:hover { border-color: var(--as-border-strong); color: var(--as-text-1); }
+.as-chip[aria-pressed="true"], .as-chip.is-active {
+  background: var(--as-accent-soft);
+  border-color: var(--as-accent-line);
+  color: var(--as-accent);
+}
+/* The icon registry emits bare SVGs (a viewBox, no width/height), and the reset
+   makes an unsized svg `max-width:100%` — i.e. it fills whatever contains it.
+   Every other component that can hold an icon sizes it per component (.as-btn,
+   .as-badge, .as-plate, .as-note, .as-list__item, .as-empty__icon…); `.as-chip`
+   was the one gap, and a 24px glyph rendered at 40px inside a chip until it was
+   caught in the browser. The fix stays scoped to `.as-chip svg` rather than a
+   blanket `svg { width: 1em }` on purpose: a blanket rule sizes every icon in
+   the system to the same 1em regardless of the component it sits in, silently
+   collapsing .as-btn's 1.05em, .as-plate's 1.15rem, .as-empty__icon's 1.8rem
+   and every other deliberately-chosen size to one value. One rule per
+   component is the existing convention; this restores it rather than breaking
+   it for a shortcut. */
+.as-chip svg { width: 1em; height: 1em; flex: none; }
+
+/* An UNFILLED value inside prose — a legal placeholder, a name nobody has
+   decided yet. Dashed on purpose: it must never be mistakable for a real value
+   at a glance, because the one on the privacy page is the company's own name. */
+.as-chip--todo {
+  border-style: dashed;
+  border-color: var(--as-warn);
+  color: var(--as-warn);
+  background: transparent;
+  padding: 0.1rem 0.5rem;
+  font-weight: 600;
+  text-transform: none;
+  cursor: default;
+}
+.as-chip--todo::before { content: "⟨"; opacity: .6; }
+.as-chip--todo::after  { content: "⟩"; opacity: .6; }
+.as-chip--todo:hover { border-color: var(--as-warn); color: var(--as-warn); }
+
+
+/* -- 5.5 Tables -----------------------------------------------------------
+   ⚠ Always wrap a table in .as-table-wrap. The page must never scroll
+     sideways; the table scrolls inside its own box instead.                  */
+
+.as-table-wrap {
+  overflow-x: auto;
+  /* ⚠ MEASURED BUG, NOT DEFENSIVE STYLING. Without this the pricing page's
+     comparison table pushed the whole document 157px wide at 390px, and the
+     page really did scroll sideways (`documentElement.scrollLeft` accepted the
+     value). `overflow-x: auto` clips the table's PAINT but does not clip an
+     absolutely-positioned descendant, and every `.as-table` carries two —
+     the `.as-visually-hidden` <caption> and the per-cell screen-reader spans.
+     With no positioned ancestor their containing block is the initial
+     containing block, so their layout overflow lands on the ROOT scroll box,
+     ~250px to the right of a table that is itself scrolled inside its wrap.
+     `position: relative` makes the wrap their containing block and the overflow
+     stays where the scrollbar for it is.
+     ⚠ Do not "fix" this by removing the sticky thead — that was the obvious
+     suspect and it is measurably not the cause. */
+  position: relative;
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-lg);
+  background: var(--as-surface-1);
+  box-shadow: var(--as-hairline);
+  -webkit-overflow-scrolling: touch;
+}
+.as-table-wrap > .as-table { border: 0; border-radius: 0; }
+
+.as-table { font-size: var(--as-text-sm); min-width: 34rem; }
+.as-table th, .as-table td {
+  padding: var(--as-space-3) var(--as-space-4);
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--as-border-soft);
+}
+.as-table thead th {
+  background: var(--as-sunken);
+  color: var(--as-text-3);
+  font-size: var(--as-text-2xs);
+  font-weight: 650;
+  letter-spacing: var(--as-tracking-caps);
+  text-transform: uppercase;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+}
+.as-table tbody tr:last-child td { border-bottom: 0; }
+.as-table tbody tr { transition: background-color var(--as-dur-fast) var(--as-ease); }
+.as-table tbody tr:hover { background: var(--as-surface-2); }
+.as-table td.as-num, .as-table th.as-num { text-align: right; font-variant-numeric: tabular-nums; }
+.as-table--compact th, .as-table--compact td { padding: var(--as-space-2) var(--as-space-3); }
+
+
+/* -- 5.6 Forms ------------------------------------------------------------ */
+
+.as-field { display: flex; flex-direction: column; gap: var(--as-space-2); min-width: 0; }
+
+.as-label {
+  font-size: var(--as-text-xs);
+  font-weight: 650;
+  color: var(--as-text-2);
+  letter-spacing: var(--as-tracking-wide);
+}
+.as-hint { font-size: var(--as-text-xs); color: var(--as-text-3); }
+.as-error { font-size: var(--as-text-xs); color: var(--as-danger); font-weight: 600; }
+
+.as-input, .as-select, .as-textarea {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  min-height: 2.5rem;
+  background: var(--as-sunken);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-sm);
+  color: var(--as-text-1);
+  font-size: var(--as-text-sm);
+  transition: border-color var(--as-dur-fast) var(--as-ease),
+              background-color var(--as-dur-fast) var(--as-ease);
+}
+.as-input::placeholder, .as-textarea::placeholder { color: var(--as-text-3); }
+.as-input:hover, .as-select:hover, .as-textarea:hover { border-color: var(--as-border-strong); }
+.as-input:focus-visible, .as-select:focus-visible, .as-textarea:focus-visible {
+  border-color: var(--as-accent);
+  outline: 2px solid var(--as-focus);
+  outline-offset: -1px;
+}
+.as-input[aria-invalid="true"] { border-color: var(--as-danger); }
+.as-textarea { min-height: 6rem; resize: vertical; line-height: 1.55; }
+
+.as-select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 1.05rem) 55%, calc(100% - 0.7rem) 55%;
+  background-size: 0.35rem 0.35rem, 0.35rem 0.35rem;
+  background-repeat: no-repeat;
+  padding-right: 2.2rem;
+  color: var(--as-text-1);
+}
+
+/* Checkbox + radio — real inputs, restyled. */
+.as-check {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--as-space-3);
+  cursor: pointer;
+  font-size: var(--as-text-sm);
+  color: var(--as-text-2);
+}
+.as-check input[type="checkbox"],
+.as-check input[type="radio"] {
+  appearance: none;
+  flex: none;
+  width: 1.15rem; height: 1.15rem;
+  margin-top: 0.16rem;
+  border: 1.5px solid var(--as-border-strong);
+  background: var(--as-sunken);
+  cursor: pointer;
+  transition: all var(--as-dur-fast) var(--as-ease);
+}
+.as-check input[type="checkbox"] { border-radius: var(--as-radius-xs); }
+.as-check input[type="radio"] { border-radius: 50%; }
+.as-check input:hover { border-color: var(--as-accent); }
+.as-check input:checked { background: var(--as-accent); border-color: var(--as-accent); }
+.as-check input[type="checkbox"]:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%2317120a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 80%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+:root[data-theme="light"] .as-check input[type="checkbox"]:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%23fffaf1' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.as-check input[type="radio"]:checked { box-shadow: inset 0 0 0 3.5px var(--as-bg); }
+
+/* Toggle switch. */
+.as-switch { display: inline-flex; align-items: center; gap: var(--as-space-3); cursor: pointer; }
+.as-switch input {
+  appearance: none;
+  position: relative;
+  width: 2.5rem; height: 1.4rem;
+  flex: none;
+  border-radius: var(--as-radius-full);
+  background: var(--as-sunken);
+  border: 1px solid var(--as-border-strong);
+  cursor: pointer;
+  transition: background-color var(--as-dur-base) var(--as-ease),
+              border-color var(--as-dur-base) var(--as-ease);
+}
+.as-switch input::after {
+  content: "";
+  position: absolute;
+  top: 50%; left: 0.16rem;
+  width: 0.95rem; height: 0.95rem;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: var(--as-text-3);
+  transition: transform var(--as-dur-base) var(--as-ease-out),
+              background-color var(--as-dur-base) var(--as-ease);
+}
+.as-switch input:checked { background: var(--as-accent); border-color: var(--as-accent); }
+.as-switch input:checked::after { transform: translate(1.08rem, -50%); background: var(--as-accent-ink); }
+.as-switch__label { font-size: var(--as-text-sm); color: var(--as-text-2); }
+
+/* Segmented control — radios styled as one control. Works with JS off. */
+.as-segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: var(--as-radius-md);
+  border: 1px solid var(--as-border);
+  background: var(--as-sunken);
+  /* ⚠ Every option is `white-space: nowrap`, which is right — a segmented
+     control whose labels wrap stops reading as one control. But four labels
+     ("Online · Degraded · Offline · Unknown" on bridge.html) do not fit a
+     360px phone, and measured, the whole page scrolled 5px sideways because of
+     it. The control scrolls inside itself instead. `max-width: 100%` is the
+     load-bearing half: without it `inline-flex` sizes to content and there is
+     nothing for `overflow-x` to act on. */
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.as-segmented::-webkit-scrollbar { display: none; }
+.as-segmented__opt { position: relative; display: flex; }
+.as-segmented__opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.as-segmented__opt span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--as-space-2);
+  padding: 0.42rem 0.9rem;
+  border-radius: calc(var(--as-radius-md) - 4px);
+  font-size: var(--as-text-xs);
+  font-weight: 650;
+  color: var(--as-text-3);
+  white-space: nowrap;
+  transition: all var(--as-dur-fast) var(--as-ease);
+}
+.as-segmented__opt input:hover + span { color: var(--as-text-1); }
+.as-segmented__opt input:checked + span {
+  background: var(--as-surface-2);
+  color: var(--as-text-1);
+  box-shadow: var(--as-shadow-sm), var(--as-hairline);
+}
+.as-segmented__opt input:focus-visible + span { outline: 2px solid var(--as-focus); outline-offset: 1px; }
+
+/* Range slider. */
+.as-range {
+  appearance: none;
+  width: 100%;
+  height: 1.4rem;
+  background: transparent;
+  cursor: pointer;
+}
+.as-range::-webkit-slider-runnable-track {
+  height: 4px; border-radius: var(--as-radius-full);
+  background: var(--as-border-strong);
+}
+.as-range::-moz-range-track {
+  height: 4px; border-radius: var(--as-radius-full);
+  background: var(--as-border-strong);
+}
+.as-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 1.05rem; height: 1.05rem;
+  margin-top: -0.35rem;
+  border-radius: 50%;
+  background: var(--as-accent);
+  border: 2px solid var(--as-bg);
+  box-shadow: var(--as-shadow-sm);
+}
+.as-range::-moz-range-thumb {
+  width: 1.05rem; height: 1.05rem;
+  border-radius: 50%;
+  background: var(--as-accent);
+  border: 2px solid var(--as-bg);
+}
+.as-range:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--as-focus); outline-offset: 2px; }
+
+
+/* -- 5.7 Tabs ------------------------------------------------------------- */
+
+.as-tabs {
+  display: flex;
+  gap: var(--as-space-1);
+  border-bottom: 1px solid var(--as-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.as-tabs::-webkit-scrollbar { display: none; }
+.as-tab {
+  position: relative;
+  padding: var(--as-space-3) var(--as-space-4);
+  font-size: var(--as-text-sm);
+  font-weight: 600;
+  color: var(--as-text-3);
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color var(--as-dur-fast) var(--as-ease), border-color var(--as-dur-fast) var(--as-ease);
+}
+.as-tab:hover { color: var(--as-text-1); }
+.as-tab[aria-selected="true"] { color: var(--as-accent); border-bottom-color: var(--as-accent); }
+.as-tabpanel { padding-top: var(--as-space-6); }
+.as-tabpanel[hidden] { display: none; }
+
+
+/* -- 5.8 Nav -------------------------------------------------------------- */
+
+.as-nav {
+  position: sticky;
+  top: 0;
+  z-index: var(--as-z-nav);
+  height: var(--as-nav-h);
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid transparent;
+  background: var(--as-bg);                                   /* fallback */
+  background: color-mix(in srgb, var(--as-bg) 82%, transparent);
+  backdrop-filter: saturate(150%) blur(14px);
+  -webkit-backdrop-filter: saturate(150%) blur(14px);
+  transition: border-color var(--as-dur-base) var(--as-ease),
+              background-color var(--as-dur-base) var(--as-ease);
+}
+.as-nav.is-stuck { border-bottom-color: var(--as-border); background: color-mix(in srgb, var(--as-bg) 94%, transparent); }
+.as-nav__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--as-space-6);
+  width: 100%;
+  max-width: var(--as-container);
+  margin-inline: auto;
+  padding-inline: var(--as-gutter);
+}
+.as-nav__links { display: none; align-items: center; gap: var(--as-space-1); margin-right: auto; }
+.as-nav__link {
+  padding: var(--as-space-2) var(--as-space-3);
+  border-radius: var(--as-radius-sm);
+  font-size: var(--as-text-sm);
+  font-weight: 550;
+  color: var(--as-text-2);
+  text-decoration: none;
+  transition: color var(--as-dur-fast) var(--as-ease), background-color var(--as-dur-fast) var(--as-ease);
+}
+.as-nav__link:hover { color: var(--as-text-1); background: var(--as-surface-2); }
+.as-nav__link[aria-current="page"] { color: var(--as-accent); }
+.as-nav__actions { display: flex; align-items: center; gap: var(--as-space-2); margin-left: auto; }
+.as-nav__cta { display: none; }
+
+@media (min-width: 52rem) {
+  .as-nav__links { display: flex; }
+  .as-nav__actions { margin-left: 0; }
+  .as-nav__cta { display: inline-flex; }
+  .as-nav__burger { display: none; }
+}
+
+/* Mobile drawer. */
+.as-drawer {
+  position: fixed;
+  inset: var(--as-nav-h) 0 auto 0;
+  z-index: var(--as-z-drawer);
+  background: var(--as-surface-1);
+  border-bottom: 1px solid var(--as-border);
+  box-shadow: var(--as-shadow-lg);
+  padding: var(--as-space-4) var(--as-gutter) var(--as-space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--as-space-2);
+  transform-origin: top;
+  animation: as-drawer-in var(--as-dur-base) var(--as-ease-out);
+}
+@keyframes as-drawer-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: none; }
+}
+.as-drawer a {
+  padding: var(--as-space-3);
+  border-radius: var(--as-radius-sm);
+  color: var(--as-text-1);
+  text-decoration: none;
+  font-weight: 550;
+}
+.as-drawer a:hover { background: var(--as-surface-2); }
+
+/* Sidebar (dashboard shell). */
+.as-sidebar { display: flex; flex-direction: column; gap: var(--as-space-1); }
+.as-sidebar__group {
+  padding: var(--as-space-4) var(--as-space-3) var(--as-space-2);
+  font-size: var(--as-text-2xs);
+  font-weight: 650;
+  letter-spacing: var(--as-tracking-caps);
+  text-transform: uppercase;
+  color: var(--as-text-3);
+}
+.as-sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: var(--as-space-3);
+  padding: var(--as-space-2) var(--as-space-3);
+  border-radius: var(--as-radius-sm);
+  font-size: var(--as-text-sm);
+  font-weight: 550;
+  color: var(--as-text-2);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: all var(--as-dur-fast) var(--as-ease);
+}
+.as-sidebar__item svg { width: 1rem; height: 1rem; flex: none; opacity: .8; }
+.as-sidebar__item:hover { background: var(--as-surface-2); color: var(--as-text-1); }
+.as-sidebar__item[aria-current], .as-sidebar__item.is-active {
+  background: var(--as-accent-soft);
+  border-left-color: var(--as-accent);
+  color: var(--as-accent);
+}
+
+
+/* -- 5.9 Stat tiles ------------------------------------------------------- */
+
+.as-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--as-space-1);
+  padding: var(--as-space-5);
+  background: var(--as-surface-1);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-md);
+  box-shadow: var(--as-hairline);
+  min-width: 0;
+}
+.as-stat__label {
+  font-size: var(--as-text-2xs);
+  font-weight: 650;
+  letter-spacing: var(--as-tracking-caps);
+  text-transform: uppercase;
+  color: var(--as-text-3);
+}
+.as-stat__value {
+  font-family: var(--as-font-display);
+  font-size: var(--as-text-2xl);
+  font-weight: 500;
+  color: var(--as-text-1);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.as-stat__note { font-size: var(--as-text-xs); color: var(--as-text-3); }
+.as-stat__delta { font-size: var(--as-text-xs); font-weight: 650; }
+.as-stat__delta--up   { color: var(--as-success); }
+.as-stat__delta--down { color: var(--as-danger); }
+.as-stat--accent .as-stat__value { color: var(--as-accent); }
+
+
+/* -- 5.10 Progress -------------------------------------------------------- */
+
+.as-progress {
+  height: 6px;
+  width: 100%;
+  border-radius: var(--as-radius-full);
+  background: var(--as-sunken);
+  border: 1px solid var(--as-border-soft);
+  overflow: hidden;
+}
+.as-progress__bar {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--as-accent);
+  transition: width var(--as-dur-slow) var(--as-ease-out);
+}
+.as-progress--frost .as-progress__bar { background: var(--as-frost); }
+.as-progress--lg { height: 10px; }
+
+
+/* -- 5.11 Avatars --------------------------------------------------------- */
+
+.as-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem; height: 2rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--as-surface-3);
+  border: 1px solid var(--as-border-strong);
+  color: var(--as-text-2);
+  font-size: var(--as-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  overflow: hidden;
+}
+.as-avatar--sm { width: 1.5rem; height: 1.5rem; font-size: 0.6rem; }
+.as-avatar--lg { width: 2.75rem; height: 2.75rem; font-size: var(--as-text-xs); }
+.as-avatar--accent { background: var(--as-accent-soft); border-color: var(--as-accent-line); color: var(--as-accent); }
+.as-avatar-stack { display: flex; }
+.as-avatar-stack > .as-avatar + .as-avatar { margin-left: -0.55rem; }
+.as-avatar-stack > .as-avatar { box-shadow: 0 0 0 2px var(--as-surface-1); }
+
+
+/* -- 5.12 Empty state ----------------------------------------------------- */
+
+.as-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--as-space-3);
+  padding: var(--as-space-12) var(--as-space-6);
+  border: 1px dashed var(--as-border-strong);
+  border-radius: var(--as-radius-lg);
+  background: var(--as-surface-1);
+  color: var(--as-text-3);
+}
+.as-empty__icon { color: var(--as-text-3); opacity: .6; }
+.as-empty__icon svg { width: 1.8rem; height: 1.8rem; }
+.as-empty__title { font-size: var(--as-text-md); font-weight: 600; color: var(--as-text-1); }
+.as-empty__body { max-width: 42ch; font-size: var(--as-text-sm); }
+
+
+/* -- 5.13 Skeleton -------------------------------------------------------- */
+
+.as-skeleton {
+  display: block;
+  border-radius: var(--as-radius-xs);
+  background: linear-gradient(90deg,
+    var(--as-surface-2) 0%, var(--as-surface-3) 45%, var(--as-surface-2) 90%);
+  background-size: 220% 100%;
+  animation: as-shimmer 1.7s linear infinite;
+  height: 0.75rem;
+}
+.as-skeleton--text  { height: 0.7rem; margin-block: 0.28rem; }
+.as-skeleton--title { height: 1.05rem; width: 55%; }
+.as-skeleton--line  { width: 100%; }
+.as-skeleton--short { width: 62%; }
+.as-skeleton--circle { width: 2rem; height: 2rem; border-radius: 50%; }
+.as-skeleton--block { height: 6rem; border-radius: var(--as-radius-md); }
+@keyframes as-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+
+
+/* -- 5.14 Modal (native <dialog> — focus trap and ESC come free) ---------- */
+
+.as-modal {
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: min(80dvh, 44rem);
+  padding: 0;
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-lg);
+  background: var(--as-surface-3);
+  color: var(--as-text-2);
+  box-shadow: var(--as-shadow-xl);
+  overflow: hidden;
+}
+/* ⚠ No backdrop-filter here. Blurring ::backdrop produced a mirrored
+   compositing artifact in Chromium during testing; the scrim alone is safe. */
+.as-modal::backdrop { background: var(--as-scrim); }
+.as-modal[open] { animation: as-modal-in var(--as-dur-base) var(--as-ease-out); }
+@keyframes as-modal-in {
+  from { opacity: 0; transform: translateY(10px) scale(.98); }
+  to   { opacity: 1; transform: none; }
+}
+.as-modal__header {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--as-space-4);
+  padding: var(--as-space-5); border-bottom: 1px solid var(--as-border-soft);
+}
+.as-modal__title { font-size: var(--as-text-md); font-weight: 650; color: var(--as-text-1); }
+.as-modal__body { padding: var(--as-space-5); overflow-y: auto; }
+.as-modal__footer {
+  display: flex; justify-content: flex-end; gap: var(--as-space-3);
+  padding: var(--as-space-4) var(--as-space-5);
+  border-top: 1px solid var(--as-border-soft); background: var(--as-sunken);
+}
+.as-modal--wide { width: min(52rem, calc(100vw - 2rem)); }
+
+/* ⚠ Below the width where the nav folds into the mobile drawer (52rem — see
+   §5.8), a centred dialog is the wrong shape: it leaves margin on all four
+   sides on a screen with none to spare, and it is the one component in the
+   system that did not already have a phone-native form. A bottom sheet is
+   that form — anchored to the bottom edge, full width, rounded only at the
+   top, with a drag-handle affordance. Native <dialog> centres itself via
+   `inset:0; margin:auto` in the UA stylesheet, so pinning it to the bottom
+   means overriding every inset, not just adding one. Same selector, same
+   specificity as the base rule above — this simply comes later in the
+   cascade, so it only takes over once the media query matches. */
+@media (max-width: 51.99rem) {
+  .as-modal {
+    position: fixed;
+    inset: auto 0 0 0;
+    margin: 0;
+    width: 100%;
+    max-width: none;
+    max-height: min(86dvh, 44rem);
+    border-radius: var(--as-radius-xl) var(--as-radius-xl) 0 0;
+    border-width: 1px 0 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .as-modal[open] { animation: as-sheet-in var(--as-dur-base) var(--as-ease-out); }
+  .as-modal::before {
+    content: "";
+    display: block;
+    width: 2.25rem; height: 4px;
+    margin: 0.6rem auto 0;
+    border-radius: var(--as-radius-full);
+    background: var(--as-border-strong);
+  }
+}
+@keyframes as-sheet-in {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: none; }
+}
+/* No separate prefers-reduced-motion override needed here — §7's blanket
+   `animation-duration: 0.001ms !important` on every element already collapses
+   this keyframe the same way it does as-modal-in. */
+
+
+/* -- 5.15 Toast ----------------------------------------------------------- */
+
+.as-toasts {
+  position: fixed;
+  right: var(--as-space-4);
+  /* --as-tabbar-h is 0 here, so this is just var(--as-space-4) unless a
+     consumer with a fixed bottom bar (a phone tab bar) has set it — see the
+     token's definition in §1. Without this a toast can land on top of a bottom
+     tab bar, since .as-toasts already out-ranks .as-z-nav on z-index. */
+  bottom: calc(var(--as-space-4) + var(--as-tabbar-h));
+  z-index: var(--as-z-toast);
+  display: flex; flex-direction: column; gap: var(--as-space-2);
+  width: min(22rem, calc(100vw - 2rem));
+  pointer-events: none;
+}
+.as-toast {
+  display: flex; align-items: flex-start; gap: var(--as-space-3);
+  padding: var(--as-space-3) var(--as-space-4);
+  border: 1px solid var(--as-border);
+  border-left: 3px solid var(--as-accent);
+  border-radius: var(--as-radius-md);
+  background: var(--as-surface-3);
+  color: var(--as-text-1);
+  font-size: var(--as-text-sm);
+  box-shadow: var(--as-shadow-lg);
+  pointer-events: auto;
+  animation: as-toast-in var(--as-dur-base) var(--as-ease-out);
+}
+.as-toast.is-leaving { animation: as-toast-out var(--as-dur-base) var(--as-ease) forwards; }
+.as-toast--success { border-left-color: var(--as-success); }
+.as-toast--warn    { border-left-color: var(--as-warn); }
+.as-toast--danger  { border-left-color: var(--as-danger); }
+.as-toast svg { width: 1rem; height: 1rem; flex: none; margin-top: .15rem; }
+@keyframes as-toast-in  { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes as-toast-out { to { opacity: 0; transform: translateX(16px); } }
+
+
+/* -- 5.16 Tooltip (CSS only; pair with aria-label or aria-describedby) ---- */
+
+[data-as-tip] { position: relative; }
+[data-as-tip]::after {
+  content: attr(data-as-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translate(-50%, 4px);
+  z-index: var(--as-z-tooltip);
+  padding: 0.35rem 0.6rem;
+  width: max-content;
+  max-width: 16rem;
+  border-radius: var(--as-radius-xs);
+  background: var(--as-surface-3);
+  border: 1px solid var(--as-border-strong);
+  color: var(--as-text-1);
+  font-size: var(--as-text-xs);
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+  box-shadow: var(--as-shadow-md);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--as-dur-fast) var(--as-ease), transform var(--as-dur-fast) var(--as-ease);
+}
+[data-as-tip]:hover::after,
+[data-as-tip]:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
+
+/* ⚠ A TOOLTIP AT THE RIGHT EDGE OF THE VIEWPORT SCROLLED THE WHOLE PAGE.
+   Measured: at 390px the member app's theme toggle is the last thing in the
+   nav, flush to the gutter. Its `::after` is `left: 50%` + `width: max-content`
+   — so even at `opacity: 0` the words "Light theme" laid out ~24px past the
+   button, past `.as-nav__actions`, past `.as-nav__inner` (all `overflow:
+   visible`) and onto the root scroll box. Every one of app / watch / casino /
+   leaderboards scrolled 7px sideways on a phone because of an invisible
+   tooltip.
+
+   ⚠ AND THE OBVIOUS GLOBAL FIX IS WRONG. `:root { overflow-x: clip }` removes
+   the scroll — and BREAKS THE STICKY NAV: measured, the header went from
+   `top: 0` while scrolled to `top: -600px`, i.e. it scrolls away. Do not
+   re-propose it. (`overflow-x: hidden` on `body` does not fix it at all here,
+   because the document element is the scrolling box.)
+
+   So: anything in `.as-nav__actions` is pinned to the right gutter by
+   definition, and its tooltip grows leftwards instead of centring. Elsewhere
+   the centred default is right, and `data-as-tip-align="end"` opts in.        */
+.as-nav__actions [data-as-tip]::after,
+[data-as-tip][data-as-tip-align="end"]::after {
+  left: auto;
+  right: 0;
+  transform: translate(0, 4px);
+}
+.as-nav__actions [data-as-tip]:hover::after,
+.as-nav__actions [data-as-tip]:focus-visible::after,
+[data-as-tip][data-as-tip-align="end"]:hover::after,
+[data-as-tip][data-as-tip-align="end"]:focus-visible::after { transform: translate(0, 0); }
+
+
+/* -- 5.17 Accordion (native <details>) ------------------------------------ */
+
+.as-accordion { display: flex; flex-direction: column; gap: var(--as-space-2); }
+.as-acc {
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-md);
+  background: var(--as-surface-1);
+  overflow: hidden;
+  transition: border-color var(--as-dur-fast) var(--as-ease);
+}
+.as-acc[open] { border-color: var(--as-border-strong); }
+.as-acc__summary {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--as-space-4);
+  padding: var(--as-space-4) var(--as-space-5);
+  cursor: pointer;
+  font-size: var(--as-text-base);
+  font-weight: 600;
+  color: var(--as-text-1);
+  list-style: none;
+}
+.as-acc__summary::-webkit-details-marker { display: none; }
+.as-acc__summary:hover { background: var(--as-surface-2); }
+.as-acc__summary::after {
+  content: "";
+  flex: none;
+  width: 0.55rem; height: 0.55rem;
+  border-right: 1.6px solid var(--as-text-3);
+  border-bottom: 1.6px solid var(--as-text-3);
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform var(--as-dur-base) var(--as-ease);
+}
+.as-acc[open] > .as-acc__summary::after { transform: rotate(-135deg) translate(-2px, -2px); }
+.as-acc__body { padding: 0 var(--as-space-5) var(--as-space-5); font-size: var(--as-text-sm); }
+
+
+/* -- 5.18 Code, kbd, note ------------------------------------------------- */
+
+.as-code {
+  display: block;
+  overflow-x: auto;
+  padding: var(--as-space-4);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-md);
+  background: var(--as-sunken);
+  color: var(--as-text-2);
+  font-size: var(--as-text-xs);
+  line-height: 1.7;
+  white-space: pre;
+  tab-size: 2;
+}
+.as-code b { color: var(--as-accent); font-weight: 600; }
+
+.as-kbd {
+  display: inline-block;
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--as-border-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--as-radius-xs);
+  background: var(--as-surface-2);
+  color: var(--as-text-1);
+  font-size: 0.82em;
+  font-family: var(--as-font-mono);
+}
+
+.as-note {
+  display: flex;
+  gap: var(--as-space-3);
+  padding: var(--as-space-4);
+  border: 1px solid var(--as-border);
+  border-left: 3px solid var(--as-text-3);
+  border-radius: var(--as-radius-sm);
+  background: var(--as-surface-1);
+  font-size: var(--as-text-sm);
+}
+.as-note svg { width: 1.05rem; height: 1.05rem; flex: none; margin-top: 0.16rem; }
+.as-note--accent { border-left-color: var(--as-accent); }
+.as-note--accent svg { color: var(--as-accent); }
+.as-note--frost { border-left-color: var(--as-frost); background: var(--as-frost-soft); }
+.as-note--frost svg { color: var(--as-frost); }
+.as-note--warn { border-left-color: var(--as-warn); background: var(--as-warn-soft); }
+.as-note--warn svg { color: var(--as-warn); }
+.as-note--danger { border-left-color: var(--as-danger); background: var(--as-danger-soft); }
+.as-note--danger svg { color: var(--as-danger); }
+
+
+/* -- 5.19 List (checked feature lists) ------------------------------------ */
+
+.as-list { display: flex; flex-direction: column; gap: var(--as-space-2); font-size: var(--as-text-sm); }
+.as-list__item { display: flex; align-items: flex-start; gap: var(--as-space-3); }
+.as-list__item svg { width: 1rem; height: 1rem; flex: none; margin-top: 0.22rem; color: var(--as-success); }
+.as-list__item--no svg { color: var(--as-text-3); }
+.as-list__item--no { color: var(--as-text-3); }
+
+
+/* -- 5.20 Media player (screening room) ----------------------------------- */
+
+.as-player {
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-lg);
+  background: var(--as-surface-1);
+  box-shadow: var(--as-shadow-lg), var(--as-hairline);
+  overflow: hidden;
+}
+.as-player__stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background:
+    radial-gradient(70% 120% at 50% 8%, rgba(121, 174, 200, .16), transparent 62%),
+    linear-gradient(168deg, #10161d 0%, #0a0d12 46%, #12100c 100%);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.as-player__stage::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px);
+  pointer-events: none;
+}
+.as-player__glyph { color: rgba(255, 255, 255, .1); width: 5rem; height: 5rem; }
+.as-player__badges { position: absolute; top: var(--as-space-3); left: var(--as-space-3); display: flex; gap: var(--as-space-2); z-index: 2; }
+.as-player__meta {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: var(--as-space-6) var(--as-space-5) var(--as-space-4);
+  background: linear-gradient(transparent, rgba(4, 6, 9, .88));
+  color: #eef1f5;
+  z-index: 2;
+}
+.as-player__title { font-family: var(--as-font-display); font-size: var(--as-text-xl); color: #fff; line-height: 1.1; }
+.as-player__sub { font-size: var(--as-text-xs); color: rgba(238, 241, 245, .68); margin-top: 0.25rem; }
+.as-player__controls {
+  display: flex; align-items: center; gap: var(--as-space-3);
+  padding: var(--as-space-3) var(--as-space-4);
+  border-top: 1px solid var(--as-border-soft);
+  background: var(--as-sunken);
+}
+.as-player__scrub { flex: 1 1 auto; min-width: 4rem; }
+.as-player__time { font-family: var(--as-font-mono); font-size: var(--as-text-xs); color: var(--as-text-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+
+/* -- 5.21 Footer ---------------------------------------------------------- */
+
+.as-footer {
+  border-top: 1px solid var(--as-border);
+  background: var(--as-bg-elev);
+  padding-block: var(--as-space-16) var(--as-space-8);
+  margin-top: var(--as-space-8);
+}
+.as-footer__grid {
+  display: grid;
+  gap: var(--as-space-8);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+}
+.as-footer__brand { grid-column: 1 / -1; max-width: 30ch; }
+@media (min-width: 60rem) { .as-footer__brand { grid-column: auto; max-width: 24ch; } }
+.as-footer__title {
+  font-size: var(--as-text-2xs);
+  font-weight: 650;
+  letter-spacing: var(--as-tracking-caps);
+  text-transform: uppercase;
+  color: var(--as-text-3);
+  margin-bottom: var(--as-space-3);
+}
+.as-footer__links { display: flex; flex-direction: column; gap: var(--as-space-2); }
+.as-footer__links a {
+  color: var(--as-text-2);
+  text-decoration: none;
+  font-size: var(--as-text-sm);
+  display: inline-flex; align-items: center; gap: var(--as-space-2);
+}
+.as-footer__links a:hover { color: var(--as-accent); }
+
+/* ⚠ A LINK THAT GOES NOWHERE IS NOT A LINK. These used to be
+   `<a href="#" aria-disabled="true">`, which keyboard users could still tab to
+   and activate — and doing so scrolled the page to the top with no explanation.
+   `aria-disabled` is advisory on an anchor; it does not remove it from the tab
+   order and it does not stop the navigation. A thing that is not yet a
+   destination is text, and text is what this styles. */
+.as-footer__soon {
+  color: var(--as-text-3);
+  font-size: var(--as-text-sm);
+  display: inline-flex; align-items: center; gap: var(--as-space-2);
+  cursor: default;
+}
+.as-footer__bottom {
+  display: flex; flex-wrap: wrap; gap: var(--as-space-4);
+  justify-content: space-between; align-items: center;
+  margin-top: var(--as-space-12);
+  padding-top: var(--as-space-6);
+  border-top: 1px solid var(--as-border-soft);
+  font-size: var(--as-text-xs);
+  color: var(--as-text-3);
+}
+
+
+/* -- 5.22 Hero ------------------------------------------------------------ */
+
+.as-hero { padding-block: clamp(3rem, 8vw, 6rem) clamp(3rem, 6vw, 5rem); position: relative; }
+.as-hero__grid {
+  display: grid;
+  gap: clamp(2rem, 5vw, 4rem);
+  grid-template-columns: 1fr;
+  align-items: center;
+}
+@media (min-width: 64rem) {
+  .as-hero__grid { grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr); }
+}
+.as-hero__copy { display: flex; flex-direction: column; gap: var(--as-space-5); align-items: flex-start; }
+
+
+/* -- 5.23 Pricing card ---------------------------------------------------- */
+
+.as-tier { display: flex; flex-direction: column; gap: var(--as-space-5); position: relative; }
+.as-tier--popular { border-color: var(--as-accent-line); box-shadow: var(--as-shadow-glow); }
+.as-tier__flag {
+  position: absolute; top: 0; right: var(--as-space-5);
+  transform: translateY(-50%);
+}
+.as-tier__name { font-family: var(--as-font-display); font-size: var(--as-text-xl); color: var(--as-text-1); }
+.as-tier__epithet { font-size: var(--as-text-xs); color: var(--as-text-3); }
+.as-tier__price { display: flex; align-items: baseline; gap: 0.3rem; }
+.as-tier__amount {
+  font-family: var(--as-font-display);
+  font-size: var(--as-text-3xl);
+  font-weight: 500;
+  color: var(--as-text-1);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.as-tier__per { font-size: var(--as-text-sm); color: var(--as-text-3); }
+.as-tier__body { flex: 1 1 auto; }
+
+
+/* -- 5.24 Pick card (module picker) --------------------------------------- */
+
+.as-pick { position: relative; display: block; cursor: pointer; }
+.as-pick input { position: absolute; opacity: 0; width: 0; height: 0; }
+.as-pick__box {
+  display: flex;
+  gap: var(--as-space-3);
+  align-items: flex-start;
+  padding: var(--as-space-4);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-md);
+  background: var(--as-surface-1);
+  transition: all var(--as-dur-fast) var(--as-ease);
+  height: 100%;
+}
+.as-pick:hover .as-pick__box { border-color: var(--as-border-strong); background: var(--as-surface-2); }
+.as-pick input:checked + .as-pick__box {
+  border-color: var(--as-accent);
+  background: var(--as-accent-soft);
+  box-shadow: var(--as-shadow-glow);
+}
+.as-pick input:focus-visible + .as-pick__box { outline: 2px solid var(--as-focus); outline-offset: 2px; }
+.as-pick input:disabled + .as-pick__box { opacity: .5; cursor: not-allowed; }
+.as-pick__name { font-weight: 650; color: var(--as-text-1); font-size: var(--as-text-sm); }
+.as-pick__price { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 650; color: var(--as-text-2); font-size: var(--as-text-sm); white-space: nowrap; }
+.as-pick__desc { font-size: var(--as-text-xs); color: var(--as-text-3); line-height: 1.5; }
+
+
+/* -- 5.25 Step list ------------------------------------------------------- */
+
+.as-steps { counter-reset: as-step; display: flex; flex-direction: column; gap: var(--as-space-5); }
+.as-step { display: flex; gap: var(--as-space-4); align-items: flex-start; position: relative; }
+.as-step::before {
+  counter-increment: as-step;
+  content: counter(as-step);
+  flex: none;
+  display: grid; place-items: center;
+  width: 1.9rem; height: 1.9rem;
+  border-radius: 50%;
+  border: 1px solid var(--as-accent-line);
+  background: var(--as-accent-soft);
+  color: var(--as-accent);
+  font-size: var(--as-text-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.as-step__title { font-weight: 650; color: var(--as-text-1); font-size: var(--as-text-base); }
+.as-step__body { font-size: var(--as-text-sm); color: var(--as-text-2); margin-top: 0.15rem; }
+
+
+/* -- 5.26 Marquee strip (logo placeholders) ------------------------------- */
+
+.as-strip {
+  display: flex; flex-wrap: wrap; gap: var(--as-space-3);
+  align-items: center; justify-content: center;
+}
+.as-strip__slot {
+  display: grid; place-items: center;
+  min-width: 8rem; height: 2.75rem;
+  padding-inline: var(--as-space-4);
+  border: 1px dashed var(--as-border-strong);
+  border-radius: var(--as-radius-sm);
+  color: var(--as-text-3);
+  font-size: var(--as-text-2xs);
+  font-weight: 650;
+  letter-spacing: var(--as-tracking-caps);
+  text-transform: uppercase;
+}
+
+
+/* ==========================================================================
+   6 · UTILITIES  (deliberately few — reach for a component first)
+   ========================================================================== */
+
+.u-text-center { text-align: center; }
+.u-text-right  { text-align: right; }
+.u-nowrap      { white-space: nowrap; }
+.u-tabular     { font-variant-numeric: tabular-nums; }
+.u-full        { width: 100%; }
+.u-grow        { flex: 1 1 auto; min-width: 0; }
+.u-none        { flex: none; }
+.u-mono        { font-family: var(--as-font-mono); }
+
+.u-mt-2  { margin-top: var(--as-space-2); }
+.u-mt-3  { margin-top: var(--as-space-3); }
+.u-mt-4  { margin-top: var(--as-space-4); }
+.u-mt-6  { margin-top: var(--as-space-6); }
+.u-mt-8  { margin-top: var(--as-space-8); }
+.u-mt-12 { margin-top: var(--as-space-12); }
+.u-mb-2  { margin-bottom: var(--as-space-2); }
+.u-mb-4  { margin-bottom: var(--as-space-4); }
+.u-mb-6  { margin-bottom: var(--as-space-6); }
+.u-mb-8  { margin-bottom: var(--as-space-8); }
+.u-mt-auto { margin-top: auto; }
+
+.u-text-xs { font-size: var(--as-text-xs); }
+.u-text-sm { font-size: var(--as-text-sm); }
+.u-text-md { font-size: var(--as-text-md); }
+
+.u-hide { display: none; }
+/* Shown only once .as-split has actually split (60rem). Used for sticky asides
+   that have nowhere sensible to live in a single-column layout. */
+.u-desktop-only { display: none; }
+@media (min-width: 60rem) { .u-desktop-only { display: block; } }
+
+.u-scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+
+/* ==========================================================================
+   7 · MOTION
+   ========================================================================== */
+
+/* Reveal on scroll. JS adds .is-in; without JS the element is simply visible,
+   because the hidden state is only applied once JS marks the document. */
+[data-as-reveal] { opacity: 1; }
+html.js [data-as-reveal] {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity var(--as-dur-slow) var(--as-ease-out),
+              transform var(--as-dur-slow) var(--as-ease-out);
+}
+html.js [data-as-reveal].is-in { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  html.js [data-as-reveal] { opacity: 1; transform: none; }
+  .as-dot { animation: none; }
+}
+
+/* Scrollbars, so a dark page does not get a bright gutter. */
+* { scrollbar-color: var(--as-border-strong) transparent; scrollbar-width: thin; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--as-border-strong);
+  border-radius: var(--as-radius-full);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--as-text-3); background-clip: content-box; }

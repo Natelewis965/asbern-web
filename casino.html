@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Casino — Asbern</title>
+<meta name="description" content="Nine games, every house edge published. A virtual currency with no purchase path — you cannot buy Bucks here or anywhere.">
+<meta name="color-scheme" content="dark light">
+<script>
+(function(){try{var p=localStorage.getItem('asbern.theme')||'system';
+var r=p==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):p;
+document.documentElement.setAttribute('data-theme',r);
+document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
+</script>
+<link rel="stylesheet" href="assets/asbern.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-app-page="casino">
+
+<a class="as-btn as-btn--secondary as-skip" href="#main">Skip to content</a>
+
+<header class="as-nav">
+  <div class="as-nav__inner">
+    <a class="as-wordmark" href="app.html" aria-label="Asbern — your profile">
+      <svg class="as-mark" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+      </svg>
+      Asbern
+    </a>
+    <nav class="as-nav__links" aria-label="Primary">
+      <a class="as-nav__link" href="app.html" data-app-nav="home">Profile</a>
+      <a class="as-nav__link" href="watch.html" data-app-nav="watch">Watch</a>
+      <a class="as-nav__link" href="casino.html" data-app-nav="casino">Casino</a>
+      <a class="as-nav__link" href="leaderboards.html" data-app-nav="boards">Leaderboards</a>
+    </nav>
+    <div class="as-nav__actions">
+      <a class="app-wallet" href="app.html#tycoon" data-app-wallet>
+        <span data-app-icon="wallet"></span><span class="app-wallet__amount">—</span>
+      </a>
+      <button class="as-btn as-btn--ghost as-btn--icon" data-as-theme-toggle type="button" aria-label="Switch theme"></button>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="as-container app-main">
+
+  <div class="app-head">
+    <div class="app-head__row">
+      <div>
+        <span class="as-eyebrow">Hearthstead</span>
+        <h1 class="as-display as-display--lg">Casino</h1>
+      </div>
+      <p class="u-text-xs as-muted">Nine solo games. Every house edge on this page is derived from the payout table, not quoted at you.</p>
+    </div>
+  </div>
+
+  <div data-casino></div>
+
+  <div class="app-preview u-mt-12" data-app-preview></div>
+
+  <!-- ============================ MEMBER-SURFACE FOOTER ============================
+       ⚠ Small, but not optional. This is a consumer surface: it shows a member
+       their balance, their watch history and their stats. A page that holds
+       personal data and offers no route to the privacy policy is an IA gap, not
+       a styling preference. The marketing footer would be wrong here (this page
+       has a bottom tab bar and behaves like an app), so it is one line. -->
+  <footer class="app-legal u-mt-12">
+    <p class="u-text-xs as-muted">
+      &copy; <span data-as-year></span> Asbern &middot; Not affiliated with Discord Inc.
+    </p>
+    <p class="u-text-xs as-muted">
+      <a href="privacy.html">What is stored about you</a> &middot;
+      <a href="terms.html">Terms</a> &middot;
+      <a href="privacy.html#choices">Delete your history</a> &middot;
+      <a href="index.html">About Asbern</a>
+    </p>
+    <p class="u-text-xs as-muted">
+      Preview build with example data. Nothing here is your real balance, level or history.
+    </p>
+  </footer>
+
+</main>
+
+<nav class="app-tabbar" aria-label="Sections">
+  <a class="app-tabbar__item" href="app.html" data-app-nav="home">
+    <span data-as-icon="home"></span><span>Profile</span>
+  </a>
+  <a class="app-tabbar__item" href="watch.html" data-app-nav="watch">
+    <span data-as-icon="film"></span><span>Watch</span>
+  </a>
+  <a class="app-tabbar__item" href="casino.html" data-app-nav="casino">
+    <span data-app-icon="dice"></span><span>Casino</span>
+  </a>
+  <a class="app-tabbar__item" href="leaderboards.html" data-app-nav="boards">
+    <span data-as-icon="trophy"></span><span>Boards</span>
+  </a>
+</nav>
+
+<dialog class="as-modal" id="rules-modal" aria-labelledby="rules-modal-title">
+  <div class="as-modal__header">
+    <h2 class="as-modal__title" id="rules-modal-title">Rules</h2>
+    <button class="as-btn as-btn--ghost as-btn--icon as-btn--sm" data-as-modal-close type="button"
+            aria-label="Close" data-as-icon="x"></button>
+  </div>
+  <div class="as-modal__body" data-rules-body></div>
+</dialog>
+
+<script src="assets/mock-data.js"></script>
+<script src="assets/asbern.js"></script>
+<script src="assets/app.js"></script>
+<script>
+/* =============================================================================
+   casino.html
+
+   ⭐⭐ RENDER, NEVER COMPUTE. ⭐⭐
+
+   Not one outcome on this page is decided here. Every deal, every card, every
+   crash point comes back from MemberApp.server (assets/app.js §3), which is the
+   stand-in for the real backend running packages/core/src/casino.js. This file
+   contains no Math.random(), no payout arithmetic, and no knowledge of a hole
+   card or a crash point until the server has already resolved the round and
+   sent it.
+
+   docs/_platform/ARCHITECTURE.md §5: "The server runs it (never the client, or
+   the odds are editable); the client renders."
+
+   Two consequences you can see in the code below:
+
+     · Blackjack renders `dealerHidden: true` as a face-down card because the
+       server did not send the hole card. There is nothing in this page's memory
+       to peek at.
+
+     · Crash sends "cash out" with NO multiplier in it. The server derives the
+       multiplier from its own clock. A client that told the server where it had
+       got to could simply lie about where it had got to.
+   ========================================================================== */
+(function () {
+  'use strict';
+  var M = window.MemberApp, A = window.Asbern;
+  var esc = M.esc, $ = M.$, $$ = M.$$;
+
+  var gate = M.entitled('casino');
+  var catalogue = M.server.rules();
+  var view = 'lobby';
+  var bet = 100;                       // src/lib/bets.js default
+  var crashHistory = [];
+
+  /* ================================================================ SHELL */
+  function render() {
+    var host = $('[data-casino]');
+    if (!gate.ok) {
+      host.innerHTML = M.lockedHtml(gate, {
+        extra: '<p class="app-lock__body">Nothing you have already won is affected. Balances are not zeroed and the ' +
+               'ledger is not deleted — the games simply stop being playable until the module is back on.</p>'
+      }) + currencyNote();
+      M.mountIcons(host);
+      return;
+    }
+    if (view === 'lobby') host.innerHTML = lobby();
+    else if (view === 'blackjack') host.innerHTML = blackjackView();
+    else if (view === 'crash') host.innerHTML = crashView();
+    M.mountIcons(host);
+    A.mount(host);
+  }
+
+  /* ⛔ The rule that is not negotiable, said plainly and once. */
+  function currencyNote() {
+    return '' +
+    '<section class="as-card as-card--accent u-mt-6" aria-labelledby="cur-h">' +
+      '<h2 id="cur-h" class="app-sec__title u-mb-4" style="color:var(--as-accent)">There is no “buy Bucks”</h2>' +
+      '<p class="u-text-sm">And there never will be. Bucks cannot be bought, cashed out, gifted in from outside, ' +
+        'or moved between servers. No subscription tier grants currency, changes a payout, moves the odds, or adds ' +
+        'a bonus — a plan buys <em>access to the module</em> and nothing else.</p>' +
+      '<p class="u-text-sm u-mt-3">This is a hard rule in the product rather than a promise in a footer, and it is ' +
+        'the same reason XP cannot be bought either. A currency you can buy is a different kind of product with a ' +
+        'different kind of law attached to it, and we would rather have this one.</p>' +
+      '<div class="as-note u-mt-4 u-text-xs">' + M.icon('shield') +
+        '<span>Every game below carries a house edge, so grinding the casino slowly bleeds. That is deliberate: ' +
+        'there is no infinite-money exploit, and the idle tycoon is how you actually build wealth.</span></div>' +
+    '</section>';
+  }
+
+  /* ================================================================ LOBBY */
+  function lobby() {
+    var me = M.server.me();
+    return '' +
+    '<section class="as-card" aria-labelledby="bank-h">' +
+      '<h2 id="bank-h" class="as-visually-hidden">Your balance</h2>' +
+      '<div class="app-hero__figures">' +
+        M.figure('Balance', M.money(me.cash), esc(M.moneyFull(me.cash)), true) +
+        M.figure('Rounds played', A.num(me.stats.gamesPlayed), A.num(me.stats.gamesWon) + ' won') +
+        M.figure('Biggest win', M.money(me.stats.biggestWin), 'single round') +
+        M.figure('Wagered', M.money(me.stats.wagered), 'lifetime') +
+      '</div>' +
+    '</section>' +
+
+    '<div class="app-sec">' +
+      '<div class="app-sec__head">' +
+        '<h2 class="app-sec__title">The nine</h2>' +
+        '<span class="app-sec__note">Return to player, derived from the real payout tables</span>' +
+      '</div>' +
+      '<div class="app-games">' + catalogue.map(gameCard).join('') + '</div>' +
+    '</div>' +
+
+    '<div class="as-note as-note--frost u-mt-6 u-text-xs">' + M.icon('users') +
+      '<span>Three more are multiplayer and live in Discord, where the table is the message: a shared-dealer ' +
+      'blackjack, six-seat Texas Hold’em with side pots, and coinflip duels. A duel has <strong>no house edge at ' +
+      'all</strong> — the whole pot moves between two members.</span></div>' +
+
+    currencyNote();
+  }
+
+  function gameCard(g) {
+    var rtp = g.rtp === null ? null : g.rtp;
+    return '' +
+    '<article class="app-game' + (g.web ? ' app-game--playable' : '') + '">' +
+      '<div class="app-game__top">' +
+        '<span class="app-game__glyph" aria-hidden="true">' + g.emoji + '</span>' +
+        '<div style="min-width:0;flex:1 1 auto">' +
+          '<h3 class="app-game__name">' + esc(g.name) + '</h3>' +
+          (g.web ? '<span class="as-badge as-badge--accent">Playable here</span>'
+                 : '<span class="as-badge as-badge--plain">In Discord</span>') +
+        '</div>' +
+      '</div>' +
+      '<p class="app-game__desc">' + esc(g.blurb) + '</p>' +
+      '<dl class="app-game__odds">' +
+        '<div class="app-game__odd"><dt>Returns</dt><dd>' + (rtp === null ? 'You decide' : M.pct1(rtp)) + '</dd></div>' +
+        '<div class="app-game__odd"><dt>House edge</dt><dd>' + (rtp === null ? '≈0.5%' : M.pct1(1 - rtp)) + '</dd></div>' +
+      '</dl>' +
+      '<p class="u-text-2xs as-muted">' + esc(g.rtpNote) + '</p>' +
+      '<div class="as-row u-mt-auto" style="padding-top:var(--as-space-3)">' +
+        (g.web
+          ? '<button class="as-btn as-btn--primary as-btn--sm" type="button" data-play="' + esc(g.id) + '">Play</button>'
+          : '') +
+        '<button class="as-btn as-btn--ghost as-btn--sm" type="button" data-rules="' + esc(g.id) + '">' +
+          M.icon('info') + 'Rules &amp; odds</button>' +
+      '</div>' +
+    '</article>';
+  }
+
+  A.on('click', '[data-rules]', function (ev, btn) {
+    var g = catalogue.filter(function (x) { return x.id === btn.getAttribute('data-rules'); })[0];
+    M.text('#rules-modal-title', g.emoji + ' ' + g.name);
+    M.set('[data-rules-body]',
+      '<p class="u-text-sm">' + esc(g.blurb) + '</p>' +
+      '<div class="u-mt-4">' + M.kv([
+        ['Return to player', g.rtp === null ? 'depends on your decisions' : M.pct1(g.rtp)],
+        ['House edge', g.rtp === null ? 'about 0.5% played well' : M.pct1(1 - g.rtp)]
+      ]) + '</div>' +
+      '<p class="u-text-xs as-muted u-mt-2">' + esc(g.rtpNote) + '</p>' +
+      '<h3 class="app-sec__title u-mt-6 u-mb-2">The actual rules</h3>' +
+      '<ul class="as-list u-text-sm">' + g.rules.map(function (r) {
+        return '<li class="as-list__item">' + M.icon('minus') + '<span>' + esc(r) + '</span></li>';
+      }).join('') + '</ul>' +
+      (g.web ? '' :
+        '<div class="as-note u-mt-4 u-text-xs">' + M.icon('discord') +
+        '<span>This one is not built on the web yet. It is <strong>not</strong> stubbed out with a fake result here — ' +
+        'a lobby that rolled its own dice would be exactly the thing the whole architecture is arranged to prevent. ' +
+        'Play it in Discord and the same code decides it.</span></div>'));
+    A.modal('#rules-modal');
+  });
+
+  A.on('click', '[data-play]', function (ev, btn) {
+    view = btn.getAttribute('data-play');
+    bjRound = null; crashRound = null;
+    render();
+    window.scrollTo({ top: 0, behavior: A.reducedMotion ? 'auto' : 'smooth' });
+  });
+  A.on('click', '[data-back]', function () { view = 'lobby'; stopCrash(); render(); });
+
+  /* ============================================================ BET ENTRY */
+  function betBlock(disabled) {
+    var cash = M.server.balance();
+    var bad = betError(cash);
+    return '' +
+    '<div class="app-bet">' +
+      '<div class="as-field">' +
+        '<label class="as-label" for="bet">Your bet</label>' +
+        '<div class="app-bet__row">' +
+          '<span class="as-badge as-badge--accent" aria-hidden="true">' + M.ECON.CURRENCY + '</span>' +
+          '<input class="as-input app-bet__input" id="bet" type="number" inputmode="numeric" min="1" step="1"' +
+            ' value="' + bet + '" data-bet' + (disabled ? ' disabled' : '') +
+            ' aria-describedby="bet-hint"' + (bad ? ' aria-invalid="true"' : '') + '>' +
+        '</div>' +
+        (bad
+          ? '<span class="as-error" id="bet-hint" role="alert">' + esc(bad) + '</span>'
+          : '<span class="as-hint" id="bet-hint">Whole dollars only — balances have no cents. ' +
+            'You have ' + esc(M.moneyFull(cash)) + '.</span>') +
+      '</div>' +
+      '<div class="app-bet__chips">' +
+        [100, 500, 1000, 5000, 25000].map(function (v) {
+          return '<button class="app-chipbtn" type="button" data-chip="' + v + '"' +
+                 (disabled || v > cash ? ' disabled' : '') + '>' + M.money(v) + '</button>';
+        }).join('') +
+        '<button class="app-chipbtn" type="button" data-chip="half"' + (disabled ? ' disabled' : '') + '>½</button>' +
+        '<button class="app-chipbtn" type="button" data-chip="max"' + (disabled ? ' disabled' : '') + '>Max</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function betError(cash) {
+    if (!Number.isFinite(bet) || bet < 1) return 'A bet has to be at least ' + M.moneyFull(1) + '.';
+    if (Math.floor(bet) !== bet) return 'Whole dollars only.';
+    if (bet > cash) return 'You only have ' + M.moneyFull(cash) + '. The server would refuse this bet.';
+    return null;
+  }
+
+  A.on('input', '[data-bet]', function (ev, el) {
+    bet = Math.floor(Number(el.value) || 0);
+    refreshBetState();
+  });
+  A.on('click', '[data-chip]', function (ev, btn) {
+    var cash = M.server.balance(), v = btn.getAttribute('data-chip');
+    bet = v === 'max' ? cash : v === 'half' ? Math.floor(cash / 2) : Number(v);
+    var input = $('[data-bet]');
+    if (input) input.value = bet;
+    refreshBetState();
+  });
+
+  /** Repaint only the bits that depend on the bet, so typing does not rebuild
+      the table under the player's hands. */
+  function refreshBetState() {
+    var cash = M.server.balance(), bad = betError(cash);
+    var hint = $('#bet-hint'), input = $('[data-bet]');
+    if (hint) {
+      hint.className = bad ? 'as-error' : 'as-hint';
+      hint.textContent = bad || ('Whole dollars only — balances have no cents. You have ' + M.moneyFull(cash) + '.');
+      if (bad) hint.setAttribute('role', 'alert'); else hint.removeAttribute('role');
+    }
+    if (input) { if (bad) input.setAttribute('aria-invalid', 'true'); else input.removeAttribute('aria-invalid'); }
+    $$('[data-stake]').forEach(function (b) { b.disabled = !!bad; b.setAttribute('aria-disabled', String(!!bad)); });
+  }
+
+  /* =========================================================== BLACKJACK */
+  var bjRound = null;
+
+  function blackjackView() {
+    return '' +
+    '<button class="as-btn as-btn--ghost as-btn--sm u-mb-4" type="button" data-back>' + M.icon('arrow') + 'All games</button>' +
+    '<div class="app-grid-2">' +
+      '<div class="app-stack" style="display:flex;flex-direction:column">' +
+        '<div data-bj-table>' + bjTable() + '</div>' +
+        '<div data-bj-result></div>' +
+      '</div>' +
+      '<div class="app-stack app-sticky-aside" style="display:flex;flex-direction:column">' +
+        '<section class="as-card">' +
+          '<h2 class="app-sec__title u-mb-4">Blackjack</h2>' +
+          '<div data-bj-controls>' + bjControls() + '</div>' +
+        '</section>' +
+        rulesCard('blackjack') +
+        serverCard('Every card in this hand was dealt by the server. The dealer’s hole card is not in this page — ' +
+                   'the response literally does not contain it until the dealer plays.') +
+      '</div>' +
+    '</div>';
+  }
+
+  function bjTable() {
+    var s = bjRound;
+    var dealerCards, dealerTotalText, dealerNote;
+
+    if (!s) {
+      dealerCards = M.cardSvg('back') + M.cardSvg('back');
+      dealerTotalText = '—';
+      dealerNote = 'waiting for a bet';
+    } else if (s.over) {
+      dealerCards = s.dealer.map(function (c, i) { return M.cardSvg(c, { delay: i * 90 }); }).join('');
+      dealerTotalText = String(s.dealerTotal) + (s.dealerBlackjack ? ' · blackjack' : s.dealerTotal > 21 ? ' · bust' : '');
+      dealerNote = 'stands on all 17';
+    } else {
+      dealerCards = M.cardSvg(s.dealerUp) + M.cardSvg('back');
+      dealerTotalText = String(s.dealerUp.r >= 10 ? 10 : s.dealerUp.r === 1 ? 11 : s.dealerUp.r) + ' + ?';
+      dealerNote = 'hole card is face down, on the server';
+    }
+
+    var hands = !s ? '' : (s.over ? s.hands : s.hands).map(function (h, i) {
+      var cards = h.cards.map(function (c, j) { return M.cardSvg(c, { delay: j * 90 }); }).join('');
+      var label = s.hands.length > 1 ? 'Your hand ' + (i + 1) + ' of ' + s.hands.length : 'Your hand';
+      var tag = '';
+      if (h.doubled) tag += '<span class="as-badge as-badge--accent">doubled</span>';
+      if (!s.over && h.active) tag += '<span class="as-badge as-badge--frost">your turn</span>';
+      if (s.over) {
+        var cls = h.net > 0 ? 'as-badge--success' : h.net < 0 ? 'as-badge--danger' : 'as-badge--frost';
+        tag += '<span class="as-badge ' + cls + '">' + esc(BJ_TEXT[h.result] || h.result) + '</span>';
+      }
+      return '<div class="app-table__seat' + (!s.over && !h.active && s.hands.length > 1 ? ' app-card--split' : '') + '">' +
+        '<div class="app-table__who"><span>' + esc(label) + ' · ' + esc(M.moneyFull(h.bet)) + ' ' + tag + '</span>' +
+        '<span class="app-table__total">' + h.total + (h.soft && !s.over ? ' soft' : '') + '</span></div>' +
+        '<div class="app-hand">' + cards + '</div>' +
+      '</div>';
+    }).join('<div style="height:var(--as-space-4)"></div>');
+
+    return '' +
+    '<section class="app-table" aria-label="Blackjack table">' +
+      '<div class="app-table__felt" aria-hidden="true"></div>' +
+      '<div class="app-table__seat">' +
+        '<div class="app-table__who"><span>Dealer <span style="text-transform:none;letter-spacing:0;font-weight:500">· ' + esc(dealerNote) + '</span></span>' +
+        '<span class="app-table__total">' + esc(dealerTotalText) + '</span></div>' +
+        '<div class="app-hand">' + dealerCards + '</div>' +
+      '</div>' +
+      '<div class="app-table__rule"></div>' +
+      (hands || '<div class="app-table__seat"><div class="app-table__who"><span>You</span><span class="app-table__total">—</span></div>' +
+                '<div class="app-hand"><p class="u-text-sm as-muted" style="align-self:center">Set a bet and deal.</p></div></div>') +
+    '</section>';
+  }
+
+  function bjControls() {
+    var s = bjRound;
+    if (!s || s.over) {
+      return betBlock(false) +
+        '<button class="as-btn as-btn--primary as-btn--block as-btn--lg u-mt-4" type="button" data-bj-deal data-stake>' +
+          M.icon('cards') + 'Deal</button>' +
+        '<p class="u-text-2xs as-muted u-mt-3">The stake leaves your balance the moment the hand opens, exactly as it ' +
+          'does in Discord — which is what makes a hand survive a restart mid-deal.</p>';
+    }
+    var can = s.can;
+    return '' +
+      '<div class="as-row" style="gap:var(--as-space-2)">' +
+        '<button class="as-btn as-btn--primary" type="button" data-bj-act="hit"' + (can.hit ? '' : ' disabled') + '>Hit</button>' +
+        '<button class="as-btn as-btn--secondary" type="button" data-bj-act="stand"' + (can.stand ? '' : ' disabled') + '>Stand</button>' +
+      '</div>' +
+      '<div class="as-row u-mt-2" style="gap:var(--as-space-2)">' +
+        '<button class="as-btn as-btn--ghost as-btn--sm" type="button" data-bj-act="double"' + (can.double ? '' : ' disabled') +
+          ' data-as-tip="One more card, twice the stake, hand over">Double ' + M.money(s.bet) + '</button>' +
+        '<button class="as-btn as-btn--ghost as-btn--sm" type="button" data-bj-act="split"' + (can.split ? '' : ' disabled') +
+          ' data-as-tip="Matching ranks only, once per hand">Split ' + M.money(s.bet) + '</button>' +
+      '</div>' +
+      '<div class="u-mt-4">' + M.kv([
+        ['On the table', M.moneyFull(s.staked)],
+        ['Balance', M.moneyFull(s.balance)]
+      ]) + '</div>' +
+      (can.split ? '' : '<p class="u-text-2xs as-muted u-mt-3">Split needs a matching pair and you only get one.</p>');
+  }
+
+  var BJ_TEXT = {
+    blackjack: 'blackjack 3:2', win: 'won', dealer_bust: 'dealer bust',
+    lose: 'lost', bust: 'bust', dealer_bj: 'dealer blackjack', push: 'push'
+  };
+
+  function bjPaint() {
+    M.set('[data-bj-table]', bjTable());
+    M.set('[data-bj-controls]', bjControls());
+    M.mountIcons(document);
+    A.mount($('[data-bj-controls]'));
+    refreshBetState();
+  }
+
+  A.on('click', '[data-bj-deal]', function () {
+    var res = M.server.blackjack.deal(bet);
+    if (!res.ok) { betRefused(res); return; }
+    bjRound = res.state;
+    bjRound.roundId = res.roundId;
+    M.set('[data-bj-result]', '');
+    if (bjRound.over) return bjFinish(res);
+    bjPaint();
+    M.announce('Dealt. Your total is ' + bjRound.hands[0].total + '.');
+  });
+
+  A.on('click', '[data-bj-act]', function (ev, btn) {
+    if (!bjRound || bjRound.over) return;
+    var res = M.server.blackjack.act(bjRound.roundId, btn.getAttribute('data-bj-act'));
+    if (!res.ok) {
+      A.toast(res.reason === 'poor' ? 'Not enough to cover that.' : 'The server refused that move.', { variant: 'warn' });
+      return;
+    }
+    if (res.over) return bjFinish(res);
+    bjRound = res.state; bjRound.roundId = res.roundId;
+    bjPaint();
+  });
+
+  function bjFinish(res) {
+    bjRound = res.state; bjRound.roundId = res.roundId; bjRound.over = true;
+    bjPaint();
+    var net = bjRound.net;
+    var variant = net > 0 ? 'win' : net < 0 ? 'lose' : 'push';
+    var headline = net > 0 ? 'You won' : net < 0 ? 'The house won' : 'Push';
+    var detail = bjRound.hands.map(function (h) {
+      return (bjRound.hands.length > 1 ? 'Hand ' + h.total + ': ' : '') + (BJ_TEXT[h.result] || h.result);
+    }).join(' · ');
+    M.set('[data-bj-result]',
+      '<div class="app-result app-result--' + variant + '" role="status">' +
+        '<div style="min-width:0">' +
+          '<div class="app-result__headline">' + esc(headline) + '</div>' +
+          '<div class="app-result__sub">' + esc(detail) + ' · dealer ' + bjRound.dealerTotal + '</div>' +
+        '</div>' +
+        '<div class="app-result__delta">' + M.signedMoney(net) + '</div>' +
+      '</div>' +
+      '<p class="u-text-2xs as-muted u-mt-2">Staked ' + esc(M.moneyFull(bjRound.staked)) +
+        ' · returned ' + esc(M.moneyFull(bjRound.payout)) + ' · balance ' + esc(M.moneyFull(bjRound.balance)) + '</p>');
+    M.announce(headline + ', ' + M.signedMoney(net) + '.');
+  }
+
+  /* =============================================================== CRASH */
+  var crashRound = null, crashRaf = null, crashPoints = [], crashStart = 0, autoAt = null;
+
+  function crashView() {
+    return '' +
+    '<button class="as-btn as-btn--ghost as-btn--sm u-mb-4" type="button" data-back>' + M.icon('arrow') + 'All games</button>' +
+    '<div class="app-grid-2">' +
+      '<div class="app-stack" style="display:flex;flex-direction:column">' +
+        '<div class="app-crash" data-crash>' + crashSvg([], 1) + '<div class="app-crash__mult" data-crash-mult>1.00×</div></div>' +
+        '<div data-crash-result></div>' +
+        '<div data-crash-history>' + historyStrip() + '</div>' +
+      '</div>' +
+      '<div class="app-stack app-sticky-aside" style="display:flex;flex-direction:column">' +
+        '<section class="as-card">' +
+          '<h2 class="app-sec__title u-mb-4">Crash</h2>' +
+          '<div data-crash-controls>' + crashControls() + '</div>' +
+        '</section>' +
+        rulesCard('crash') +
+        serverCard('The crash point for this round was rolled the instant you staked and it is <strong>not on this ' +
+                   'device</strong>. Cashing out sends no number — the server reads its own clock and decides. That is ' +
+                   'the only shape that works once the client owns the animation frame.') +
+      '</div>' +
+    '</div>';
+  }
+
+  function crashControls() {
+    if (crashRound) {
+      return '' +
+        '<button class="as-btn as-btn--primary as-btn--block as-btn--lg" type="button" data-crash-out>' +
+          'Cash out <span data-crash-out-amt>' + M.money(bet) + '</span></button>' +
+        '<p class="u-text-xs as-muted u-mt-3">Staked ' + esc(M.moneyFull(bet)) +
+          (autoAt ? ' · auto cash-out armed at ' + autoAt + '×' : '') + '</p>' +
+        '<div class="u-mt-4">' + M.kv([['Balance', M.moneyFull(M.server.balance())]]) + '</div>';
+    }
+    return betBlock(false) +
+      '<fieldset class="as-field u-mt-4">' +
+        '<legend class="as-label">Auto cash-out</legend>' +
+        '<div class="app-crash__rungs u-mt-2">' +
+          '<button class="app-chipbtn" type="button" data-rung="0" aria-pressed="' + (autoAt === null) + '">Off</button>' +
+          M.server.crash.RUNGS.map(function (r) {
+            return '<button class="app-chipbtn" type="button" data-rung="' + r + '" aria-pressed="' + (autoAt === r) + '">' + r + '×</button>';
+          }).join('') +
+        '</div>' +
+        '<span class="as-hint u-mt-2">The rungs are the ladder the Discord version offers. Off means you tap it yourself.</span>' +
+      '</fieldset>' +
+      '<button class="as-btn as-btn--primary as-btn--block as-btn--lg u-mt-4" type="button" data-crash-start data-stake>' +
+        M.icon('trend') + 'Place bet</button>' +
+      '<p class="u-text-2xs as-muted u-mt-3">Four rounds in a hundred bust instantly at 1.00×. Holding longer is never ' +
+        'better value — the return is 96% at every multiplier — only riskier.</p>';
+  }
+
+  /* The chart. ONE series, one axis, no legend needed (the title names it),
+     recessive grid, 2px stroke, and the outcome carries a status colour with a
+     word beside it rather than colour alone. */
+  function crashSvg(points, maxY) {
+    var W = 320, H = 170, PAD = 6;
+    var n = points.length;
+    var lastX = n ? points[n - 1].x : 0;
+    var spanX = Math.max(6, lastX);
+    var top = Math.max(2, maxY * 1.12);
+
+    var sx = function (x) { return PAD + (x / spanX) * (W - PAD * 2); };
+    var sy = function (y) { return H - PAD - ((y - 1) / (top - 1)) * (H - PAD * 2); };
+
+    /* Recessive grid, label BELOW its line. Above the line clipped the topmost
+       label against the container edge — caught in the browser. */
+    var grid = '';
+    for (var g = 1; g <= 4; g++) {
+      var yv = 1 + (top - 1) * (g / 4);
+      var gy = sy(yv);
+      grid += '<line class="app-crash__grid" x1="' + PAD + '" x2="' + (W - PAD) + '" y1="' + gy.toFixed(1) + '" y2="' + gy.toFixed(1) + '"/>' +
+              '<text x="' + (PAD + 2) + '" y="' + (gy + 8).toFixed(1) + '" font-size="7" fill="var(--as-text-3)">' + yv.toFixed(1) + '×</text>';
+    }
+
+    var d = '', area = '';
+    if (n > 1) {
+      d = points.map(function (p, i) { return (i ? 'L' : 'M') + sx(p.x).toFixed(1) + ' ' + sy(p.y).toFixed(1); }).join(' ');
+      area = d + ' L' + sx(lastX).toFixed(1) + ' ' + (H - PAD) + ' L' + sx(0).toFixed(1) + ' ' + (H - PAD) + ' Z';
+    }
+
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Crash multiplier over time">' +
+      grid +
+      (area ? '<path class="app-crash__fill" d="' + area + '"/>' : '') +
+      (d ? '<path class="app-crash__curve" d="' + d + '"/>' : '') +
+    '</svg>';
+  }
+
+  function historyStrip() {
+    if (!crashHistory.length) {
+      return '<p class="u-text-xs as-muted u-mt-4">Previous crash points appear here once a round is over — and only ' +
+             'once it is over, because that is the first moment the number is allowed to leave the server.</p>';
+    }
+    return '<div class="u-mt-4"><span class="as-eyebrow">Where the last rounds crashed</span>' +
+      '<div class="app-scroller u-mt-2">' + crashHistory.map(function (h) {
+        var cls = h.at >= 2 ? 'as-badge--success' : h.at >= 1.3 ? 'as-badge--accent' : 'as-badge--danger';
+        return '<span class="as-badge ' + cls + '">' + h.at.toFixed(2) + '×</span>';
+      }).join('') + '</div>' +
+      '<p class="u-text-2xs as-muted u-mt-2">The crash point of each round, not your result — you can bust at 8× and ' +
+      'cash out at 1.05×. Nothing here predicts the next one; each round is rolled on its own.</p></div>';
+  }
+
+  A.on('click', '[data-rung]', function (ev, btn) {
+    var v = Number(btn.getAttribute('data-rung'));
+    autoAt = v === 0 ? null : v;
+    M.set('[data-crash-controls]', crashControls());
+    M.mountIcons(document); A.mount($('[data-crash-controls]'));
+    refreshBetState();
+  });
+
+  A.on('click', '[data-crash-start]', function () {
+    var res = M.server.crash.start(bet, autoAt);
+    if (!res.ok) { betRefused(res); return; }
+    crashRound = res.roundId;
+    crashPoints = [{ x: 0, y: 1 }];
+    crashStart = res.startedAt;
+    var el = $('[data-crash]');
+    el.classList.remove('is-bust', 'is-won');
+    M.set('[data-crash-result]', '');
+    M.set('[data-crash-controls]', crashControls());
+    M.mountIcons(document);
+    loop();
+    M.announce('Round started. Cash out before it crashes.');
+  });
+
+  function loop() {
+    /* Ask the server what the multiplier is. The client does not know the
+       growth curve well enough to be believed, and it must not need to. */
+    var res = M.server.crash.poll(crashRound);
+    if (!res.ok) return;
+    if (res.over) return crashFinish(res);
+
+    var x = (Date.now() - crashStart) / 1000;
+    crashPoints.push({ x: x, y: res.multiplier });
+    if (crashPoints.length > 400) crashPoints.splice(0, crashPoints.length - 400);
+
+    var el = $('[data-crash]');
+    if (el) {
+      el.innerHTML = crashSvg(crashPoints, res.multiplier) +
+        '<div class="app-crash__mult" data-crash-mult>' + res.multiplier.toFixed(2) + '×</div>';
+    }
+    var amt = $('[data-crash-out-amt]');
+    if (amt) amt.textContent = M.money(Math.floor(bet * res.multiplier));
+
+    crashRaf = requestAnimationFrame(loop);
+  }
+
+  function stopCrash() { if (crashRaf) cancelAnimationFrame(crashRaf); crashRaf = null; }
+
+  A.on('click', '[data-crash-out]', function () {
+    if (!crashRound) return;
+    /* NOTE: no multiplier argument. On purpose. */
+    var res = M.server.crash.cashout(crashRound);
+    if (res.ok) crashFinish(res);
+  });
+
+  function crashFinish(res) {
+    stopCrash();
+    var el = $('[data-crash]');
+    var finalY = res.survived ? res.multiplier : res.crashPoint;
+    crashPoints.push({ x: (Date.now() - crashStart) / 1000, y: finalY });
+    if (el) {
+      el.classList.toggle('is-bust', !res.survived);
+      el.classList.toggle('is-won', !!res.survived);
+      el.innerHTML = crashSvg(crashPoints, finalY) +
+        '<div class="app-crash__mult">' + finalY.toFixed(2) + '×</div>';
+    }
+    crashHistory.unshift({ at: res.crashPoint });
+    if (crashHistory.length > 14) crashHistory.pop();
+
+    var net = res.payout - bet;
+    M.set('[data-crash-result]',
+      '<div class="app-result app-result--' + (res.survived ? 'win' : 'lose') + '" role="status">' +
+        '<span class="app-quest__glyph" aria-hidden="true">' + (res.survived ? '📈' : '💥') + '</span>' +
+        '<div style="min-width:0">' +
+          '<div class="app-result__headline">' + (res.survived ? 'Out at ' + res.multiplier.toFixed(2) + '×' : 'Crashed at ' + res.crashPoint.toFixed(2) + '×') + '</div>' +
+          '<div class="app-result__sub">' + (res.survived
+            ? (res.auto ? 'Auto cash-out fired. ' : '') + 'It went on to ' + res.crashPoint.toFixed(2) + '× — you will never know that in advance, and neither did this page.'
+            : 'The crash point was rolled before the round opened.') + '</div>' +
+        '</div>' +
+        '<div class="app-result__delta">' + M.signedMoney(net) + '</div>' +
+      '</div>' +
+      '<p class="u-text-2xs as-muted u-mt-2">Staked ' + esc(M.moneyFull(bet)) +
+        ' · returned ' + esc(M.moneyFull(res.payout)) + ' · balance ' + esc(M.moneyFull(M.server.balance())) + '</p>');
+
+    crashRound = null;
+    M.set('[data-crash-history]', historyStrip());
+    M.set('[data-crash-controls]', crashControls());
+    M.mountIcons(document); A.mount($('[data-crash-controls]'));
+    refreshBetState();
+    M.announce(res.survived ? 'Cashed out at ' + res.multiplier.toFixed(2) + ' times.' : 'Busted.');
+  }
+
+  /* ============================================================== SHARED */
+  function betRefused(res) {
+    if (res.reason === 'poor') {
+      A.toast('The server refused that: you have ' + M.moneyFull(res.balance) + '.', { variant: 'danger' });
+    } else {
+      A.toast('The server refused that bet.', { variant: 'warn' });
+    }
+    refreshBetState();
+  }
+
+  function rulesCard(id) {
+    var g = catalogue.filter(function (x) { return x.id === id; })[0];
+    return '' +
+    '<section class="as-card">' +
+      '<h2 class="app-sec__title u-mb-4">How it pays</h2>' +
+      '<div class="u-mb-4">' + M.kv([
+        ['Return to player', g.rtp === null ? 'depends on your decisions' : M.pct1(g.rtp)],
+        ['House edge', g.rtp === null ? 'about 0.5% played well' : M.pct1(1 - g.rtp)]
+      ]) + '</div>' +
+      '<ul class="as-list u-text-xs">' + g.rules.map(function (r) {
+        return '<li class="as-list__item">' + M.icon('minus') + '<span>' + esc(r) + '</span></li>';
+      }).join('') + '</ul>' +
+    '</section>';
+  }
+
+  function serverCard(body) {
+    return '' +
+    '<div class="as-note as-note--frost u-text-xs">' + M.icon('shield') +
+      '<span><strong>The server decides, this page draws.</strong> ' + body + '</span>' +
+    '</div>';
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

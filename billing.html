@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Billing &amp; usage — Asbern</title>
+<meta name="description" content="Your Asbern plan, the two usage-based lines — media egress and AI — invoices, payment method and what happens if you cancel.">
+<meta name="color-scheme" content="dark light">
+<meta name="robots" content="noindex">
+<script>
+(function(){try{var p=localStorage.getItem('asbern.theme')||'system';
+var r=p==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):p;
+document.documentElement.setAttribute('data-theme',r);
+document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
+</script>
+<link rel="stylesheet" href="assets/asbern.css">
+<link rel="stylesheet" href="assets/dashboard.css">
+</head>
+<body data-ad-page="billing">
+
+<a class="as-btn as-btn--secondary as-skip" href="#main">Skip to content</a>
+
+<header class="as-nav ad-shellnav">
+  <div class="as-nav__inner">
+    <a class="as-wordmark" href="index.html" aria-label="Asbern — home">
+      <svg class="as-mark" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+      </svg>
+      <span class="u-show@md">Asbern</span>
+    </a>
+    <span class="ad-nav-sep" aria-hidden="true"></span>
+    <div id="ad-serverselect"></div>
+    <div id="ad-globalsearch" class="u-grow" style="position:relative;max-width:32rem;min-width:0"></div>
+    <div class="as-nav__actions">
+      <button class="as-btn as-btn--ghost as-btn--icon" data-as-theme-toggle type="button" aria-label="Switch theme"></button>
+      <div id="ad-account"></div>
+    </div>
+  </div>
+</header>
+
+<div class="as-shell ad-shell">
+  <aside class="as-shell__side ad-side">
+    <nav class="as-sidebar" id="ad-sidenav" aria-label="Dashboard sections"></nav>
+    <div class="ad-side-foot">
+      <a class="as-sidebar__item" href="index.html"><span data-as-icon="external"></span><span>Back to the site</span></a>
+    </div>
+  </aside>
+
+  <main class="as-shell__main" id="main">
+
+    <div class="ad-view__head">
+      <div>
+        <h1 class="ad-view__title">Billing &amp; usage</h1>
+        <p class="ad-view__lede">
+          Your subscription buys <strong>features</strong>. Media egress and AI are billed on what you actually
+          use, as separate lines — because a cheap subscription cannot also quietly pay for other people's
+          bandwidth. Both default to off, both are capped by a number you set, and when a cap is reached the
+          feature stops rather than the invoice growing.
+        </p>
+      </div>
+      <div class="as-row">
+        <a class="as-btn as-btn--ghost as-btn--sm" href="#usage">Usage</a>
+        <a class="as-btn as-btn--ghost as-btn--sm" href="#plans">Plans</a>
+        <a class="as-btn as-btn--ghost as-btn--sm" href="#invoices">Invoices</a>
+      </div>
+    </div>
+
+    <!-- ⚠ The whole page is drawn from the PRICING object in dashboard.js.
+         No plan name, price, allowance or rate appears in this file. -->
+    <section id="bill-current" class="u-mb-12" aria-label="Current plan"></section>
+
+    <section id="usage" class="u-mb-12" aria-label="Usage" style="scroll-margin-top:5rem">
+      <div id="bill-usage"></div>
+    </section>
+
+    <section id="plans" class="u-mb-12" aria-label="Plans" style="scroll-margin-top:5rem">
+      <div id="bill-plans"></div>
+    </section>
+
+    <section id="invoices" class="u-mb-12" aria-label="Invoices" style="scroll-margin-top:5rem">
+      <div id="bill-invoices"></div>
+      <div id="bill-payment" class="u-mt-8"></div>
+    </section>
+
+    <section id="cancel" aria-label="Cancelling" style="scroll-margin-top:5rem">
+      <div id="bill-cancel"></div>
+    </section>
+
+    <noscript>
+      <div class="as-note as-note--warn u-mt-8">
+        <span>Every figure on this page is read from a single pricing object rather than written into the markup,
+        which means it needs JavaScript to render at all.</span>
+      </div>
+    </noscript>
+
+    <footer class="u-mt-12" style="padding-top:var(--as-space-6);border-top:1px solid var(--as-border-soft)">
+      <p class="u-text-xs as-muted">
+        © <span data-as-year></span> Asbern · No payment provider is connected to this page and no card is stored.
+        Figures marked <em>provisional</em> are unpublished and will change.
+      </p>
+      <p class="u-text-xs as-muted u-mt-3">
+        <a href="privacy.html">Privacy</a> &middot;
+        <a href="terms.html">Terms</a> &middot;
+        <a href="privacy.html#retention">Data &amp; retention</a> &middot;
+        <a href="index.html">About Asbern</a>
+      </p>
+    </footer>
+
+  </main>
+</div>
+
+<script src="assets/mock-data.js"></script>
+<script src="assets/asbern.js"></script>
+<script src="assets/dashboard.js"></script>
+</body>
+</html>

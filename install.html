@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Add Asbern to Discord — what happens, in order</title>
+<meta name="description" content="The whole install: pick a permission set, authorise on Discord's own screen, then a first-run walkthrough inside the server. What each permission is for, and what breaks without it.">
+<meta name="color-scheme" content="dark light">
+<script>
+(function(){try{var p=localStorage.getItem('asbern.theme')||'system';
+var r=p==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):p;
+document.documentElement.setAttribute('data-theme',r);
+document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
+</script>
+<link rel="stylesheet" href="assets/asbern.css">
+</head>
+<body>
+
+<a class="as-btn as-btn--secondary as-skip" href="#main">Skip to content</a>
+
+<header class="as-nav">
+  <div class="as-nav__inner">
+    <a class="as-wordmark" href="index.html" aria-label="Asbern — home">
+      <svg class="as-mark" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+      </svg>
+      Asbern
+    </a>
+    <nav class="as-nav__links" aria-label="Primary">
+      <a class="as-nav__link" href="screening.html">Screening Room</a>
+      <a class="as-nav__link" href="features.html">Modules</a>
+      <a class="as-nav__link" href="pricing.html">Pricing</a>
+    </nav>
+    <div class="as-nav__actions">
+      <button class="as-btn as-btn--ghost as-btn--icon" data-as-theme-toggle type="button" aria-label="Switch theme"></button>
+      <a class="as-btn as-btn--secondary as-btn--sm u-desktop-only" href="dashboard.html">Dashboard</a>
+      <button class="as-btn as-btn--ghost as-btn--icon as-nav__burger" type="button"
+              data-as-drawer="#nav-drawer" aria-expanded="false" aria-controls="nav-drawer"
+              aria-label="Open menu" data-as-icon="menu"></button>
+    </div>
+  </div>
+</header>
+<div class="as-drawer" id="nav-drawer" data-as-drawer-panel hidden>
+  <a href="screening.html">Screening Room</a>
+  <a href="features.html">Modules</a>
+  <a href="pricing.html">Pricing</a>
+  <a href="dashboard.html">Dashboard</a>
+</div>
+
+<main id="main">
+
+<!-- ============================ HERO ============================ -->
+<section class="as-section as-section--tight">
+  <div class="as-container as-container--narrow">
+    <span class="as-eyebrow">Getting started</span>
+    <h1 class="as-display as-display--xl u-mt-2">Adding Asbern, in order.</h1>
+    <p class="as-lead u-mt-4">
+      Three steps, and only one of them happens on this website. The server you are adding it to is chosen on
+      <strong>Discord’s own authorisation screen</strong>, not here — we do not ask you to sign in first and we
+      do not keep a list of your servers.
+    </p>
+
+    <!-- ⚠ THE HONESTY GATE. There is no published application to authorise
+         against yet, so the CTA below cannot work and must not pretend to. -->
+    <div class="as-note as-note--warn u-mt-6" id="not-live">
+      <span data-as-icon="alert"></span>
+      <span>
+        <strong>The public install is not open yet.</strong> Asbern runs in production in one community, and the
+        Discord application it would be installed from is not published — the verification that lets a bot pass
+        100 servers has not been applied for, and its two required legal URLs are still
+        <a href="privacy.html">drafts</a>. Everything on this page is real and accurate; the last button is the
+        one thing that does not work, and it says so rather than sending you to a broken authorisation screen.
+      </span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ THE THREE STEPS ============================ -->
+<section class="as-section as-section--tight as-section--elev">
+  <div class="as-container">
+    <div class="as-grid as-grid--gap-6" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,17rem),1fr))">
+
+      <article class="as-card as-stack">
+        <div class="as-row as-row--nowrap">
+          <span class="as-plate as-plate--accent">1</span>
+          <div><div class="as-strong">Pick a permission set</div>
+          <div class="u-text-xs as-muted">On this page, below</div></div>
+        </div>
+        <p class="u-text-sm">
+          Three presets, and you can change your mind later by re-inviting. Every permission Asbern asks for is
+          listed with the sentence describing what stops working without it — not the bit name, the consequence.
+        </p>
+      </article>
+
+      <article class="as-card as-stack">
+        <div class="as-row as-row--nowrap">
+          <span class="as-plate as-plate--accent">2</span>
+          <div><div class="as-strong">Authorise on Discord</div>
+          <div class="u-text-xs as-muted">discord.com, not here</div></div>
+        </div>
+        <p class="u-text-sm">
+          Discord shows you the permission list and <strong>its own server picker</strong>. It offers the servers
+          where you hold <em>Manage Server</em>. If a server is not in that list, that is Discord telling you your
+          own permissions, and nothing we can change.
+        </p>
+      </article>
+
+      <article class="as-card as-stack">
+        <div class="as-row as-row--nowrap">
+          <span class="as-plate as-plate--accent">3</span>
+          <div><div class="as-strong">Run <code>/menu</code> once</div>
+          <div class="u-text-xs as-muted">In the server</div></div>
+        </div>
+        <p class="u-text-sm">
+          On a server with nothing configured, an administrator running <code>/menu</code> gets the
+          <strong>first-run walkthrough</strong> instead of the dashboard: the required settings, in order, with
+          what each one unlocks. Members see the normal menu. Nothing is left in a file for you to edit.
+        </p>
+      </article>
+
+    </div>
+
+    <div class="as-note as-note--frost u-mt-8">
+      <span data-as-icon="info"></span>
+      <span>
+        <strong><code>/menu</code> is the only slash command.</strong> Watching, live TV, game servers, the
+        casino, levels, profile, stats, help and the whole 221-control admin console all run from inside it, so
+        there is no list of commands to learn and nothing else appears in your members’ command picker.
+      </span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ PERMISSION SETS ============================ -->
+<section class="as-section" id="permissions">
+  <div class="as-container">
+    <div class="as-section__head">
+      <span class="as-eyebrow">Step 1</span>
+      <h2 class="as-display as-display--lg">Choose how much you are handing over.</h2>
+      <p class="as-lead">
+        Most bots ask for Administrator and explain nothing. Asbern degrades: a permission it does not have
+        turns off the controls that need it and says which ones, rather than failing silently in the background.
+      </p>
+    </div>
+
+    <div class="as-grid as-grid--gap-6" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))" id="perm-sets"></div>
+
+    <h3 class="u-mt-12 u-mb-4">Every permission, and what breaks without it</h3>
+    <p class="u-text-sm as-muted u-mb-6" id="perm-count"></p>
+    <div class="as-table-wrap">
+      <table class="as-table as-table--compact">
+        <caption class="as-visually-hidden">Discord permissions Asbern requests and the consequence of withholding each</caption>
+        <thead><tr>
+          <th scope="col">Permission</th>
+          <th scope="col" class="u-text-center">Min</th>
+          <th scope="col" class="u-text-center">Rec</th>
+          <th scope="col" class="u-text-center">Full</th>
+          <th scope="col">Without it</th>
+        </tr></thead>
+        <tbody id="perm-rows"></tbody>
+      </table>
+    </div>
+
+    <div class="as-note as-note--warn u-mt-6">
+      <span data-as-icon="alert"></span>
+      <span>
+        <strong>Position matters as much as permission, and nobody tells you this.</strong> Permissions decide
+        what Asbern may do; its <em>role position</em> decides who it may do it to. A bot with every permission
+        and a low role can still do nothing — rank roles are never granted, silently, per member, forever. The
+        dashboard flags every role sitting above Asbern <em>at the picker</em>, before you run anything.
+      </span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ THE HANDOFF ============================ -->
+<section class="as-section as-section--edge" id="go">
+  <div class="as-container as-container--narrow u-text-center">
+    <span class="as-eyebrow" style="justify-content:center">Step 2</span>
+    <h2 class="as-display as-display--lg u-mt-4">Then Discord takes over.</h2>
+    <p class="as-lead u-mt-4" style="margin-inline:auto">
+      The button below would open Discord’s authorisation screen with the set you picked. It is disabled because
+      the application is not published — see the note at the top of this page.
+    </p>
+
+    <div class="as-row as-row--center u-mt-8">
+      <button class="as-btn as-btn--primary as-btn--lg" type="button" disabled aria-describedby="go-why">
+        <span data-as-icon="discord"></span> Authorise on Discord
+      </button>
+      <a class="as-btn as-btn--secondary as-btn--lg" href="dashboard.html">See the dashboard instead</a>
+    </div>
+    <p class="u-text-xs as-muted u-mt-4" id="go-why">
+      Not live: the Discord application is unpublished and unverified.
+    </p>
+
+    <div class="as-card as-card--quiet u-mt-8" style="text-align:left">
+      <div class="u-text-xs as-muted u-mb-2">The URL it will use, once there is an application to point at:</div>
+      <pre class="as-code u-scroll-x"><code id="invite-url">…</code></pre>
+      <p class="u-text-xs as-muted u-mt-3">
+        Scopes are <code>bot</code> and <code>applications.commands</code>, and nothing else. Asbern does not use
+        an OAuth code grant, does not read your Discord account, and never asks for your password.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ SELF-HOST ============================ -->
+<section class="as-section">
+  <div class="as-container as-container--narrow">
+    <h2 class="as-display as-display--lg">Or run the whole thing yourself.</h2>
+    <p class="as-lead u-mt-4">
+      Asbern is a self-hosted bot first. You create your own Discord application, run it on your own machine,
+      and no part of it reports to us — which is also why the privacy policy can say what it says. The one thing
+      self-hosting cannot give you is the streaming relay, because a home upload line genuinely cannot serve
+      twenty viewers.
+    </p>
+    <div class="as-row u-mt-6">
+      <a class="as-btn as-btn--secondary" href="features.html#deployment">How self-hosting works <span data-as-icon="arrow"></span></a>
+      <a class="as-btn as-btn--ghost" href="bridge.html">The bridge agent</a>
+      <a class="as-btn as-btn--ghost" href="screening.html#hardware">Hardware requirements</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="as-footer">
+  <div class="as-container">
+    <div class="as-footer__grid">
+      <div class="as-footer__brand" style="display:flex;flex-direction:column;gap:.75rem">
+        <a class="as-wordmark" href="index.html">
+          <svg class="as-mark" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+          </svg>
+          Asbern
+        </a>
+        <p class="u-text-xs as-muted">
+          Old Norse <em>Ásbjǫrn</em> — “god-bear”. The mark is a bind-rune: one stave, Ansuz on the left,
+          Bjarkan on the right.
+        </p>
+      </div>
+      <div>
+        <div class="as-footer__title">Product</div>
+        <div class="as-footer__links">
+          <a href="screening.html">Screening Room</a>
+          <a href="features.html">All modules</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="install.html" aria-current="page">Add to Discord</a>
+          <a href="features.html#deployment">Self-hosting</a>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Developers</div>
+        <div class="as-footer__links">
+          <a href="dashboard.html">Dashboard preview</a>
+          <a href="bridge.html">Bridge agent</a>
+          <span class="as-footer__soon">Documentation <span class="as-badge as-badge--plain">Soon</span></span>
+          <span class="as-footer__soon">Status <span class="as-badge as-badge--plain">Soon</span></span>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Company</div>
+        <div class="as-footer__links">
+          <span class="as-footer__soon">Support server <span class="as-badge as-badge--plain">Soon</span></span>
+          <span class="as-footer__soon">Contact <span class="as-badge as-badge--plain">Soon</span></span>
+          <a href="features.html#roadmap">Roadmap</a>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Legal</div>
+        <div class="as-footer__links">
+          <a href="privacy.html">Privacy policy <span class="as-badge as-badge--warn">Draft</span></a>
+          <a href="terms.html">Terms of service <span class="as-badge as-badge--warn">Draft</span></a>
+          <a href="privacy.html#retention">Data &amp; retention</a>
+        </div>
+      </div>
+    </div>
+    <div class="as-footer__bottom">
+      <span>© <span data-as-year></span> Asbern. Not affiliated with Discord Inc.</span>
+      <span>This site is a preview. The public install is not open.</span>
+    </div>
+  </div>
+</footer>
+
+<noscript>
+  <div class="as-container as-section--tight">
+    <div class="as-note as-note--warn">
+      The permission tables on this page are rendered from one data table so the three sets cannot disagree
+      with each other. That needs JavaScript. Everything else on the page — the three steps, the self-hosting
+      route and both legal links — works without it.
+    </div>
+  </div>
+</noscript>
+
+<script src="assets/asbern.js"></script>
+<script>
+/* =============================================================================
+   ⚠ ONE TABLE, THREE RENDERS. The set cards, the comparison table and the
+   invite URL all read PERMS/SETS below. The bit values are the ones in
+   docs/_platform/PERMISSIONS.md and assets/dashboard.js's PERM_SETS — if the
+   two ever disagree, a customer authorises one thing and the console expects
+   another, which is a support ticket nobody can diagnose from the outside.
+   ========================================================================== */
+(function () {
+  var A = Asbern, esc = A.escapeHtml;
+
+  /* name → [label, what breaks without it]. Ordered by how early it hurts. */
+  var PERMS = [
+    ['ViewChannel',            'View Channels',            'The bot cannot read the channel at all, so nothing else in this list matters there.'],
+    ['SendMessages',           'Send Messages',            'No rank-up announcements, no achievement notices, no cards of any kind.'],
+    ['EmbedLinks',             'Embed Links',              'Every card renders as plain text.'],
+    ['AttachFiles',            'Attach Files',             'Charts, cover art, the Wrapped card and the game-server crash log are all dropped.'],
+    ['ReadMessageHistory',     'Read Message History',     'The card self-heal path fails, so cards repost instead of editing in place.'],
+    ['ChangeNickname',         'Change Nickname',          'Per-guild bot branding is unavailable — the nickname is the mechanism.'],
+    ['AddReactions',           'Add Reactions',            'Counting cannot mark a good number; reaction-role boards post but react to nothing.'],
+    ['ManageMessages',         'Manage Messages',          '⚠ A wrong counting number is not deleted and the room counts from a lie.'],
+    ['UseExternalEmojis',      'Use External Emojis',      'Name icons and rank glyphs fall back to plain text.'],
+    ['Connect',                'Connect',                  'The AI companion cannot join a voice channel.'],
+    ['Speak',                  'Speak',                    'The AI companion joins and stays silent.'],
+    ['MoveMembers',            'Move Members',             '⚠ Booster prison retries forever — a permanent error loop against Discord.'],
+    ['ManageNicknames',        'Manage Nicknames',         'The /menu → Profile nickname control refuses. It already says so.'],
+    ['ManageRoles',            'Manage Roles',             '⚠ Rank, prestige and icon roles never appear — silently, per member, forever.'],
+    ['ModerateMembers',        'Timeout Members',          'Raid mode cannot time anyone out; the Members tab timeout controls refuse.'],
+    ['SetVoiceChannelStatus',  'Set Voice Channel Status', 'The “🎬 now showing” line under the voice channel never appears, or never clears.'],
+    ['KickMembers',            'Kick Members',             'The Members tab kick controls refuse.'],
+    ['BanMembers',             'Ban Members',              'Both ban scopes refuse.'],
+    ['ManageChannels',         'Manage Channels',          'The entire Channels tab refuses.'],
+    ['ManageGuild',            'Manage Server',            'Server name, verification level, content filter and invites cannot be changed.'],
+    ['ViewAuditLog',           'View Audit Log',           'The Discord audit feed and snapshot restore refuse.'],
+    ['MuteMembers',            'Mute Members',             'Voice mute controls refuse.'],
+    ['DeafenMembers',          'Deafen Members',           'Voice deafen controls refuse.'],
+    ['ManageWebhooks',         'Manage Webhooks',          'Four webhook controls on the Channels tab refuse.'],
+    ['ManageGuildExpressions', 'Manage Expressions',       'Add Emoji and Delete Emoji will refuse.'],
+    ['ManageEvents',           'Manage Events',            'Scheduled events cannot be created, and the event blueprint step fails.'],
+    ['ManageThreads',          'Manage Threads',           'Thread archive and lock controls refuse.'],
+    ['CreatePublicThreads',    'Create Public Threads',    'Thread-creating controls refuse.'],
+    ['CreatePrivateThreads',   'Create Private Threads',   'Private-thread controls refuse.'],
+    ['SendMessagesInThreads',  'Send Messages in Threads', 'The bot can open a thread and then not speak in it.']
+  ];
+
+  var MIN = 6;    /* first N entries = Minimum */
+  var REC = 16;   /* first N entries = Recommended */
+
+  var SETS = [
+    { id: 'minimum', name: 'Minimum', value: '67226624', upto: MIN,
+      blurb: 'Boot, /menu, economy, casino, stats, wrapped, challenges — every card the bot posts. Nothing that touches another member.',
+      good: 'The least you can hand over and still have a working bot.' },
+    { id: 'recommended', name: 'Recommended', value: '282574978411584', upto: REC, featured: true,
+      blurb: 'Minimum plus every member-facing module: leveling and rank roles, counting, reaction roles, category access, the screening room, game servers, companions, join policies.',
+      good: 'No moderation console and no server management. This is the one most servers want.' },
+    { id: 'full', name: 'Full', value: '282980328533238', upto: PERMS.length,
+      blurb: 'Recommended plus the moderation and server-management console — the Members, Channels, Roles and Guild tabs.',
+      good: 'Still not Administrator. Asbern never asks for it, and a console that needs 30 named bits rather than one blanket one is the point.' }
+  ];
+
+  var chosen = 'recommended';
+
+  function setCards() {
+    document.getElementById('perm-sets').innerHTML = SETS.map(function (s) {
+      var on = s.id === chosen;
+      return '<button class="as-card as-stack' + (on ? ' as-card--accent' : '') +
+          '" type="button" role="radio" aria-checked="' + (on ? 'true' : 'false') +
+          '" data-set="' + s.id + '" style="text-align:left;cursor:pointer">' +
+        '<div class="as-row as-row--between as-row--nowrap" style="align-items:flex-start">' +
+          '<span class="as-plate' + (on ? ' as-plate--accent' : '') + '" data-as-icon="shield"></span>' +
+          (s.featured ? '<span class="as-badge as-badge--accent">Most servers</span>'
+                      : '<span class="as-badge as-badge--plain">' + s.upto + ' permissions</span>') +
+        '</div>' +
+        '<h3 style="font-size:var(--as-text-md)">' + esc(s.name) + '</h3>' +
+        '<p class="u-text-sm">' + esc(s.blurb) + '</p>' +
+        '<p class="u-text-xs as-muted u-mt-auto">' + esc(s.good) + '</p>' +
+        '<div class="u-mono u-text-xs as-muted">permissions=' + s.value + '</div>' +
+      '</button>';
+    }).join('');
+    document.getElementById('perm-sets').setAttribute('role', 'radiogroup');
+    document.getElementById('perm-sets').setAttribute('aria-label', 'Permission set');
+    A.mount(document.getElementById('perm-sets'));
+  }
+
+  function rows() {
+    document.getElementById('perm-rows').innerHTML = PERMS.map(function (p, i) {
+      function cell(limit) {
+        return i < limit
+          ? '<td class="u-text-center"><span class="as-visually-hidden">included</span>' +
+            '<span aria-hidden="true" style="color:var(--as-success)">' + A.icon('check') + '</span></td>'
+          : '<td class="u-text-center as-muted"><span class="as-visually-hidden">not included</span>' +
+            '<span aria-hidden="true">·</span></td>';
+      }
+      return '<tr><th scope="row">' + esc(p[1]) + '</th>' +
+        cell(MIN) + cell(REC) + cell(PERMS.length) +
+        '<td class="u-text-sm as-muted">' + esc(p[2]) + '</td></tr>';
+    }).join('');
+    document.getElementById('perm-count').textContent =
+      PERMS.length + ' permissions in total. Asbern never asks for Administrator, and there is no ' +
+      'permission on this list whose only justification is convenience.';
+  }
+
+  function url() {
+    var s = SETS.filter(function (x) { return x.id === chosen; })[0];
+    document.getElementById('invite-url').textContent =
+      'https://discord.com/oauth2/authorize' +
+      '?client_id=<not published yet>' +
+      '&scope=bot%20applications.commands' +
+      '&permissions=' + s.value;
+  }
+
+  A.on('click', '[data-set]', function (ev, btn) {
+    chosen = btn.getAttribute('data-set');
+    setCards(); url();
+  });
+  /* Arrow keys move between radio cards, which is what a radiogroup owes you. */
+  A.on('keydown', '[data-set]', function (ev, btn) {
+    var k = ev.key, ids = SETS.map(function (s) { return s.id; });
+    if (k !== 'ArrowRight' && k !== 'ArrowLeft' && k !== 'ArrowDown' && k !== 'ArrowUp') return;
+    ev.preventDefault();
+    var i = ids.indexOf(btn.getAttribute('data-set'));
+    var next = (k === 'ArrowRight' || k === 'ArrowDown') ? (i + 1) % ids.length : (i + ids.length - 1) % ids.length;
+    chosen = ids[next]; setCards(); url();
+    var el = document.querySelector('[data-set="' + chosen + '"]');
+    if (el) el.focus();
+  });
+
+  setCards(); rows(); url();
+  A.mount(document);
+})();
+</script>
+</body>
+</html>

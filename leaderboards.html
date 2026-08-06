@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Leaderboards — Asbern</title>
+<meta name="description" content="Messages, voice, wealth, level and watch time on Hearthstead — with an honest note about which boards can actually be windowed and which cannot.">
+<meta name="color-scheme" content="dark light">
+<script>
+(function(){try{var p=localStorage.getItem('asbern.theme')||'system';
+var r=p==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):p;
+document.documentElement.setAttribute('data-theme',r);
+document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
+</script>
+<link rel="stylesheet" href="assets/asbern.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body data-app-page="boards">
+
+<a class="as-btn as-btn--secondary as-skip" href="#main">Skip to content</a>
+
+<header class="as-nav">
+  <div class="as-nav__inner">
+    <a class="as-wordmark" href="app.html" aria-label="Asbern — your profile">
+      <svg class="as-mark" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+      </svg>
+      Asbern
+    </a>
+    <nav class="as-nav__links" aria-label="Primary">
+      <a class="as-nav__link" href="app.html" data-app-nav="home">Profile</a>
+      <a class="as-nav__link" href="watch.html" data-app-nav="watch">Watch</a>
+      <a class="as-nav__link" href="casino.html" data-app-nav="casino">Casino</a>
+      <a class="as-nav__link" href="leaderboards.html" data-app-nav="boards">Leaderboards</a>
+    </nav>
+    <div class="as-nav__actions">
+      <a class="app-wallet" href="app.html#tycoon" data-app-wallet>
+        <span data-app-icon="wallet"></span><span class="app-wallet__amount">—</span>
+      </a>
+      <button class="as-btn as-btn--ghost as-btn--icon" data-as-theme-toggle type="button" aria-label="Switch theme"></button>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="as-container app-main">
+
+  <div class="app-head">
+    <div class="app-head__row">
+      <div>
+        <span class="as-eyebrow">Hearthstead</span>
+        <h1 class="as-display as-display--lg">Leaderboards</h1>
+      </div>
+      <p class="u-text-xs as-muted">Bots never rank. There is a note below about how much that removes.</p>
+    </div>
+  </div>
+
+  <!-- Board picker -->
+  <div class="as-tabs" role="tablist" aria-label="Leaderboard" data-boards></div>
+
+  <div class="u-mt-6" data-board></div>
+
+  <div class="app-preview u-mt-12" data-app-preview></div>
+
+  <!-- ============================ MEMBER-SURFACE FOOTER ============================
+       ⚠ Small, but not optional. This is a consumer surface: it shows a member
+       their balance, their watch history and their stats. A page that holds
+       personal data and offers no route to the privacy policy is an IA gap, not
+       a styling preference. The marketing footer would be wrong here (this page
+       has a bottom tab bar and behaves like an app), so it is one line. -->
+  <footer class="app-legal u-mt-12">
+    <p class="u-text-xs as-muted">
+      &copy; <span data-as-year></span> Asbern &middot; Not affiliated with Discord Inc.
+    </p>
+    <p class="u-text-xs as-muted">
+      <a href="privacy.html">What is stored about you</a> &middot;
+      <a href="terms.html">Terms</a> &middot;
+      <a href="privacy.html#choices">Delete your history</a> &middot;
+      <a href="index.html">About Asbern</a>
+    </p>
+    <p class="u-text-xs as-muted">
+      Preview build with example data. Nothing here is your real balance, level or history.
+    </p>
+  </footer>
+
+</main>
+
+<nav class="app-tabbar" aria-label="Sections">
+  <a class="app-tabbar__item" href="app.html" data-app-nav="home">
+    <span data-as-icon="home"></span><span>Profile</span>
+  </a>
+  <a class="app-tabbar__item" href="watch.html" data-app-nav="watch">
+    <span data-as-icon="film"></span><span>Watch</span>
+  </a>
+  <a class="app-tabbar__item" href="casino.html" data-app-nav="casino">
+    <span data-app-icon="dice"></span><span>Casino</span>
+  </a>
+  <a class="app-tabbar__item" href="leaderboards.html" data-app-nav="boards">
+    <span data-as-icon="trophy"></span><span>Boards</span>
+  </a>
+</nav>
+
+<script src="assets/mock-data.js"></script>
+<script src="assets/asbern.js"></script>
+<script src="assets/app.js"></script>
+<script>
+/* =============================================================================
+   leaderboards.html
+
+   The interesting thing about this screen is what it REFUSES to do.
+
+   Only two of the five boards can be filtered by period, because only two of
+   them come from statsQuery. Wealth is live standings, level has no time
+   dimension at all, and watch time is a running lifetime total that was never
+   bucketed by period. Rather than render five identical period bars and quietly
+   ignore three of them, the control is disabled with the reason attached — and
+   the reason is a real finding for the API phase, not a design flourish.
+   ========================================================================== */
+(function () {
+  'use strict';
+  var M = window.MemberApp, A = window.Asbern;
+  var esc = M.esc, $ = M.$, $$ = M.$$;
+
+  var BOARDS = [
+    {
+      id: 'messages', label: 'Messages', icon: 'message', module: 'stats-basic',
+      unit: 'msgs', windowed: true,
+      value: function (v) { return A.num(v); },
+      source: 'statsQuery.leaderboard({ metric: "messages" })'
+    },
+    {
+      id: 'voice', label: 'Voice', icon: 'mic', module: 'stats-basic',
+      unit: 'engaged', windowed: true,
+      value: function (v) { return M.hm(v); },
+      sub: function (r) { return r.sub != null ? M.hm(r.sub) + ' connected' : null; },
+      source: 'statsQuery.leaderboard({ metric: "voice" })',
+      note: 'Ranked on <strong>engaged</strong> minutes — time with at least one other human in the channel, unmuted. ' +
+            'Connected time rides along on each row so you can see the difference, but it is not what ranks.'
+    },
+    {
+      id: 'wealth', label: 'Wealth', icon: 'coins', module: 'economy',
+      unit: 'net worth', windowed: false,
+      value: function (v) { return M.money(v); },
+      source: 'economy.leaderboard()',
+      why: 'Wealth is a standings table, not a period table. `economy.leaderboard()` ranks LIVE net worth — cash plus ' +
+           'everything permanently invested — and there is no window argument to give it. “Who got richest last week” ' +
+           'is a different query against a ledger nobody has written yet.'
+    },
+    {
+      id: 'level', label: 'Level', icon: 'trophy', module: 'leveling',
+      unit: 'level', windowed: false,
+      value: function (v) { return String(v); },
+      sub: function (r) { return r.prestige ? M.prestigeLabel(r.prestige) : null; },
+      source: 'leveling.leaderboard()',
+      why: 'Level is cumulative by definition, so there is nothing to window. The order is prestige first, then lifetime ' +
+           'XP — which is why somebody on a lower level can sit above somebody on a higher one.'
+    },
+    {
+      id: 'watch', label: 'Watch time', icon: 'film', module: 'screening-room',
+      unit: 'lifetime', windowed: false,
+      value: function (v) { return M.hm(v); },
+      source: '⛔ no such function today',
+      why: 'This board is <strong>lifetime only, and that is a gap rather than a decision</strong>. watch-history keeps ' +
+           'running totals and a per-title “last watched”, never per-period milliseconds — so “hours watched this month” ' +
+           'is not a number anything can currently answer. Wrapped hits the same wall and says so on the card instead ' +
+           'of guessing.'
+    }
+  ];
+
+  var current = 'messages';
+  var window_ = 'month';
+  var showBots = false;
+
+  /* --------------------------------------------------------------- TABS */
+  function tabs() {
+    $('[data-boards]').innerHTML = BOARDS.map(function (b) {
+      return '<button class="as-tab" type="button" role="tab" data-board-pick="' + b.id + '"' +
+        ' aria-selected="' + (b.id === current) + '" tabindex="' + (b.id === current ? 0 : -1) + '">' +
+        esc(b.label) + '</button>';
+    }).join('');
+  }
+
+  A.on('click', '[data-board-pick]', function (ev, btn) {
+    current = btn.getAttribute('data-board-pick');
+    tabs(); paint();
+  });
+  A.on('keydown', '[data-board-pick]', function (ev, btn) {
+    var d = ev.key === 'ArrowRight' ? 1 : ev.key === 'ArrowLeft' ? -1 : 0;
+    if (!d) return;
+    ev.preventDefault();
+    var i = BOARDS.map(function (b) { return b.id; }).indexOf(current);
+    current = BOARDS[(i + d + BOARDS.length) % BOARDS.length].id;
+    tabs(); paint();
+    var next = $('[data-board-pick="' + current + '"]');
+    if (next) next.focus();
+  });
+
+  /* -------------------------------------------------------------- PAINT */
+  function paint() {
+    var b = BOARDS.filter(function (x) { return x.id === current; })[0];
+    var host = $('[data-board]');
+    var gate = M.entitled(b.module);
+
+    if (!gate.ok) {
+      host.innerHTML = M.lockedHtml(gate, {
+        extra: b.id === 'watch'
+          ? '<p class="app-lock__body">Watch time is only collected when there is a screening room collecting it. ' +
+            'Nothing has been hidden from you — there is genuinely nothing here to hide.</p>'
+          : ''
+      });
+      M.mountIcons(host);
+      return;
+    }
+
+    var histGate = M.entitled('stats-history');
+    var needsHistory = b.windowed && (window_ === 'year' || window_ === 'all');
+    var data = M.server.boards(b.id, window_, showBots);
+
+    host.innerHTML =
+      periodBar(b, histGate) +
+      (needsHistory && !histGate.ok
+        ? M.lockedHtml(histGate, {
+            extra: '<p class="app-lock__body">The collector has been writing this the whole time and still is. ' +
+                   'Upgrading shows the full history immediately; downgrading hides it and never deletes it.</p>'
+          })
+        : boardBody(b, data)) +
+      sourceNote(b);
+
+    M.mountIcons(host);
+    A.mount(host);
+  }
+
+  function periodBar(b, histGate) {
+    var disabledReason = b.windowed ? null : 'This board has no time dimension — see the note below.';
+    return '' +
+    '<div class="as-row as-row--between u-mb-4" style="align-items:flex-end">' +
+      '<div class="app-periods" role="group" aria-label="Timeframe">' +
+        M.WINDOWS.map(function (w) {
+          var lockedTier = (w.key === 'year' || w.key === 'all') && !histGate.ok;
+          var off = !b.windowed || lockedTier;
+          var tip = !b.windowed ? disabledReason : lockedTier ? 'Needs ' + M.tierName('community') : '';
+          return '<button class="as-chip" type="button" data-win="' + w.key + '"' +
+            ' aria-pressed="' + (b.windowed && w.key === window_) + '"' +
+            (off ? ' disabled aria-disabled="true"' : '') +
+            (tip ? ' data-as-tip="' + esc(tip) + '"' : '') + '>' +
+            (lockedTier ? M.icon('lock') : '') + esc(w.short) + '</button>';
+        }).join('') +
+      '</div>' +
+      (b.id === 'messages'
+        ? '<label class="as-switch"><input type="checkbox" data-bots ' + (showBots ? 'checked' : '') + '>' +
+          '<span class="as-switch__label">Show what the bot filter removes</span></label>'
+        : '') +
+    '</div>' +
+    '<p class="u-text-xs as-muted u-mb-4">' +
+      (b.windowed
+        ? esc(M.WINDOWS.filter(function (w) { return w.key === window_; })[0].label)
+        : '<strong>' + esc(b.unit === 'lifetime' ? 'Lifetime' : 'Live standings') + '</strong> — this board is not windowed') +
+    '</p>';
+  }
+
+  function boardBody(b, data) {
+    if (!data.rows.length) {
+      return '<div class="as-empty">' +
+        '<span class="as-empty__icon">' + M.icon(b.icon) + '</span>' +
+        '<span class="as-empty__title">Nothing in this window yet</span>' +
+        '<p class="as-empty__body">Nobody has any ' + esc(b.label.toLowerCase()) + ' in this timeframe. ' +
+          'Try a wider one — the data is not missing, the window is just narrow.</p>' +
+      '</div>';
+    }
+
+    var top3 = data.rows.slice(0, 3);
+    var podium = '<div class="app-podium u-mb-6">' +
+      [top3[1], top3[0], top3[2]].map(function (r, i) {
+        if (!r) return '<div class="app-podium__slot" aria-hidden="true"></div>';
+        var pos = r.rank;
+        return '<div class="app-podium__slot' + (pos === 1 ? ' app-podium__slot--1' : '') + '">' +
+          '<span class="app-podium__pos">' + pos + '</span>' +
+          M.avatar(r.initials, r.me ? 'as-avatar--accent' : (pos === 1 ? 'as-avatar--accent' : '')) +
+          '<span class="app-podium__name">' + esc(r.name) + (r.me ? ' (you)' : '') + '</span>' +
+          '<span class="app-podium__val">' + esc(b.value(r.value)) + '</span>' +
+        '</div>';
+      }).join('') + '</div>';
+
+    var rows = '<div class="as-panel"><div class="app-board">' + data.rows.map(function (r) {
+      var sub = b.sub ? b.sub(r) : null;
+      return '<div class="app-row' + (r.me ? ' app-row--me' : '') + (r.bot ? ' app-row--bot' : '') + '"' +
+        (r.me ? ' aria-label="Your position, rank ' + r.rank + '"' : '') + '>' +
+        '<span class="app-row__rank">' + r.rank + '</span>' +
+        M.avatar(r.initials, r.me ? 'as-avatar--accent' : '') +
+        '<span style="min-width:0">' +
+          '<span class="app-row__name">' + esc(r.name) + (r.me ? ' <span class="as-muted">(you)</span>' : '') +
+            (r.bot ? ' <span class="as-badge as-badge--plain">bot · excluded</span>' : '') + '</span>' +
+          (sub ? '<span class="app-row__sub">' + esc(sub) + '</span>' : '') +
+        '</span>' +
+        '<span class="app-row__val">' + esc(b.value(r.value)) + '<span class="app-row__unit">' + esc(b.unit) + '</span></span>' +
+      '</div>';
+    }).join('') + '</div></div>';
+
+    var standing = data.me
+      ? '<div class="as-card as-card--accent u-mt-4">' +
+          '<div class="as-row as-row--between">' +
+            '<div style="min-width:0">' +
+              '<span class="as-eyebrow">Your position</span>' +
+              '<p class="app-figure__value u-mt-2">#' + data.me.rank + ' <span class="as-muted" style="font-size:var(--as-text-sm)">of ' + data.me.of + ' ranked</span></p>' +
+            '</div>' +
+            '<span class="as-badge as-badge--accent">' + esc(b.value(data.me.value)) + '</span>' +
+          '</div>' +
+          (data.me.rank > 1
+            ? '<p class="u-text-xs as-muted u-mt-3">' +
+              esc(b.value(data.rows[data.me.rank - 2].value - data.me.value)) + ' behind ' +
+              esc(data.rows[data.me.rank - 2].name) + '.</p>'
+            : '<p class="u-text-xs as-muted u-mt-3">Top of the board.</p>') +
+        '</div>'
+      : '';
+
+    return podium + rows + standing + (b.id === 'messages' ? botDisclosure(data) : '');
+  }
+
+  /* ---------------------------------------------------------- BOT FILTER */
+  /*
+     ⚠ MEASURED. 22 bot ids were 48.6% of every message ever recorded on the
+     server this was built against — 20,869 of 42,979 — and 61.3% of the recent
+     sixty days, rising. A message board that counted them would be a board of
+     which bot talks most.
+  */
+  function botDisclosure(data) {
+    var s = M.BOT_SHARE;
+    var human = 1 - s.allTime;
+    return '' +
+    '<details class="as-acc u-mt-6"' + (showBots ? ' open' : '') + '>' +
+      '<summary class="as-acc__summary">Why bots are not on this board</summary>' +
+      '<div class="as-acc__body">' +
+        '<p class="u-text-sm">On the server this product was built for, <strong>' + M.pct1(s.allTime) + ' of every message ever ' +
+          'recorded belonged to a bot</strong> — ' + s.botIds + ' bot accounts against ' + s.humans + ' people. Over the last ' +
+          'sixty days it was ' + M.pct1(s.recent60d) + ' and rising. Counting them would have made the all-time message board ' +
+          'a chart of which bot is chattiest.</p>' +
+        '<figure class="u-mt-4" style="margin:0">' +
+          '<figcaption class="u-text-2xs as-muted u-mb-2">All-time messages, by author type</figcaption>' +
+          '<div class="app-share" role="img" aria-label="Humans ' + M.pct1(human) + ', bots ' + M.pct1(s.allTime) + '">' +
+            '<span class="app-share__seg app-share__seg--human" style="width:' + (human * 100).toFixed(1) + '%"></span>' +
+            '<span class="app-share__seg app-share__seg--bot" style="width:' + (s.allTime * 100).toFixed(1) + '%"></span>' +
+          '</div>' +
+          '<div class="as-row as-row--between u-text-2xs as-muted u-mt-2">' +
+            '<span><span style="display:inline-block;width:.6rem;height:.6rem;border-radius:2px;background:var(--as-accent);vertical-align:middle"></span> ' +
+              'People — ' + M.pct1(human) + '</span>' +
+            '<span><span style="display:inline-block;width:.6rem;height:.6rem;border-radius:2px;background:var(--as-border-strong);vertical-align:middle"></span> ' +
+              'Bots — ' + M.pct1(s.allTime) + '</span>' +
+          '</div>' +
+        '</figure>' +
+        '<p class="u-text-xs as-muted u-mt-4">The filter is fed from three independent sources so it works whichever data ' +
+          'lane the row lands on, and it is applied inside the query rather than bolted on at render — which is the ' +
+          'difference between a board that never shows a bot and a board that usually does not.</p>' +
+        (showBots
+          ? '<div class="as-note as-note--warn u-mt-3 u-text-xs">' + M.icon('alert') +
+            '<span>The toggle above is showing you what the filter takes out. Those rows are marked <em>excluded</em> and ' +
+            'are never in the real board, at any tier, for anybody.</span></div>'
+          : '') +
+      '</div>' +
+    '</details>';
+  }
+
+  /* ------------------------------------------------------------- SOURCE */
+  function sourceNote(b) {
+    return '' +
+    '<div class="as-note ' + (b.why ? 'as-note--warn' : '') + ' u-mt-6 u-text-xs">' +
+      M.icon(b.why ? 'alert' : 'info') +
+      '<span>' +
+        (b.note ? b.note + '<br><br>' : '') +
+        (b.why ? b.why + '<br><br>' : '') +
+        '<span class="as-muted u-mono">' + esc(b.source) + '</span>' +
+      '</span>' +
+    '</div>';
+  }
+
+  A.on('click', '[data-win]', function (ev, btn) {
+    if (btn.disabled) return;
+    window_ = btn.getAttribute('data-win');
+    paint();
+    M.announce('Showing ' + window_ + '.');
+  });
+  A.on('change', '[data-bots]', function (ev, el) {
+    showBots = el.checked;
+    paint();
+  });
+
+  tabs();
+  paint();
+})();
+</script>
+</body>
+</html>

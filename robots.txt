@@ -1,0 +1,10 @@
+# ⚠ PREVIEW SITE — NOT FOR INDEXING YET.
+#
+# Asbern is not purchasable and not installable: every call to action here ends
+# in a placeholder, the pricing is marked provisional, and the legal pages are
+# drafts with unfilled values. Indexing a site that cannot be bought produces
+# search results that mislead people and outrank the real thing later.
+#
+# Remove this file the day the product can actually be installed.
+User-agent: *
+Disallow: /

@@ -1,0 +1,998 @@
+/* =============================================================================
+   ASBERN · MEMBER APP  ·  assets/app.css
+   -----------------------------------------------------------------------------
+   The surface an ordinary community MEMBER uses on the web. Not the owner
+   dashboard, not the marketing site.
+
+   THIS FILE IS A LAYER ON TOP OF assets/asbern.css, NEVER A REPLACEMENT.
+   Every colour, space, radius, shadow, duration and font below comes from an
+   `--as-*` token. Nothing here re-declares a token and nothing here restyles an
+   `.as-*` class — where the member app needs a variant of a design-system block
+   it composes (`class="as-card app-hero"`) instead of overriding.
+
+   NAMING — the same grammar as asbern.css, with an `app-` prefix:
+     Blocks      .app-<block>              .app-hero
+     Elements    .app-<block>__<element>   .app-hero__meta
+     Modifiers   .app-<block>--<modifier>  .app-board--wealth
+     State       .is-<state> / aria-*      .is-active, aria-pressed
+   JS hooks stay `data-as-*` / `data-app-*`. Never style a data attribute.
+
+   ⚠ CANDIDATES FOR PROMOTION INTO asbern.css
+   Everything in §2–§9 is generic enough that the dashboard will want it too.
+   The list is repeated at the bottom of this file so it can be diffed. It is
+   here rather than in asbern.css because another agent owns that file.
+
+   MOBILE FIRST. Members use phones. Every block below is authored at the
+   narrow width first and only widened by a `min-width` query. The page must
+   never scroll sideways: any wide thing (a table, a chart, a chip row) scrolls
+   inside its own box.
+
+   CONTENTS
+     1  App frame — shell, top bar, bottom tab bar, wallet
+     2  Hero / profile
+     3  Meters, rings and key-value rows
+     4  Achievements
+     5  Quests — challenges, goals, the season
+     6  Locked modules & honesty notes
+     7  Screening room — player chrome, viewers, accrual, tickets
+     8  Casino — lobby, table, cards, chips, crash chart, results
+     9  Leaderboards — boards, rows, period bar
+    10  Utilities local to the app
+   ========================================================================== */
+
+
+/* ==========================================================================
+   1 · APP FRAME
+   ========================================================================== */
+
+/* The member app is a fixed chrome + a scrolling document. On a phone the
+   primary navigation is a bottom tab bar (thumb reach); from 52rem up the
+   design-system top nav takes over and the tab bar is removed from the
+   accessibility tree entirely. */
+
+.app-body {
+  /* Room for the fixed tab bar + the iOS home indicator. */
+  padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 52rem) {
+  .app-body { padding-bottom: 0; }
+}
+
+.app-main { padding-block: var(--as-space-5) var(--as-space-12); }
+@media (min-width: 52rem) { .app-main { padding-block: var(--as-space-8) var(--as-space-16); } }
+
+/* asbern.css's .as-toasts now reads `--as-tabbar-h` (default 0) to lift itself
+   clear of a bottom bar, instead of this file overriding its `bottom` outright
+   — so all this does is tell the system how tall .app-tabbar actually is,
+   scoped to the width where the bar exists. Height is the bar's real geometry:
+   two --as-space-1 paddings either side of a 3.25rem item, plus its 1px top
+   border, plus the safe-area inset the bar itself pads for. */
+@media (max-width: 51.99rem) {
+  :root { --as-tabbar-h: calc(3.75rem + 1px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* -- 1.1 Wallet pill in the top bar --------------------------------------- */
+
+.app-wallet {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--as-space-2);
+  padding: 0.3rem 0.6rem 0.3rem 0.5rem;
+  border-radius: var(--as-radius-full);
+  border: 1px solid var(--as-accent-line);
+  background: var(--as-accent-soft);
+  color: var(--as-accent);
+  font-size: var(--as-text-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: border-color var(--as-dur-fast) var(--as-ease),
+              background-color var(--as-dur-fast) var(--as-ease);
+}
+.app-wallet:hover { border-color: var(--as-accent); color: var(--as-accent); }
+.app-wallet svg { width: 0.95rem; height: 0.95rem; flex: none; }
+/* The balance ticks up live (idle tycoon income). A number that changes under
+   the reader must not reflow the layout around it. */
+.app-wallet__amount { min-width: 4.5ch; text-align: right; }
+.app-wallet.is-bumped { animation: app-bump var(--as-dur-slow) var(--as-ease-out); }
+@keyframes app-bump {
+  0%   { transform: none; }
+  35%  { transform: translateY(-2px) scale(1.04); }
+  100% { transform: none; }
+}
+
+/* -- 1.2 Bottom tab bar (phones) ------------------------------------------ */
+
+.app-tabbar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: var(--as-z-nav);
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 2px;
+  padding: var(--as-space-1) var(--as-space-1) calc(var(--as-space-1) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--as-border);
+  background: var(--as-bg);                                    /* fallback */
+  background: color-mix(in srgb, var(--as-bg) 92%, transparent);
+  backdrop-filter: saturate(150%) blur(14px);
+  -webkit-backdrop-filter: saturate(150%) blur(14px);
+}
+@media (min-width: 52rem) { .app-tabbar { display: none; } }
+
+.app-tabbar__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 3.25rem;
+  padding: var(--as-space-1);
+  border-radius: var(--as-radius-sm);
+  color: var(--as-text-3);
+  font-size: var(--as-text-2xs);
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  transition: color var(--as-dur-fast) var(--as-ease),
+              background-color var(--as-dur-fast) var(--as-ease);
+}
+.app-tabbar__item svg { width: 1.25rem; height: 1.25rem; }
+.app-tabbar__item:hover { color: var(--as-text-1); background: var(--as-surface-1); }
+.app-tabbar__item[aria-current="page"] { color: var(--as-accent); background: var(--as-accent-soft); }
+
+/* -- 1.3 Page header ------------------------------------------------------ */
+
+.app-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--as-space-2);
+  margin-bottom: var(--as-space-6);
+}
+.app-head__row { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--as-space-4); flex-wrap: wrap; }
+.app-head h1 { font-size: var(--as-text-2xl); }
+@media (min-width: 52rem) { .app-head h1 { font-size: var(--as-text-3xl); } }
+
+/* A section heading inside a page. */
+.app-sec { margin-top: var(--as-space-10); }
+.app-sec__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--as-space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--as-space-4);
+}
+.app-sec__title { font-size: var(--as-text-md); font-weight: 650; color: var(--as-text-1); }
+.app-sec__note  { font-size: var(--as-text-xs); color: var(--as-text-3); }
+
+
+/* ==========================================================================
+   2 · HERO / PROFILE
+   ========================================================================== */
+
+.app-hero { display: flex; flex-direction: column; gap: var(--as-space-5); }
+.app-hero__top { display: flex; align-items: flex-start; gap: var(--as-space-4); }
+
+.app-hero__avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 3.75rem; height: 3.75rem;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--as-accent-line);
+  background: var(--as-accent-soft);
+  color: var(--as-accent);
+  font-family: var(--as-font-display);
+  font-size: var(--as-text-lg);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+@media (min-width: 40rem) { .app-hero__avatar { width: 4.5rem; height: 4.5rem; font-size: var(--as-text-xl); } }
+/* The equipped name-icon rides on the avatar the way it rides on the name in
+   Discord — one icon only, ever. */
+.app-hero__icon {
+  position: absolute;
+  right: -0.2rem; bottom: -0.2rem;
+  display: grid; place-items: center;
+  width: 1.6rem; height: 1.6rem;
+  border-radius: 50%;
+  background: var(--as-surface-2);
+  border: 1px solid var(--as-border-strong);
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.app-hero__name {
+  font-family: var(--as-font-display);
+  font-size: var(--as-text-xl);
+  font-weight: 600;
+  color: var(--as-text-1);
+  line-height: 1.15;
+}
+@media (min-width: 40rem) { .app-hero__name { font-size: var(--as-text-2xl); } }
+.app-hero__meta { display: flex; flex-wrap: wrap; gap: var(--as-space-2); margin-top: var(--as-space-2); }
+
+/* The four headline numbers. Two-up on a phone, four-up from 40rem. */
+.app-hero__figures {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  background: var(--as-border-soft);
+  border: 1px solid var(--as-border-soft);
+  border-radius: var(--as-radius-md);
+  overflow: hidden;
+}
+@media (min-width: 40rem) { .app-hero__figures { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.app-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: var(--as-space-3) var(--as-space-4);
+  background: var(--as-surface-1);
+  min-width: 0;
+}
+.app-figure__label {
+  font-size: var(--as-text-2xs);
+  font-weight: 650;
+  letter-spacing: var(--as-tracking-caps);
+  text-transform: uppercase;
+  color: var(--as-text-3);
+}
+.app-figure__value {
+  font-family: var(--as-font-display);
+  font-size: var(--as-text-lg);
+  font-weight: 500;
+  color: var(--as-text-1);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.app-figure__value--accent { color: var(--as-accent); }
+.app-figure__note { font-size: var(--as-text-2xs); color: var(--as-text-3); }
+
+
+/* ==========================================================================
+   3 · METERS, RINGS, KEY/VALUE
+   ========================================================================== */
+
+/* A labelled progress meter: caption row above, bar below. Wraps .as-progress
+   rather than restyling it. */
+.app-meter { display: flex; flex-direction: column; gap: var(--as-space-2); min-width: 0; }
+.app-meter__row {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--as-space-3); font-size: var(--as-text-xs);
+}
+.app-meter__label { color: var(--as-text-2); font-weight: 600; }
+.app-meter__value { color: var(--as-text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.app-meter--success .as-progress__bar { background: var(--as-success); }
+.app-meter--warn    .as-progress__bar { background: var(--as-warn); }
+.app-meter--frost   .as-progress__bar { background: var(--as-frost); }
+.app-meter--done    .as-progress__bar { background: var(--as-success); }
+
+/* Circular progress. Pure SVG; the dash offset is set from JS. */
+.app-ring { position: relative; display: grid; place-items: center; flex: none; width: 4.5rem; height: 4.5rem; }
+.app-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.app-ring__track { stroke: var(--as-sunken); }
+.app-ring__bar   { stroke: var(--as-accent); stroke-linecap: round; transition: stroke-dashoffset var(--as-dur-slow) var(--as-ease-out); }
+.app-ring--frost .app-ring__bar { stroke: var(--as-frost); }
+.app-ring__label {
+  position: absolute;
+  text-align: center;
+  font-size: var(--as-text-xs);
+  font-weight: 700;
+  color: var(--as-text-1);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.app-ring__label small { display: block; font-size: 0.58rem; font-weight: 600; color: var(--as-text-3); letter-spacing: var(--as-tracking-caps); text-transform: uppercase; }
+
+/* Key/value rows — the honest little tables the member app is full of. */
+.app-kv { display: flex; flex-direction: column; }
+.app-kv__row {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--as-space-4);
+  padding: var(--as-space-2) 0;
+  border-bottom: 1px solid var(--as-border-soft);
+  font-size: var(--as-text-sm);
+}
+.app-kv__row:last-child { border-bottom: 0; }
+/* ⚠ `white-space: nowrap` on the value plus a key that could not shrink meant a
+   long pair (a wide number beside a long label) pushed the row past the
+   viewport and scrolled app.html sideways by 2px at 390px. The value must stay
+   unbroken — a currency figure split across two lines is unreadable — so the
+   KEY is what yields: it wraps, and the row falls to two lines rather than
+   overflowing. `min-width: 0` alone is not enough; a flex item's automatic
+   minimum size still refuses to go below its longest word without it. */
+.app-kv__row { flex-wrap: wrap; }
+.app-kv__k { color: var(--as-text-2); min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; }
+.app-kv__v {
+  color: var(--as-text-1); font-weight: 650; font-variant-numeric: tabular-nums;
+  white-space: nowrap; flex: 0 0 auto; margin-left: auto;
+}
+.app-kv__v--muted { color: var(--as-text-3); font-weight: 500; }
+
+
+/* ==========================================================================
+   4 · ACHIEVEMENTS
+   ========================================================================== */
+
+.app-achs {
+  display: grid;
+  gap: var(--as-space-3);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+}
+
+.app-ach {
+  display: flex;
+  flex-direction: column;
+  gap: var(--as-space-2);
+  padding: var(--as-space-4);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-md);
+  background: var(--as-surface-1);
+  text-align: left;
+  min-width: 0;
+  transition: border-color var(--as-dur-fast) var(--as-ease),
+              transform var(--as-dur-fast) var(--as-ease),
+              background-color var(--as-dur-fast) var(--as-ease);
+}
+button.app-ach { cursor: pointer; width: 100%; font: inherit; }
+button.app-ach:hover { border-color: var(--as-border-strong); background: var(--as-surface-2); transform: translateY(-1px); }
+.app-ach__glyph {
+  display: grid; place-items: center;
+  width: 2.25rem; height: 2.25rem;
+  border-radius: var(--as-radius-sm);
+  background: var(--as-sunken);
+  border: 1px solid var(--as-border-soft);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+.app-ach__name { font-size: var(--as-text-sm); font-weight: 650; color: var(--as-text-1); }
+.app-ach__desc { font-size: var(--as-text-xs); color: var(--as-text-3); line-height: 1.45; }
+
+.app-ach--earned { border-color: var(--as-accent-line); background: var(--as-accent-soft); }
+.app-ach--earned .app-ach__glyph { background: var(--as-surface-1); border-color: var(--as-accent-line); }
+.app-ach--earned .app-ach__name { color: var(--as-accent); }
+
+.app-ach--locked .app-ach__glyph { filter: grayscale(1); opacity: .5; }
+.app-ach--locked .app-ach__name { color: var(--as-text-2); }
+
+.app-ach--mastery { grid-column: 1 / -1; border-style: dashed; }
+@media (min-width: 40rem) { .app-ach--mastery { grid-column: span 2; border-style: solid; } }
+
+
+/* ==========================================================================
+   5 · QUESTS — challenges, goals, the season
+   ========================================================================== */
+
+.app-quest {
+  display: flex;
+  gap: var(--as-space-4);
+  align-items: flex-start;
+  padding: var(--as-space-4);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-md);
+  background: var(--as-surface-1);
+  min-width: 0;
+}
+.app-quest--done { border-color: var(--as-success); background: var(--as-success-soft); }
+.app-quest--claimable { border-color: var(--as-accent); box-shadow: var(--as-shadow-glow); }
+.app-quest__glyph {
+  display: grid; place-items: center;
+  width: 2.5rem; height: 2.5rem;
+  flex: none;
+  border-radius: var(--as-radius-sm);
+  background: var(--as-sunken);
+  border: 1px solid var(--as-border-soft);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+.app-quest__body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: var(--as-space-2); }
+.app-quest__title { display: flex; align-items: center; gap: var(--as-space-2); flex-wrap: wrap; }
+.app-quest__name { font-size: var(--as-text-base); font-weight: 650; color: var(--as-text-1); }
+.app-quest__ask  { font-size: var(--as-text-sm); color: var(--as-text-2); }
+.app-quest__reward {
+  display: inline-flex; align-items: center; gap: var(--as-space-2);
+  font-size: var(--as-text-xs); font-weight: 650; color: var(--as-accent);
+  font-variant-numeric: tabular-nums;
+}
+.app-quest__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--as-space-3); flex-wrap: wrap; }
+
+
+/* ==========================================================================
+   6 · LOCKED MODULES & HONESTY NOTES
+   ========================================================================== */
+
+/* A member is never shown a broken page for a module their server's owner has
+   not bought. They are shown this: what it is, why it is off, and who can
+   change it. Deliberately calm — the member cannot buy it, so a hard sell here
+   is aimed at the wrong person. */
+.app-lock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--as-space-3);
+  padding: var(--as-space-10) var(--as-space-5);
+  border: 1px dashed var(--as-border-strong);
+  border-radius: var(--as-radius-lg);
+  background:
+    repeating-linear-gradient(135deg, transparent 0 8px, var(--as-sunken) 8px 9px),
+    var(--as-surface-1);
+}
+.app-lock__glyph {
+  display: grid; place-items: center;
+  width: 2.75rem; height: 2.75rem;
+  border-radius: 50%;
+  background: var(--as-surface-2);
+  border: 1px solid var(--as-border-strong);
+  color: var(--as-text-3);
+}
+.app-lock__glyph svg { width: 1.25rem; height: 1.25rem; }
+.app-lock__title { font-size: var(--as-text-md); font-weight: 650; color: var(--as-text-1); }
+.app-lock__body { max-width: 44ch; font-size: var(--as-text-sm); color: var(--as-text-3); }
+
+/* Inline lock badge on a control that is present but unavailable. */
+.app-lockbar {
+  display: flex; align-items: center; gap: var(--as-space-3);
+  padding: var(--as-space-3) var(--as-space-4);
+  border: 1px solid var(--as-border);
+  border-left: 3px solid var(--as-text-3);
+  border-radius: var(--as-radius-sm);
+  background: var(--as-sunken);
+  font-size: var(--as-text-xs);
+  color: var(--as-text-3);
+}
+.app-lockbar svg { width: 1rem; height: 1rem; flex: none; }
+
+/* The preview-only plan switcher that sits in each page footer. It is NOT a
+   member feature and the copy says so; it exists so every locked state on this
+   prototype can be seen without editing a file. */
+.app-preview {
+  display: flex; align-items: center; gap: var(--as-space-3); flex-wrap: wrap;
+  padding: var(--as-space-3) var(--as-space-4);
+  border: 1px dashed var(--as-border-strong);
+  border-radius: var(--as-radius-md);
+  background: var(--as-sunken);
+  font-size: var(--as-text-xs);
+  color: var(--as-text-3);
+}
+.app-preview select { max-width: 12rem; }
+
+/* -- 6.1 Member-surface legal footer --------------------------------------
+   ⚠ These four pages show a member their balance, their watch history and
+   their stats, and until now none of them had any route to the privacy policy
+   at all — the marketing footer lives only on the four marketing pages. The
+   full footer would be wrong here (these behave like an app and carry a fixed
+   bottom tab bar), so this is the minimum a consumer surface owes: who runs
+   it, what is stored, and how to delete it.                                  */
+.app-legal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--as-space-2);
+  padding-top: var(--as-space-6);
+  border-top: 1px solid var(--as-border-soft);
+  text-align: center;
+}
+.app-legal p { margin: 0; }
+.app-legal a { color: var(--as-text-2); text-decoration: none; }
+.app-legal a:hover { color: var(--as-accent); text-decoration: underline; }
+
+
+/* ==========================================================================
+   7 · SCREENING ROOM
+   ========================================================================== */
+
+/* The stage. `.as-player__stage` already owns the 16:9 letterbox and the film
+   grain; this adds the poster art, the centre control and the scrubber. */
+.app-stage__poster { position: absolute; inset: 0; width: 100%; height: 100%; }
+.app-stage__scrim {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(4,6,9,.86) 0%, rgba(4,6,9,.12) 42%, rgba(4,6,9,.42) 100%);
+  z-index: 1;
+}
+.app-stage__center {
+  position: relative;
+  z-index: 3;
+  display: grid; place-items: center;
+  width: 4.5rem; height: 4.5rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.28);
+  background: rgba(10,13,18,.55);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  cursor: pointer;
+  transition: transform var(--as-dur-fast) var(--as-ease), background-color var(--as-dur-fast) var(--as-ease);
+}
+.app-stage__center:hover { transform: scale(1.05); background: rgba(10,13,18,.75); }
+.app-stage__center svg { width: 1.5rem; height: 1.5rem; }
+.app-stage__center[hidden] { display: none; }
+
+/* Live spinner shown while a ticket is being minted. */
+.app-spinner {
+  width: 1.15rem; height: 1.15rem;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: app-spin .8s linear infinite;
+  flex: none;
+}
+@keyframes app-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .app-spinner { animation-duration: 2.4s; } }
+
+/* Timeline. A real <input type=range> so keyboard and screen readers work,
+   with the buffered/played state painted behind it. */
+.app-timeline { position: relative; display: flex; align-items: center; width: 100%; min-width: 0; }
+.app-timeline__track {
+  position: absolute; left: 0; right: 0; top: 50%;
+  height: 4px; margin-top: -2px;
+  border-radius: var(--as-radius-full);
+  background: var(--as-border-strong);
+  overflow: hidden;
+  pointer-events: none;
+}
+.app-timeline__buffered { position: absolute; inset: 0 auto 0 0; background: var(--as-border-strong); opacity: .8; }
+.app-timeline__played   { position: absolute; inset: 0 auto 0 0; background: var(--as-accent); }
+.app-timeline .as-range { position: relative; z-index: 1; }
+.app-timeline .as-range::-webkit-slider-runnable-track { background: transparent; }
+.app-timeline .as-range::-moz-range-track { background: transparent; }
+
+.app-player__bar {
+  display: flex; align-items: center; gap: var(--as-space-2);
+  padding: var(--as-space-3) var(--as-space-3);
+  border-top: 1px solid var(--as-border-soft);
+  background: var(--as-sunken);
+  flex-wrap: wrap;
+}
+/* A phone already has hardware volume keys, and the slider was the one control
+   pushing Fullscreen onto a row of its own. Mute stays — it is the one people
+   actually reach for. */
+.app-player__bar .as-range[data-vol] { display: none; }
+@media (min-width: 40rem) { .app-player__bar .as-range[data-vol] { display: block; } }
+@media (min-width: 40rem) { .app-player__bar { gap: var(--as-space-3); padding-inline: var(--as-space-4); flex-wrap: nowrap; } }
+/* On a phone the scrubber goes ABOVE the buttons on its own full-width row —
+   the convention every native player uses, and it stops the button row from
+   wrapping into a ragged two-and-a-bit lines. From 40rem it sits inline. */
+.app-player__bar .app-timeline { order: -1; flex: 1 1 100%; }
+@media (min-width: 40rem) { .app-player__bar .app-timeline { order: 0; flex: 1 1 auto; } }
+
+/* Viewer roster. */
+.app-viewer {
+  display: flex; align-items: center; gap: var(--as-space-3);
+  padding: var(--as-space-2) 0;
+  border-bottom: 1px solid var(--as-border-soft);
+  min-width: 0;
+}
+.app-viewer:last-child { border-bottom: 0; }
+.app-viewer__name { font-size: var(--as-text-sm); font-weight: 600; color: var(--as-text-1); }
+.app-viewer__sub  { font-size: var(--as-text-2xs); color: var(--as-text-3); }
+.app-viewer__time { margin-left: auto; font-size: var(--as-text-xs); color: var(--as-text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.app-viewer--me { background: var(--as-accent-soft); border-radius: var(--as-radius-sm); padding-inline: var(--as-space-2); }
+
+/* The ticket — the thing the "one link, no account" promise actually is. */
+.app-ticket {
+  position: relative;
+  display: flex; flex-direction: column; gap: var(--as-space-3);
+  padding: var(--as-space-5);
+  border: 1px solid var(--as-frost-line);
+  border-radius: var(--as-radius-md);
+  background: var(--as-frost-soft);
+}
+/* Perforation, so it reads as a stub. */
+.app-ticket::before,
+.app-ticket::after {
+  content: "";
+  position: absolute;
+  width: 1.1rem; height: 1.1rem;
+  border-radius: 50%;
+  background: var(--as-surface-1);
+  border: 1px solid var(--as-frost-line);
+  top: 50%; transform: translateY(-50%);
+}
+.app-ticket::before { left: -0.6rem; clip-path: inset(0 0 0 50%); }
+.app-ticket::after  { right: -0.6rem; clip-path: inset(0 50% 0 0); }
+.app-ticket__url {
+  display: flex; align-items: center; gap: var(--as-space-2);
+  padding: var(--as-space-2) var(--as-space-3);
+  border-radius: var(--as-radius-sm);
+  background: var(--as-sunken);
+  border: 1px solid var(--as-border);
+  font-family: var(--as-font-mono);
+  font-size: var(--as-text-xs);
+  color: var(--as-text-2);
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Channel / library rows. */
+.app-tile {
+  display: flex; align-items: center; gap: var(--as-space-3);
+  width: 100%;
+  padding: var(--as-space-3);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-sm);
+  background: var(--as-surface-1);
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  min-width: 0;
+  transition: border-color var(--as-dur-fast) var(--as-ease), background-color var(--as-dur-fast) var(--as-ease);
+}
+.app-tile:hover { border-color: var(--as-accent-line); background: var(--as-surface-2); }
+.app-tile[aria-current="true"] { border-color: var(--as-accent); background: var(--as-accent-soft); }
+.app-tile__art {
+  display: grid; place-items: center;
+  width: 2.5rem; height: 3.4rem;
+  flex: none;
+  border-radius: var(--as-radius-xs);
+  background: linear-gradient(160deg, var(--as-surface-3), var(--as-sunken));
+  border: 1px solid var(--as-border);
+  color: var(--as-text-3);
+  font-size: 1rem;
+}
+.app-tile__name { font-size: var(--as-text-sm); font-weight: 650; color: var(--as-text-1); }
+.app-tile__sub  { font-size: var(--as-text-xs); color: var(--as-text-3); }
+
+/* Horizontal snap scroller — a phone-native row of cards that never widens the
+   page. Always paired with a real focusable child so keyboard users can reach
+   the overflow. */
+.app-scroller {
+  display: flex;
+  gap: var(--as-space-3);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: var(--as-space-2);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.app-scroller > * { scroll-snap-align: start; flex: 0 0 auto; }
+
+
+/* ==========================================================================
+   8 · CASINO
+   ========================================================================== */
+
+.app-games { display: grid; gap: var(--as-space-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr)); }
+
+.app-game {
+  display: flex; flex-direction: column; gap: var(--as-space-3);
+  padding: var(--as-space-5);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-lg);
+  background: var(--as-surface-1);
+  box-shadow: var(--as-hairline);
+  min-width: 0;
+}
+.app-game__top { display: flex; align-items: flex-start; gap: var(--as-space-3); }
+.app-game__glyph {
+  display: grid; place-items: center;
+  width: 2.75rem; height: 2.75rem;
+  flex: none;
+  border-radius: var(--as-radius-md);
+  background: var(--as-sunken);
+  border: 1px solid var(--as-border);
+  font-size: 1.3rem; line-height: 1;
+}
+.app-game__name { font-family: var(--as-font-display); font-size: var(--as-text-md); font-weight: 600; color: var(--as-text-1); }
+.app-game__desc { font-size: var(--as-text-sm); color: var(--as-text-2); flex: 1 1 auto; }
+.app-game__odds {
+  display: flex; gap: var(--as-space-4); flex-wrap: wrap;
+  padding-top: var(--as-space-3);
+  border-top: 1px solid var(--as-border-soft);
+}
+.app-game__odd { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.app-game__odd dt {
+  font-size: var(--as-text-2xs); font-weight: 650; letter-spacing: var(--as-tracking-caps);
+  text-transform: uppercase; color: var(--as-text-3);
+}
+.app-game__odd dd { font-size: var(--as-text-sm); font-weight: 700; color: var(--as-text-1); font-variant-numeric: tabular-nums; margin: 0; }
+.app-game--playable { border-color: var(--as-accent-line); }
+
+/* -- 8.1 The table -------------------------------------------------------- */
+
+.app-table {
+  position: relative;
+  border-radius: var(--as-radius-lg);
+  border: 1px solid var(--as-border);
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--as-surface-2), var(--as-surface-1) 62%);
+  padding: var(--as-space-5) var(--as-space-4);
+  overflow: hidden;
+}
+@media (min-width: 40rem) { .app-table { padding: var(--as-space-6); } }
+.app-table__felt {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(127,127,127,.022) 6px 7px);
+  pointer-events: none;
+}
+.app-table__seat { position: relative; display: flex; flex-direction: column; gap: var(--as-space-2); }
+.app-table__who {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--as-space-3);
+  font-size: var(--as-text-xs); font-weight: 650;
+  letter-spacing: var(--as-tracking-caps); text-transform: uppercase; color: var(--as-text-3);
+}
+.app-table__total { font-family: var(--as-font-display); font-size: var(--as-text-lg); color: var(--as-text-1); font-variant-numeric: tabular-nums; letter-spacing: 0; text-transform: none; }
+.app-table__rule { height: 1px; background: var(--as-border-soft); margin-block: var(--as-space-5); }
+
+/* -- 8.2 Cards ------------------------------------------------------------ */
+
+.app-hand { display: flex; gap: var(--as-space-2); flex-wrap: wrap; min-height: 5.4rem; }
+.app-card {
+  width: 3.6rem;
+  flex: none;
+  border-radius: var(--as-radius-xs);
+  box-shadow: var(--as-shadow-md);
+  animation: app-deal var(--as-dur-slow) var(--as-ease-out) both;
+}
+@media (min-width: 30rem) { .app-card { width: 4.1rem; } }
+.app-card--split { opacity: .45; }
+@keyframes app-deal {
+  from { opacity: 0; transform: translateY(-14px) rotate(-6deg); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .app-card { animation: none; } }
+
+/* -- 8.3 Bet entry -------------------------------------------------------- */
+
+.app-bet { display: flex; flex-direction: column; gap: var(--as-space-3); }
+.app-bet__row { display: flex; align-items: center; gap: var(--as-space-2); }
+.app-bet__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: right;
+  font-family: var(--as-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--as-text-base);
+}
+.app-bet__chips { display: flex; gap: var(--as-space-2); flex-wrap: wrap; }
+.app-chipbtn {
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--as-radius-full);
+  border: 1px solid var(--as-border);
+  background: var(--as-surface-1);
+  color: var(--as-text-2);
+  font-size: var(--as-text-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: all var(--as-dur-fast) var(--as-ease);
+}
+.app-chipbtn:hover { border-color: var(--as-accent-line); color: var(--as-accent); }
+.app-chipbtn[disabled] { opacity: .4; cursor: not-allowed; }
+
+/* -- 8.4 Crash chart ------------------------------------------------------ */
+
+.app-crash { position: relative; border-radius: var(--as-radius-md); background: var(--as-sunken); border: 1px solid var(--as-border); overflow: hidden; }
+.app-crash svg { display: block; width: 100%; height: auto; }
+.app-crash__grid { stroke: var(--as-border-soft); stroke-width: 1; }
+.app-crash__curve { fill: none; stroke: var(--as-frost); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.app-crash__fill { fill: var(--as-frost-soft); stroke: none; }
+.app-crash.is-bust .app-crash__curve { stroke: var(--as-danger); }
+.app-crash.is-bust .app-crash__fill  { fill: var(--as-danger-soft); }
+.app-crash.is-won  .app-crash__curve { stroke: var(--as-success); }
+.app-crash.is-won  .app-crash__fill  { fill: var(--as-success-soft); }
+.app-crash__mult {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--as-font-display);
+  font-size: clamp(2rem, 11vw, 3.4rem);
+  font-weight: 500;
+  color: var(--as-text-1);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  text-shadow: 0 2px 18px var(--as-bg);
+}
+.app-crash.is-bust .app-crash__mult { color: var(--as-danger); }
+.app-crash.is-won  .app-crash__mult { color: var(--as-success); }
+.app-crash__rungs { display: flex; gap: var(--as-space-2); overflow-x: auto; padding-bottom: var(--as-space-1); -webkit-overflow-scrolling: touch; }
+.app-crash__rungs .app-chipbtn { flex: none; }
+.app-chipbtn[aria-pressed="true"] { background: var(--as-accent-soft); border-color: var(--as-accent-line); color: var(--as-accent); }
+
+/* -- 8.5 Result card ------------------------------------------------------ */
+
+.app-result {
+  display: flex; align-items: center; gap: var(--as-space-4);
+  padding: var(--as-space-4) var(--as-space-5);
+  border-radius: var(--as-radius-md);
+  border: 1px solid var(--as-border);
+  border-left: 3px solid var(--as-text-3);
+  background: var(--as-surface-1);
+  animation: app-result-in var(--as-dur-base) var(--as-ease-out);
+}
+@keyframes app-result-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .app-result { animation: none; } }
+.app-result__headline { font-family: var(--as-font-display); font-size: var(--as-text-xl); color: var(--as-text-1); line-height: 1.1; }
+.app-result__sub { font-size: var(--as-text-sm); color: var(--as-text-2); }
+.app-result__delta { margin-left: auto; font-family: var(--as-font-display); font-size: var(--as-text-xl); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.app-result--win  { border-left-color: var(--as-success); background: var(--as-success-soft); }
+.app-result--win  .app-result__delta { color: var(--as-success); }
+.app-result--lose { border-left-color: var(--as-danger); }
+.app-result--lose .app-result__delta { color: var(--as-danger); }
+.app-result--push { border-left-color: var(--as-frost); }
+.app-result--push .app-result__delta { color: var(--as-frost); }
+
+
+/* ==========================================================================
+   9 · LEADERBOARDS
+   ========================================================================== */
+
+/* ⚠ NOT A TABLE ON A PHONE. `.as-table` has a 34rem min-width and scrolls
+   sideways inside its wrapper, which is correct for a dense admin grid and
+   wrong for the one screen a member opens on a bus. `.app-board` is a list of
+   rows that reflow; it carries the same information in the same order. */
+.app-board { display: flex; flex-direction: column; }
+
+.app-row {
+  display: grid;
+  grid-template-columns: 2.1rem auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--as-space-3);
+  padding: var(--as-space-3) var(--as-space-3);
+  border-bottom: 1px solid var(--as-border-soft);
+  min-width: 0;
+}
+.app-row:last-child { border-bottom: 0; }
+.app-row__rank {
+  font-family: var(--as-font-display);
+  font-size: var(--as-text-md);
+  color: var(--as-text-3);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+/* `display:block` is load-bearing: these are <span>s inside a <span> cell, so
+   without it the secondary line runs on into the name ("HallrPrestige 4").
+   Caught in the browser on the Level board. */
+.app-row__name { display: block; font-size: var(--as-text-sm); font-weight: 650; color: var(--as-text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-row__sub  { display: block; font-size: var(--as-text-2xs); color: var(--as-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-row__val  { font-size: var(--as-text-sm); font-weight: 700; color: var(--as-text-1); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.app-row__unit { display: block; font-size: var(--as-text-2xs); font-weight: 600; color: var(--as-text-3); }
+
+.app-row--me {
+  background: var(--as-accent-soft);
+  border-left: 3px solid var(--as-accent);
+  padding-left: calc(var(--as-space-3) - 3px);
+}
+.app-row--me .app-row__rank,
+.app-row--me .app-row__val { color: var(--as-accent); }
+.app-row--bot { opacity: .72; }
+.app-row--bot .app-row__name { color: var(--as-text-2); font-weight: 550; }
+
+/* Podium — the top three, above the list, on every board. */
+.app-podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--as-space-2); align-items: end; }
+.app-podium__slot {
+  display: flex; flex-direction: column; align-items: center; gap: var(--as-space-2);
+  padding: var(--as-space-3) var(--as-space-2);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-md);
+  background: var(--as-surface-1);
+  text-align: center;
+  min-width: 0;
+}
+.app-podium__slot--1 { border-color: var(--as-accent-line); background: var(--as-accent-soft); padding-block: var(--as-space-5); }
+.app-podium__pos { font-family: var(--as-font-display); font-size: var(--as-text-lg); color: var(--as-text-3); line-height: 1; }
+.app-podium__slot--1 .app-podium__pos { color: var(--as-accent); font-size: var(--as-text-xl); }
+.app-podium__name { font-size: var(--as-text-xs); font-weight: 650; color: var(--as-text-1); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-podium__val  { font-size: var(--as-text-2xs); color: var(--as-text-3); font-variant-numeric: tabular-nums; }
+
+/* The period bar. Scrolls rather than wraps, so the boards never jump height. */
+.app-periods { display: flex; gap: var(--as-space-2); overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.app-periods::-webkit-scrollbar { display: none; }
+.app-periods .as-chip { flex: none; }
+.app-periods .as-chip[disabled] { opacity: .38; cursor: not-allowed; }
+
+/* The bot-share disclosure bar. */
+.app-share { display: flex; height: 0.65rem; border-radius: var(--as-radius-full); overflow: hidden; background: var(--as-sunken); border: 1px solid var(--as-border-soft); }
+.app-share__seg { height: 100%; }
+.app-share__seg--human { background: var(--as-accent); }
+.app-share__seg--bot   { background: var(--as-border-strong); }
+
+
+/* ==========================================================================
+   10 · LOCAL UTILITIES
+   ========================================================================== */
+
+.app-grid-2 { display: grid; gap: var(--as-space-4); grid-template-columns: 1fr; align-items: start; }
+@media (min-width: 60rem) { .app-grid-2 { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: var(--as-space-6); } }
+.app-grid-2--even { }
+@media (min-width: 60rem) { .app-grid-2--even { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.app-stack { display: flex; flex-direction: column; gap: var(--as-space-4); min-width: 0; }
+.app-stack--6 { gap: var(--as-space-6); }
+
+.app-sticky-aside { }
+@media (min-width: 60rem) { .app-sticky-aside { position: sticky; top: calc(var(--as-nav-h) + var(--as-space-4)); } }
+
+/* ⚠ INLINE-ICON SIZING — A REAL BUG THIS FIXES, NOT A PREFERENCE.
+   asbern.css's reset sets `svg { display:block; max-width:100% }` and the icon
+   registry emits SVGs with a viewBox and NO width/height. So an icon sized by
+   nothing at all expands to fill its container. The design system sizes them
+   per component (.as-btn svg, .as-badge svg, .as-list__item svg, .as-note svg,
+   .as-plate svg, .as-empty__icon svg) — this file's own blocks need the same
+   treatment for the ones the system has no idea exist. Caught in the browser:
+   a 24px gift glyph rendered at 40px and pushed a reward line onto three rows.
+
+   `.as-chip svg` used to be patched here too, but that half of the bug was
+   systemic (any page using a bare `.as-chip` hit it, not just this one), so
+   asbern.css now carries it — see its §5.4. Only this file's OWN blocks stay
+   listed below; removing them would just re-introduce the bug locally. */
+.app-quest__reward svg,
+.app-kv svg,
+.app-figure svg,
+.app-viewer svg,
+.app-row svg,
+.app-podium__slot svg,
+.app-sec__head svg,
+.app-meter__row svg { width: 1em; height: 1em; flex: none; }
+.app-tile__art svg { width: 1.15rem; height: 1.15rem; }
+
+.app-quest__reward { flex-wrap: wrap; }
+
+/* Personal-stat tiles. The design system's .as-grid--4 (auto-fit, 12rem floor)
+   lands on 3-up in a ~40rem column, which leaves one tile stranded on its own
+   row. Two-up reads better in a column and four-up only once there is room. */
+.app-tiles { display: grid; gap: var(--as-space-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 64rem) { .app-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.app-tiles .as-stat__value { font-size: var(--as-text-xl); }
+
+.app-num { font-variant-numeric: tabular-nums; }
+.app-pos { color: var(--as-success); }
+.app-neg { color: var(--as-danger); }
+
+/* A dotted underline that marks a figure with a caveat behind it. Always
+   paired with a real tooltip (`data-as-tip`) and an accessible name. */
+.app-caveat {
+  border-bottom: 1px dotted var(--as-text-3);
+  cursor: help;
+}
+
+/* Screen-reader-only live region wrapper for results announced by JS. */
+.app-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+
+/* =============================================================================
+   PROMOTION LIST — everything here that asbern.css should probably absorb.
+   Ordered by how likely the owner dashboard is to want it.
+
+     .app-tabbar         mobile bottom navigation      → as-tabbar
+     .app-board/.app-row a table that is a list on a   → as-board
+                         phone; the design system only
+                         has .as-table, which is
+                         34rem-min and scrolls sideways
+     .app-meter          labelled progress (the bare   → as-meter
+                         .as-progress has no caption)
+     .app-ring           circular progress             → as-ring
+     .app-kv             key/value rows                → as-kv
+     .app-figure         compact stat cell (the        → as-stat--compact
+                         existing .as-stat is too tall
+                         for four-up on a phone)
+     .app-lock           locked-module state (the      → as-locked
+                         system has .as-empty but
+                         nothing that says "your owner
+                         has not bought this")
+     .app-result         win/loss/push result card     → as-result
+     .app-scroller       horizontal snap row           → as-scroller
+     .app-spinner        indeterminate busy indicator  → as-spinner
+                         (the system has .as-skeleton
+                         for content, nothing for an
+                         in-flight action)
+     .app-timeline       scrubber with buffered state  → as-player__timeline
+     .app-preview        preview-only control chrome   → as-preview
+
+   Two more were named here as workarounds and have since been promoted —
+   left as a record, not a request:
+     · a `--as-tabbar-h` token now exists in asbern.css §1 and `.as-toasts`
+       reads it; this file just sets the value at the width where the bar
+       exists (§1 above). `.app-body`'s own bottom padding stays hardcoded on
+       purpose — it sizes this file's flow layout, not a system primitive.
+     · `.as-modal` gets a bottom-sheet form under 52rem in asbern.css §5.14,
+       for every consumer, not just this one.
+   `.as-chip`'s missing icon-size rule (named inline above, not in this list)
+   was promoted the same way — see asbern.css §5.4.
+   ========================================================================== */

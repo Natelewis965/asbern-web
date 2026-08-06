@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacy policy — Asbern</title>
+<meta name="description" content="What Asbern stores about you, why, how long for, and how to get it removed. Written to be accurate to what the code actually does.">
+<meta name="color-scheme" content="dark light">
+<script>
+(function(){try{var p=localStorage.getItem('asbern.theme')||'system';
+var r=p==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):p;
+document.documentElement.setAttribute('data-theme',r);
+document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
+</script>
+<link rel="stylesheet" href="assets/asbern.css">
+</head>
+<body>
+
+<a class="as-btn as-btn--secondary as-skip" href="#main">Skip to content</a>
+
+<header class="as-nav">
+  <div class="as-nav__inner">
+    <a class="as-wordmark" href="index.html" aria-label="Asbern — home">
+      <svg class="as-mark" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+      </svg>
+      Asbern
+    </a>
+    <nav class="as-nav__links" aria-label="Primary">
+      <a class="as-nav__link" href="screening.html">Screening Room</a>
+      <a class="as-nav__link" href="features.html">Modules</a>
+      <a class="as-nav__link" href="pricing.html">Pricing</a>
+    </nav>
+    <div class="as-nav__actions">
+      <button class="as-btn as-btn--ghost as-btn--icon" data-as-theme-toggle type="button" aria-label="Switch theme"></button>
+      <a class="as-btn as-btn--secondary as-btn--sm u-desktop-only" href="dashboard.html">Dashboard</a>
+      <a class="as-btn as-btn--primary as-btn--sm as-nav__cta" href="install.html">
+        <span data-as-icon="discord"></span> Add to Discord
+      </a>
+      <button class="as-btn as-btn--ghost as-btn--icon as-nav__burger" type="button"
+              data-as-drawer="#nav-drawer" aria-expanded="false" aria-controls="nav-drawer"
+              aria-label="Open menu" data-as-icon="menu"></button>
+    </div>
+  </div>
+</header>
+<div class="as-drawer" id="nav-drawer" data-as-drawer-panel hidden>
+  <a href="screening.html">Screening Room</a>
+  <a href="features.html">Modules</a>
+  <a href="pricing.html">Pricing</a>
+  <a href="dashboard.html">Dashboard</a>
+  <a class="as-btn as-btn--primary u-mt-2" href="install.html">Add to Discord</a>
+</div>
+
+<main id="main">
+
+<section class="as-section as-section--tight">
+  <div class="as-container as-container--narrow">
+    <span class="as-eyebrow">Legal</span>
+    <h1 class="as-display as-display--xl u-mt-2">Privacy policy</h1>
+
+    <!-- ⚠ THE HONESTY BANNER. This document is not published, has not been
+         reviewed by a lawyer, and still carries placeholders. It must say so
+         above the fold, on every render, until those are filled in. -->
+    <div class="as-note as-note--warn u-mt-6">
+      <span data-as-icon="alert"></span>
+      <span>
+        <strong>This is a DRAFT and is not yet in force.</strong> It is published here so it can be
+        reviewed, not relied on. Two things are still outstanding: every
+        <span class="as-chip as-chip--todo">placeholder</span> below needs a real value, and the whole document needs a
+        qualified legal review before any money changes hands. Nothing on this page has been reviewed by a
+        lawyer. It is written to be <em>accurate to what the code actually does</em>, which is the part that
+        can be verified from the source, and conservative everywhere else.
+      </span>
+    </div>
+
+    <p class="u-text-sm as-muted u-mt-4">
+      Last updated: <strong>not yet in force</strong> · Source: <code>docs/_platform/DISCORD-VERIFICATION-DRAFT.md</code> §4
+    </p>
+  </div>
+</section>
+
+<section class="as-section as-section--tight">
+  <div class="as-container">
+    <div class="as-split as-split--aside-left">
+
+      <!-- TOC -->
+      <nav class="as-sticky" aria-label="On this page">
+        <div class="as-footer__title">On this page</div>
+        <div class="as-footer__links">
+          <a href="#who">Who we are</a>
+          <a href="#self-hosted">The most important thing</a>
+          <a href="#collect">What is collected</a>
+          <a href="#content">Message content</a>
+          <a href="#logs">Diagnostic logs</a>
+          <a href="#ai">The AI companion</a>
+          <a href="#sharing">Who it is shared with</a>
+          <a href="#retention">How long it is kept</a>
+          <a href="#choices">Your choices</a>
+          <a href="#children">Children</a>
+          <a href="#changes">Changes</a>
+          <a href="#contact">Contact</a>
+        </div>
+        <div class="as-footer__title u-mt-8">Also</div>
+        <div class="as-footer__links">
+          <a href="terms.html">Terms of service</a>
+        </div>
+      </nav>
+
+      <div class="as-stack--6" style="display:flex;flex-direction:column;gap:1.5rem;max-width:75ch">
+
+        <div id="who" style="scroll-margin-top:5rem">
+          <h2>Who we are</h2>
+          <p>
+            Asbern (“the Bot”) is a Discord application published by
+            <span class="as-chip as-chip--todo">legal or trading name</span>&nbsp;(“we”, “us”). You can contact us at
+            <span class="as-chip as-chip--todo">contact email on a domain we control</span>.
+          </p>
+        </div>
+
+        <div id="self-hosted" style="scroll-margin-top:5rem">
+          <h2>The most important thing to understand</h2>
+          <div class="as-note as-note--frost">
+            <span data-as-icon="info"></span>
+            <span><strong>The Bot is self-hosted.</strong> It runs on the computer or server belonging to the
+            person who installed it — normally the owner of your Discord server. Its data is stored on that
+            machine. We do not operate a service that receives it, and in the self-hosted configuration we
+            cannot see it.</span>
+          </div>
+          <p class="u-mt-4">
+            This means the <strong>server owner who runs the Bot is the party who controls your data</strong>.
+            If you want to know what is held about you, or want it removed, they are who to ask — and the Bot
+            gives them tools to answer you (see <a href="#choices">Your choices</a>).
+          </p>
+          <div class="as-note as-note--warn u-mt-4">
+            <span data-as-icon="alert"></span>
+            <span><span class="as-chip as-chip--todo">To be rewritten before a hosted version launches.</span>
+            The platform programme intends to run parts of Asbern on our own infrastructure — the relay, the
+            dashboard and the API. On the day any of that carries member data, this section must say plainly
+            which components run on our infrastructure, what reaches them, and where it is stored. Publishing
+            a “we never see it” policy and then launching a service that does is the failure mode this note
+            exists to prevent.</span>
+          </div>
+        </div>
+
+        <div id="collect" style="scroll-margin-top:5rem">
+          <h2>What the Bot collects</h2>
+          <p>
+            The Bot identifies you by your <strong>Discord user ID</strong> — a number. It does not collect
+            your email address, phone number, real name, IP address, payment details or connected accounts,
+            and it never sees your Discord password.
+          </p>
+          <p>Depending on which features the server owner has enabled, the Bot may store:</p>
+          <ul class="as-list u-text-sm">
+            <li class="as-list__item"><span data-as-icon="check"></span><span><strong>Progression</strong> — your level, XP, prestige tier and achievements.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span><strong>In-server currency</strong> — your balance, virtual assets and lifetime earnings. This currency has no real-world value.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span><strong>Activity counters</strong> — how many messages you sent, in which channels, how many voice minutes you spent, how many reactions you gave and received, how many messages you edited or deleted, and whether a message contained a link or a file. These are <strong>counts only</strong>. The Bot does not store what you said, which links you posted, or the names of files you uploaded.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span><strong>Who you spent time with in voice</strong> — for each minute you are in a voice channel with other people, a counter for each pair. This exists so the server’s statistics can describe the community, not just individuals.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span><strong>Watch history</strong> — which titles and channels you watched through the screening room, how long for, and where you got to, so the Bot can offer to resume.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span><strong>Counting game</strong> — how many valid counts you have made, and whether you were the last person to count.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span><strong>Game servers</strong> — how many times you have started each game server.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span><strong>Moderation records</strong> — warnings issued to you, if the server’s moderators use that feature.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span><strong>Nicknames and roles</strong> — the Bot grants and removes roles as you level up or are given access, and records that a role changed, so the server owner can reconcile what the Bot did with what actually happened.</span></li>
+          </ul>
+        </div>
+
+        <div id="content" style="scroll-margin-top:5rem">
+          <h2>Message content</h2>
+          <p>
+            The Bot requests Discord’s <strong>Message Content</strong> privileged intent. It uses message text
+            in only these ways:
+          </p>
+          <ol class="as-steps">
+            <li class="as-step"><div>
+              <div class="as-step__title">The counting game</div>
+              <div class="as-step__body">In the single channel the server owner nominates as the counting channel,
+              the Bot reads each message to find a number at the start of it. It stores <strong>the number</strong>
+              and nothing else. A message that does not begin with a digit is ignored completely. In every other
+              channel, the counting code stops before looking at anything.</div>
+            </div></li>
+            <li class="as-step"><div>
+              <div class="as-step__title">A “links posted” counter</div>
+              <div class="as-step__body">For each message, the Bot checks whether the text contains a web address,
+              and if so increases a counter. <strong>The address itself and the message text are not stored.</strong></div>
+            </div></li>
+            <li class="as-step"><div>
+              <div class="as-step__title">Moderator clean-up tools</div>
+              <div class="as-step__body">A server administrator can ask the Bot to remove messages in one channel
+              that contain a link, or that match text or a pattern they type. The Bot reads the messages to find
+              matches, removes them, and keeps nothing.</div>
+            </div></li>
+            <li class="as-step"><div>
+              <div class="as-step__title">Channel archives</div>
+              <div class="as-step__body">When an administrator retires a whole category of channels, they can
+              export a transcript of those channels so the history is not simply lost. <strong>That export does
+              contain message text</strong>, along with author names and timestamps. It is written to a file on the
+              machine the Bot runs on, under the administrator’s control. It is never sent to us.</div>
+            </div></li>
+          </ol>
+          <p>
+            Beyond those, the Bot does <strong>not</strong> log message content, does not archive chat, does not
+            read direct messages, and does not use message content for advertising, profiling, resale or model
+            training.
+          </p>
+        </div>
+
+        <div id="logs" style="scroll-margin-top:5rem">
+          <h2>Diagnostic logs</h2>
+          <p>
+            The Bot writes a structured operational log — which actions ran, whether they succeeded, which rule
+            refused a request, and how money moved. Its written rule is that message content and secrets are
+            never logged, and the single deliberate exception is the counting game’s parsed number, because that
+            is game state. Raw log files are automatically deleted after <strong>90 days</strong>; summarised
+            daily statistics, which contain no content, are kept.
+          </p>
+        </div>
+
+        <div id="ai" style="scroll-margin-top:5rem">
+          <h2>The optional AI companion</h2>
+          <div class="as-note as-note--warn">
+            <span data-as-icon="alert"></span>
+            <span>The AI companion is <strong>built but ships switched off</strong>, and it is not sold today.
+            This section describes what it does when a server owner enables it.</span>
+          </div>
+          <p class="u-mt-4">
+            It is <strong>switched off by default</strong> and, when on, is limited to an allow-list of members
+            the server owner chooses. When it is enabled and you are in a voice channel with it:
+          </p>
+          <ul class="as-list u-text-sm">
+            <li class="as-list__item"><span data-as-icon="check"></span><span>Your speech is transcribed and the text is sent to the configured AI provider so the companion can reply. <span class="as-chip as-chip--todo">name the provider(s) and link their policy</span></span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span>Transcripts are stored <strong>encrypted</strong> (AES-256-GCM) on the machine the Bot runs on, and raw transcripts are <strong>automatically deleted after 7 days</strong>. Condensed summaries are kept for about <strong>six months</strong> and then dropped.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span>You can <strong>mute yourself</strong> to the companion at any time from the Bot’s menu. While muted, your audio is not captured, transcribed or stored at all.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span>You can <strong>opt out of profiling</strong>, which erases what the companion has learned about you and stops it sharing anything about you.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span>You can <strong>delete everything</strong> the companion holds about you, at any time.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span>If you <strong>leave the server</strong>, the companion’s data about you is deleted automatically.</span></li>
+          </ul>
+          <p>
+            The AI companion does not read text chat. It runs as a separate Discord application which does not
+            request the Message Content intent and cannot receive message text.
+          </p>
+        </div>
+
+        <div id="sharing" style="scroll-margin-top:5rem">
+          <h2>Who your data is shared with</h2>
+          <p>
+            Nobody, by default. The Bot does not sell data, does not share it with advertisers, and does not
+            send it to us. Two exceptions, both chosen by the server owner:
+          </p>
+          <ul class="as-list u-text-sm">
+            <li class="as-list__item"><span data-as-icon="minus"></span><span>If the optional AI companion is enabled, transcribed speech is sent to the configured AI provider in order to generate a reply.</span></li>
+            <li class="as-list__item"><span data-as-icon="minus"></span><span>If the server owner has configured an optional third-party statistics integration, the Bot may query that provider’s API for server-activity figures.</span></li>
+          </ul>
+        </div>
+
+        <div id="retention" style="scroll-margin-top:5rem">
+          <h2>How long data is kept</h2>
+          <div class="as-table-wrap">
+            <table class="as-table as-table--compact">
+              <caption class="as-visually-hidden">Data retention periods by data type</caption>
+              <thead><tr><th scope="col">Data</th><th scope="col">Kept for</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Progression, currency, achievements</th><td>Indefinitely, including if you leave and rejoin</td></tr>
+                <tr><th scope="row">Activity counters and voice co-presence</th><td>Indefinitely — this is the server’s own long-run history</td></tr>
+                <tr><th scope="row">Watch history, resume points, favourites</th><td>Until you clear it</td></tr>
+                <tr><th scope="row">Counting tallies</th><td>Indefinitely</td></tr>
+                <tr><th scope="row">Operational log — raw files</th><td>90 days</td></tr>
+                <tr><th scope="row">Operational log — daily summaries (no content)</th><td>Indefinitely</td></tr>
+                <tr><th scope="row">AI raw transcripts</th><td>7 days</td></tr>
+                <tr><th scope="row">AI summaries</th><td>About 6 months</td></tr>
+                <tr><th scope="row">Administrator-exported channel transcripts</th><td>Until the server owner deletes the file</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="choices" style="scroll-margin-top:5rem">
+          <h2>Your choices</h2>
+          <p>From the Bot’s <code>/menu → Profile</code> you can:</p>
+          <ul class="as-list u-text-sm">
+            <li class="as-list__item"><span data-as-icon="check"></span><span><strong>Clear your history</strong> — remove your watch history and your game-server history.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span>If the AI is enabled: <strong>mute</strong> yourself to it, <strong>opt out</strong> of profiling, <strong>see</strong> what it holds about you, and <strong>delete</strong> all of it.</span></li>
+          </ul>
+          <p>Server administrators can additionally:</p>
+          <ul class="as-list u-text-sm">
+            <li class="as-list__item"><span data-as-icon="check"></span><span><strong>Export everything the Bot holds about one member</strong> as a single document.</span></li>
+            <li class="as-list__item"><span data-as-icon="check"></span><span><strong>Delete a member’s data</strong>, within the limits below.</span></li>
+          </ul>
+
+          <h3 class="u-mt-8">What we will not pretend</h3>
+          <p>
+            Some stores have no per-member deletion path, and the Bot says so rather than claiming a deletion it
+            did not perform:
+          </p>
+          <ul class="as-list u-text-sm">
+            <li class="as-list__item as-list__item--no"><span data-as-icon="x"></span><span><strong>Currency balances</strong> cannot be individually erased, because the currency store has strict correctness guarantees and inventing a deletion path for it would bypass every safety check that protects everyone else’s balances.</span></li>
+            <li class="as-list__item as-list__item--no"><span data-as-icon="x"></span><span><strong>Levels and XP</strong> have no per-member eraser, for the same reason.</span></li>
+            <li class="as-list__item as-list__item--no"><span data-as-icon="x"></span><span><strong>Activity counters</strong> are stored as monthly files of aggregate cells with no per-member deletion path; rewriting them to remove one member risks destroying the whole month.</span></li>
+          </ul>
+          <p>
+            If you need those removed, contact the server owner. Because the Bot is self-hosted, they hold the
+            files and can remove them directly — and because it is self-hosted, we cannot do it for you.
+          </p>
+        </div>
+
+        <div id="children" style="scroll-margin-top:5rem">
+          <h2>Children</h2>
+          <p>
+            The Bot is not directed at children. You must meet Discord’s minimum age requirement for your
+            country to use Discord at all, and therefore to use the Bot.
+          </p>
+        </div>
+
+        <div id="changes" style="scroll-margin-top:5rem">
+          <h2>Changes</h2>
+          <p>
+            We will update this page and change the “last updated” date. Material changes will be announced
+            through <span class="as-chip as-chip--todo">where — e.g. the support server and this website</span>.
+          </p>
+        </div>
+
+        <div id="contact" style="scroll-margin-top:5rem">
+          <h2>Contact</h2>
+          <p><span class="as-chip as-chip--todo">contact email on a domain we control</span></p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============================ FOOTER ============================ -->
+<footer class="as-footer">
+  <div class="as-container">
+    <div class="as-footer__grid">
+      <div class="as-footer__brand" style="display:flex;flex-direction:column;gap:.75rem">
+        <a class="as-wordmark" href="index.html">
+          <svg class="as-mark" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+          </svg>
+          Asbern
+        </a>
+        <p class="u-text-xs as-muted">
+          Old Norse <em>Ásbjǫrn</em> — “god-bear”. The mark is a bind-rune: one stave, Ansuz on the left,
+          Bjarkan on the right.
+        </p>
+      </div>
+      <div>
+        <div class="as-footer__title">Product</div>
+        <div class="as-footer__links">
+          <a href="screening.html">Screening Room</a>
+          <a href="features.html">All modules</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="install.html">Add to Discord</a>
+          <a href="features.html#deployment">Self-hosting</a>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Developers</div>
+        <div class="as-footer__links">
+          <a href="dashboard.html">Dashboard preview</a>
+          <a href="bridge.html">Bridge agent</a>
+          <span class="as-footer__soon">Documentation <span class="as-badge as-badge--plain">Soon</span></span>
+          <span class="as-footer__soon">Status <span class="as-badge as-badge--plain">Soon</span></span>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Company</div>
+        <div class="as-footer__links">
+          <span class="as-footer__soon">Support server <span class="as-badge as-badge--plain">Soon</span></span>
+          <span class="as-footer__soon">Contact <span class="as-badge as-badge--plain">Soon</span></span>
+          <a href="features.html#roadmap">Roadmap</a>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Legal</div>
+        <div class="as-footer__links">
+          <a href="privacy.html" aria-current="page">Privacy policy <span class="as-badge as-badge--warn">Draft</span></a>
+          <a href="terms.html">Terms of service <span class="as-badge as-badge--warn">Draft</span></a>
+          <a href="privacy.html#retention">Data &amp; retention</a>
+        </div>
+      </div>
+    </div>
+    <div class="as-footer__bottom">
+      <span>© <span data-as-year></span> Asbern. Not affiliated with Discord Inc.</span>
+      <span>This site is a preview. The two legal documents are drafts and are not yet in force.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/asbern.js"></script>
+</body>
+</html>

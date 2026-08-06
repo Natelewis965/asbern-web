@@ -1,0 +1,937 @@
+/* =============================================================================
+   ASBERN · assets/dashboard.css
+   -----------------------------------------------------------------------------
+   THE CLIENT DASHBOARD LAYER. Everything here is what `asbern.css` does not
+   have yet. Nothing in this file re-declares a token, a colour or a font — it
+   composes the design system's variables only, so a change to the palette moves
+   this file with it and a redesign cannot leave the dashboard behind.
+
+   NAMING
+     .ad-*   dashboard-local component ("asbern dashboard"). The prefix is
+             deliberate: every rule below is a CANDIDATE FOR PROMOTION into
+             asbern.css, and the prefix is how you find them. Promoting one means
+             renaming .ad- to .as- and deleting it from here.
+     .as-*   design system. Never redefined here — only extended by adjacency
+             (e.g. `.ad-side .as-sidebar__item`), never overridden in place.
+     data-ad-*  JS hooks for this layer, matching asbern.js's data-as-* rule.
+                Never styled. Never a class used as a hook.
+
+   WHAT IS IN HERE, AND WHY THE SYSTEM DOES NOT HAVE IT YET
+     1  Shell chrome      full-bleed nav, sticky scrolling sidebar, view router
+     2  Guild switcher    a popover picker — no popover/menu primitive exists
+     3  Control card      the registry-generated action card + its param grid
+     4  Result strip      typed outcome (ok / dry-run / refused / error)
+     5  Meter             a usage bar with THRESHOLD TICKS; .as-progress has none
+     6  Module card       a card that can be locked, with an upgrade path
+     7  Bit chips         permission bitfield decode, granted vs missing
+     8  Role ladder       the hierarchy picture no bitfield can express
+     9  Branding preview  a Discord-shaped card + member row, for the bot avatar
+    10  Dropzone          image upload with preview, no dependency
+    11  Timeline          state ladder (billing lapse, degradation steps)
+    12  Status lamp       FOUR states, because "unknown" is not "offline"
+    13  Key/value rows    dense label→value pairs
+    14  Big code          the single-use pairing code display
+    15  Misc              counters, tick lists, split heads, sr-only helpers
+   ========================================================================== */
+
+
+/* ==========================================================================
+   1 · SHELL CHROME
+   ========================================================================== */
+
+/* The dashboard is an application, not a marketing page: it uses the full
+   width. .as-nav__inner is capped at --as-container for the site. */
+.ad-shellnav .as-nav__inner { max-width: 1560px; gap: var(--as-space-4); min-width: 0; }
+
+.ad-shellnav .as-nav__links { margin-right: 0; }
+
+/* ⚠ Below this width the wordmark, the server selector, the search box and the
+   account row cannot share one line without pushing the account off-screen —
+   measured at 400px, where .as-nav__actions ended 23px past the viewport. The
+   bar becomes two rows and the search takes the second one, which is also what
+   every dashboard in this category does on a phone. The alternative — hiding
+   the search on mobile — buries the one thing we are meant to promote. */
+@media (max-width: 46rem) {
+  .ad-shellnav { height: auto; min-height: var(--as-nav-h); padding-block: var(--as-space-2); }
+  .ad-shellnav .as-nav__inner { flex-wrap: wrap; row-gap: var(--as-space-2); }
+  .ad-shellnav #ad-globalsearch { flex: 1 1 100%; order: 3; max-width: none; }
+  .ad-shellnav .as-nav__actions { margin-left: auto; }
+  .ad-switch__btn { max-width: 11rem; }
+}
+
+/* A quiet divider between the wordmark and the guild switcher. */
+.ad-nav-sep {
+  width: 1px;
+  height: 1.5rem;
+  background: var(--as-border);
+  flex: none;
+  display: none;
+}
+@media (min-width: 46rem) { .ad-nav-sep { display: block; } }
+
+.ad-shell { max-width: 1560px; margin-inline: auto; }
+
+/* The sidebar scrolls independently and stays put. On mobile it becomes a
+   horizontal scroller above the content, so no view is ever unreachable. */
+.ad-side {
+  /* min-width: 0 used to be patched here because asbern.css set it on
+     .as-shell__main but not on .as-shell__side, and a grid item's default
+     min-width (auto) let a wide child stretch this track and overflow the
+     page. Promoted straight onto .as-shell__side itself (this element's other
+     class — see dashboard.html), so it is no longer needed here. */
+  position: sticky;
+  top: var(--as-nav-h);
+  align-self: start;
+  max-height: calc(100dvh - var(--as-nav-h));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (max-width: 59.99rem) {
+  .ad-side {
+    position: static;
+    max-height: none;
+    border-right: 0;
+    border-bottom: 1px solid var(--as-border-soft);
+    padding: var(--as-space-3) var(--as-gutter);
+  }
+  .ad-side .as-sidebar {
+    flex-direction: row;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: var(--as-space-1);
+  }
+  .ad-side .as-sidebar::-webkit-scrollbar { display: none; }
+  .ad-side .as-sidebar__group { display: none; }
+  .ad-side .as-sidebar__item {
+    white-space: nowrap;
+    border-left: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: var(--as-radius-sm) var(--as-radius-sm) 0 0;
+  }
+  .ad-side .as-sidebar__item[aria-current] { border-bottom-color: var(--as-accent); }
+  .ad-side-foot { display: none; }
+}
+
+.ad-side-foot {
+  margin-top: var(--as-space-6);
+  padding-top: var(--as-space-4);
+  border-top: 1px solid var(--as-border-soft);
+}
+
+/* A count or state pill riding on the right of a sidebar item. */
+.as-sidebar__item .ad-side-tag {
+  margin-left: auto;
+  font-size: var(--as-text-2xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--as-text-3);
+}
+.as-sidebar__item[aria-current] .ad-side-tag { color: var(--as-accent); }
+.ad-side-tag--warn { color: var(--as-warn) !important; }
+
+/* A view is a routed panel inside the shell. */
+.ad-view[hidden] { display: none !important; }
+
+.ad-view__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--as-space-4);
+  margin-bottom: var(--as-space-6);
+}
+.ad-view__title { font-size: var(--as-text-xl); }
+.ad-view__lede { font-size: var(--as-text-sm); color: var(--as-text-2); max-width: 68ch; margin-top: var(--as-space-2); }
+
+/* A sticky toolbar (search + filters) that keeps working while a long list
+   scrolls underneath it. */
+.ad-toolbar {
+  position: sticky;
+  top: var(--as-nav-h);
+  z-index: var(--as-z-sticky);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--as-space-3);
+  padding: var(--as-space-3) 0;
+  margin-bottom: var(--as-space-4);
+  background: var(--as-bg);
+  border-bottom: 1px solid var(--as-border-soft);
+}
+.ad-search { position: relative; flex: 1 1 16rem; min-width: 0; }
+.ad-search > svg {
+  position: absolute;
+  left: 0.72rem; top: 50%;
+  transform: translateY(-50%);
+  width: 1rem; height: 1rem;
+  color: var(--as-text-3);
+  pointer-events: none;
+}
+.ad-search .as-input { padding-left: 2.3rem; padding-right: 3.4rem; }
+.ad-search__hint {
+  position: absolute;
+  right: 0.55rem; top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* The group tab bar rides just under the toolbar. Without this it scrolls away
+   and you lose the only way to change tab halfway down a list of 37 controls. */
+.ad-sticky-tabs {
+  position: sticky;
+  top: calc(var(--as-nav-h) + 3.55rem);
+  z-index: calc(var(--as-z-sticky) - 1);
+  background: var(--as-bg);
+  padding-top: var(--as-space-1);
+}
+@media (max-width: 59.99rem) {
+  /* The sidebar is a horizontal strip up here, and the toolbar wraps to two
+     rows — stacking a third sticky layer would eat the viewport. */
+  .ad-toolbar, .ad-sticky-tabs { position: static; }
+}
+
+
+/* ==========================================================================
+   2 · GUILD SWITCHER — a popover picker. The system has no menu primitive.
+   ========================================================================== */
+/* ⚠ Assessed for promotion (README's cross-consumer gap audit, item 7): a
+   generic popover/menu primitive is exactly the kind of thing Asbern should
+   own — but this is the only consumer today, and doing it properly means
+   renaming these classes where dashboard.html builds them and where
+   dashboard.js queries/toggles them, both outside this pass's file scope.
+   Left local rather than half-promoted. See the README for the full call. */
+
+.ad-switch { position: relative; flex: none; }
+
+.ad-switch__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--as-space-3);
+  max-width: 15rem;
+  padding: 0.34rem 0.55rem 0.34rem 0.4rem;
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-sm);
+  background: var(--as-surface-1);
+  color: var(--as-text-1);
+  font-size: var(--as-text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--as-dur-fast) var(--as-ease),
+              background-color var(--as-dur-fast) var(--as-ease);
+}
+.ad-switch__btn:hover { border-color: var(--as-border-strong); background: var(--as-surface-2); }
+.ad-switch__btn[aria-expanded="true"] { border-color: var(--as-accent-line); background: var(--as-surface-2); }
+.ad-switch__btn > svg:last-child { width: 0.9rem; height: 0.9rem; color: var(--as-text-3); flex: none; }
+
+.ad-switch__label { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; line-height: 1.25; }
+.ad-switch__name { max-width: 10rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-switch__plan {
+  font-size: var(--as-text-2xs);
+  font-weight: 650;
+  letter-spacing: var(--as-tracking-wide);
+  text-transform: uppercase;
+  color: var(--as-text-3);
+}
+
+.ad-switch__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: var(--as-z-drawer);
+  width: min(21rem, calc(100vw - 2rem));
+  padding: var(--as-space-2);
+  border: 1px solid var(--as-border-strong);
+  border-radius: var(--as-radius-md);
+  background: var(--as-surface-3);
+  box-shadow: var(--as-shadow-lg);
+  animation: ad-pop var(--as-dur-fast) var(--as-ease-out);
+}
+@keyframes ad-pop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+.ad-switch__opt {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--as-space-3);
+  padding: var(--as-space-3);
+  border-radius: var(--as-radius-sm);
+  text-align: left;
+  color: var(--as-text-2);
+  cursor: pointer;
+}
+.ad-switch__opt:hover { background: var(--as-surface-2); color: var(--as-text-1); }
+.ad-switch__opt[aria-current="true"] { background: var(--as-accent-soft); color: var(--as-accent); }
+.ad-switch__opt .as-avatar { flex: none; }
+.ad-switch__meta { min-width: 0; flex: 1 1 auto; }
+.ad-switch__meta b { display: block; font-size: var(--as-text-sm); color: inherit; }
+.ad-switch__meta span { font-size: var(--as-text-xs); color: var(--as-text-3); }
+
+.ad-switch__foot {
+  margin-top: var(--as-space-2);
+  padding: var(--as-space-3);
+  border-top: 1px solid var(--as-border-soft);
+  font-size: var(--as-text-xs);
+  color: var(--as-text-3);
+}
+
+
+/* ==========================================================================
+   3 · CONTROL CARD — one registry action, rendered generically
+   ========================================================================== */
+
+.ad-controls { display: grid; gap: var(--as-space-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr)); }
+
+.ad-control {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-lg);
+  background: var(--as-surface-1);
+  box-shadow: var(--as-hairline);
+  overflow: hidden;
+  transition: border-color var(--as-dur-fast) var(--as-ease);
+}
+.ad-control:focus-within { border-color: var(--as-border-strong); }
+.ad-control.is-destructive { border-left: 3px solid var(--as-danger-soft); }
+.ad-control.is-locked { opacity: .92; }
+
+.ad-control__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--as-space-3);
+  padding: var(--as-space-4) var(--as-space-4) var(--as-space-3);
+}
+.ad-control__glyph {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.1rem; height: 2.1rem;
+  border-radius: var(--as-radius-sm);
+  border: 1px solid var(--as-border);
+  background: var(--as-surface-2);
+  font-size: 1rem;
+  line-height: 1;
+}
+.ad-control__title { font-size: var(--as-text-base); font-weight: 650; color: var(--as-text-1); line-height: 1.3; }
+.ad-control__id {
+  font-family: var(--as-font-mono);
+  font-size: var(--as-text-2xs);
+  color: var(--as-text-3);
+  word-break: break-all;
+}
+.ad-control__help { padding: 0 var(--as-space-4); font-size: var(--as-text-sm); color: var(--as-text-2); }
+.ad-control__flags { display: flex; flex-wrap: wrap; gap: var(--as-space-2); padding: var(--as-space-3) var(--as-space-4) 0; }
+.ad-control__body { padding: var(--as-space-4); display: flex; flex-direction: column; gap: var(--as-space-3); }
+.ad-control__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--as-space-2);
+  margin-top: auto;
+  padding: var(--as-space-3) var(--as-space-4);
+  border-top: 1px solid var(--as-border-soft);
+  background: var(--as-sunken);
+}
+.ad-control__foot .ad-spacer { flex: 1 1 auto; }
+
+/* The param grid. Two columns once there is room, one always on mobile. */
+.ad-params { display: grid; gap: var(--as-space-3); grid-template-columns: 1fr; }
+@media (min-width: 34rem) {
+  .ad-params { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ad-params > .ad-param--wide { grid-column: 1 / -1; }
+}
+.ad-param { min-width: 0; }
+.ad-param__req { color: var(--as-danger); margin-left: 0.15em; }
+.ad-param__type {
+  font-family: var(--as-font-mono);
+  font-size: var(--as-text-2xs);
+  color: var(--as-text-3);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-xs);
+  padding: 0 0.3em;
+  margin-left: auto;
+}
+.ad-param .as-label { display: flex; align-items: center; gap: var(--as-space-2); }
+
+/* Snowflake pickers get a mono id echo under them, because the API takes ids
+   and an admin comparing the two needs to see both. */
+.ad-param__echo { font-family: var(--as-font-mono); font-size: var(--as-text-2xs); color: var(--as-text-3); }
+
+.ad-empty-params {
+  font-size: var(--as-text-xs);
+  color: var(--as-text-3);
+  font-style: italic;
+}
+
+
+/* ==========================================================================
+   4 · RESULT STRIP — the typed outcome vocabulary, rendered
+   ========================================================================== */
+
+.ad-result {
+  display: flex;
+  gap: var(--as-space-3);
+  padding: var(--as-space-3);
+  border: 1px solid var(--as-border);
+  border-left: 3px solid var(--as-text-3);
+  border-radius: var(--as-radius-sm);
+  background: var(--as-sunken);
+  font-size: var(--as-text-sm);
+  animation: ad-slide var(--as-dur-base) var(--as-ease-out);
+}
+@keyframes ad-slide { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.ad-result svg { width: 1rem; height: 1rem; flex: none; margin-top: 0.18rem; }
+.ad-result__title { font-weight: 650; color: var(--as-text-1); }
+.ad-result__body { min-width: 0; }
+.ad-result--ok      { border-left-color: var(--as-success); }
+.ad-result--ok svg  { color: var(--as-success); }
+.ad-result--dry     { border-left-color: var(--as-frost); background: var(--as-frost-soft); }
+.ad-result--dry svg { color: var(--as-frost); }
+.ad-result--warn    { border-left-color: var(--as-warn); background: var(--as-warn-soft); }
+.ad-result--warn svg{ color: var(--as-warn); }
+.ad-result--err     { border-left-color: var(--as-danger); background: var(--as-danger-soft); }
+.ad-result--err svg { color: var(--as-danger); }
+
+.ad-plan-list {
+  margin: var(--as-space-2) 0 0;
+  padding-left: 1.1rem;
+  font-size: var(--as-text-xs);
+  color: var(--as-text-2);
+}
+.ad-plan-list li { margin-block: 0.15rem; }
+
+
+/* ==========================================================================
+   5 · METER — a usage bar that shows its own thresholds
+   ==========================================================================
+   .as-progress is a plain fill. Metered billing needs the LADDER visible: the
+   customer has to see 80% / 100% / 150% before they hit them, because the
+   overage bill is a shape no Discord server owner has ever been shown.
+
+   ⚠ Assessed for promotion (README's gap audit, item 6): stays local. It does
+   not even compose on top of .as-progress — track, fill, tick marks, the
+   labelled scale and the degradation-rung list are all bespoke, because the
+   whole shape is billing-specific (an overage LADDER, not a generic goal).
+   Nothing else in this codebase renders a progress bar with thresholds; if a
+   second consumer ever needs one, promote the tick primitive then, not now. */
+
+.ad-meter { display: flex; flex-direction: column; gap: var(--as-space-2); }
+
+.ad-meter__track {
+  position: relative;
+  height: 14px;
+  border-radius: var(--as-radius-full);
+  background: var(--as-sunken);
+  border: 1px solid var(--as-border);
+  overflow: hidden;
+}
+.ad-meter__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--as-accent);
+  transition: width var(--as-dur-slow) var(--as-ease-out), background-color var(--as-dur-base) var(--as-ease);
+}
+.ad-meter__fill--warn   { background: var(--as-warn); }
+.ad-meter__fill--danger { background: var(--as-danger); }
+.ad-meter__fill--frost  { background: var(--as-frost); }
+
+.ad-meter__tick {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: var(--as-bg);
+  opacity: .75;
+}
+.ad-meter__tick--hard { background: var(--as-danger); opacity: .55; }
+
+.ad-meter__scale {
+  position: relative;
+  height: 1.1rem;
+  font-size: var(--as-text-2xs);
+  color: var(--as-text-3);
+}
+.ad-meter__mark {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-weight: 650;
+  letter-spacing: var(--as-tracking-wide);
+}
+.ad-meter__mark--end { transform: translateX(-100%); }
+
+.ad-meter__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--as-space-2) var(--as-space-4);
+  font-size: var(--as-text-xs);
+  color: var(--as-text-3);
+}
+
+/* The degradation ladder as rows, each with its own reached/pending state. */
+.ad-rung {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--as-space-3);
+  padding: var(--as-space-3);
+  border: 1px solid var(--as-border-soft);
+  border-radius: var(--as-radius-sm);
+  background: var(--as-surface-1);
+  font-size: var(--as-text-sm);
+}
+.ad-rung__at {
+  flex: none;
+  min-width: 3.6rem;
+  font-family: var(--as-font-mono);
+  font-size: var(--as-text-xs);
+  font-weight: 700;
+  color: var(--as-text-3);
+  padding-top: 0.1rem;
+}
+.ad-rung__what b { color: var(--as-text-1); }
+.ad-rung.is-reached { border-color: var(--as-warn); background: var(--as-warn-soft); }
+.ad-rung.is-reached .ad-rung__at { color: var(--as-warn); }
+.ad-rung.is-past { border-color: var(--as-danger); background: var(--as-danger-soft); }
+.ad-rung.is-past .ad-rung__at { color: var(--as-danger); }
+
+
+/* ==========================================================================
+   6 · MODULE CARD — sellable, lockable, never hidden
+   ========================================================================== */
+
+.ad-mods { display: grid; gap: var(--as-space-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 17.5rem), 1fr)); }
+
+.ad-mod {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--as-space-3);
+  padding: var(--as-space-4);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-md);
+  background: var(--as-surface-1);
+  box-shadow: var(--as-hairline);
+  transition: border-color var(--as-dur-fast) var(--as-ease);
+}
+.ad-mod:hover { border-color: var(--as-border-strong); }
+.ad-mod.is-on { border-color: var(--as-accent-line); background: linear-gradient(var(--as-accent-soft), var(--as-accent-soft)) padding-box, var(--as-surface-1); }
+.ad-mod.is-locked { background: var(--as-bg-elev); }
+.ad-mod.is-unavailable { border-style: dashed; }
+
+.ad-mod__top { display: flex; align-items: flex-start; gap: var(--as-space-3); }
+.ad-mod__name { font-size: var(--as-text-base); font-weight: 650; color: var(--as-text-1); line-height: 1.25; }
+.ad-mod__id { font-family: var(--as-font-mono); font-size: var(--as-text-2xs); color: var(--as-text-3); }
+.ad-mod__ctl { margin-left: auto; flex: none; padding-top: 0.1rem; }
+.ad-mod__why { font-size: var(--as-text-xs); color: var(--as-text-3); }
+.ad-mod__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--as-space-2);
+  margin-top: auto;
+  padding-top: var(--as-space-3);
+  border-top: 1px solid var(--as-border-soft);
+}
+
+/* The upgrade path. Never a dead button, never a hidden feature. */
+.ad-lock {
+  display: flex;
+  align-items: center;
+  gap: var(--as-space-2);
+  font-size: var(--as-text-xs);
+  font-weight: 650;
+  color: var(--as-accent);
+}
+.ad-lock svg { width: 0.9rem; height: 0.9rem; }
+
+
+/* ==========================================================================
+   7 · PERMISSION BITS
+   ========================================================================== */
+
+.ad-bits { display: flex; flex-wrap: wrap; gap: var(--as-space-2); }
+.ad-bit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.24em 0.6em;
+  border-radius: var(--as-radius-xs);
+  border: 1px solid var(--as-border);
+  background: var(--as-surface-2);
+  font-size: var(--as-text-2xs);
+  font-weight: 600;
+  color: var(--as-text-3);
+  white-space: nowrap;
+}
+.ad-bit svg { width: 0.8em; height: 0.8em; }
+.ad-bit--has  { background: var(--as-success-soft); border-color: transparent; color: var(--as-success); }
+.ad-bit--miss { background: var(--as-danger-soft);  border-color: transparent; color: var(--as-danger); }
+.ad-bit__val { font-family: var(--as-font-mono); opacity: .7; }
+
+.ad-bitfield {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--as-space-2);
+  font-family: var(--as-font-mono);
+  font-size: var(--as-text-sm);
+  color: var(--as-text-1);
+  word-break: break-all;
+}
+
+
+/* ==========================================================================
+   8 · ROLE LADDER — the half of "permissions" that is not a permission
+   ========================================================================== */
+
+.ad-ladder { display: flex; flex-direction: column; gap: 2px; }
+.ad-rank {
+  display: flex;
+  align-items: center;
+  gap: var(--as-space-3);
+  padding: var(--as-space-2) var(--as-space-3);
+  border: 1px solid var(--as-border-soft);
+  border-radius: var(--as-radius-xs);
+  background: var(--as-surface-1);
+  font-size: var(--as-text-sm);
+}
+.ad-rank__swatch { width: 0.7rem; height: 0.7rem; border-radius: 50%; flex: none; }
+.ad-rank__pos {
+  margin-left: auto;
+  font-family: var(--as-font-mono);
+  font-size: var(--as-text-2xs);
+  color: var(--as-text-3);
+}
+.ad-rank--bot {
+  border-color: var(--as-accent);
+  background: var(--as-accent-soft);
+  color: var(--as-accent);
+  font-weight: 650;
+  box-shadow: var(--as-shadow-sm);
+}
+.ad-rank--blocked { border-style: dashed; border-color: var(--as-danger); color: var(--as-danger); }
+.ad-rank--blocked .ad-rank__pos { color: var(--as-danger); }
+.ad-rank--ok { opacity: .85; }
+
+
+/* ==========================================================================
+   9 · BRANDING PREVIEW — what the bot actually looks like in the guild
+   ========================================================================== */
+
+.ad-preview {
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-md);
+  background: var(--as-sunken);
+  overflow: hidden;
+}
+.ad-preview__banner {
+  height: 5.5rem;
+  background:
+    radial-gradient(60% 140% at 22% 0%, var(--as-accent-soft), transparent 70%),
+    linear-gradient(160deg, var(--as-surface-3), var(--as-surface-1));
+  background-size: cover;
+  background-position: center;
+  border-bottom: 1px solid var(--as-border-soft);
+}
+.ad-preview__msg { display: flex; gap: var(--as-space-3); padding: var(--as-space-4); }
+.ad-preview__ava {
+  width: 2.6rem; height: 2.6rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--as-accent-soft);
+  border: 1px solid var(--as-accent-line);
+  color: var(--as-accent);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: var(--as-text-xs);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+.ad-preview__nick { font-weight: 650; color: var(--as-text-1); font-size: var(--as-text-sm); }
+.ad-preview__tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.06rem 0.28rem;
+  border-radius: var(--as-radius-xs);
+  background: var(--as-frost-soft);
+  border: 1px solid var(--as-frost-line);
+  color: var(--as-frost);
+  text-transform: uppercase;
+}
+.ad-preview__stamp { font-size: var(--as-text-2xs); color: var(--as-text-3); }
+.ad-preview__text { font-size: var(--as-text-sm); color: var(--as-text-2); margin-top: 0.15rem; }
+.ad-preview__bio {
+  font-size: var(--as-text-xs);
+  color: var(--as-text-3);
+  padding: 0 var(--as-space-4) var(--as-space-4);
+  font-style: italic;
+}
+.ad-preview__members {
+  border-top: 1px solid var(--as-border-soft);
+  padding: var(--as-space-3) var(--as-space-4);
+  background: var(--as-surface-1);
+}
+.ad-preview__member { display: flex; align-items: center; gap: var(--as-space-3); padding: 0.22rem 0; font-size: var(--as-text-sm); }
+.ad-preview__member--bot .ad-preview__nick { color: var(--as-accent); }
+
+
+/* ==========================================================================
+   10 · DROPZONE — image picking with a preview, no dependency
+   ========================================================================== */
+
+.ad-drop {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--as-space-4);
+  padding: var(--as-space-4);
+  border: 1px dashed var(--as-border-strong);
+  border-radius: var(--as-radius-md);
+  background: var(--as-surface-1);
+  cursor: pointer;
+  transition: border-color var(--as-dur-fast) var(--as-ease), background-color var(--as-dur-fast) var(--as-ease);
+}
+.ad-drop:hover, .ad-drop.is-over { border-color: var(--as-accent); background: var(--as-accent-soft); }
+.ad-drop input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.ad-drop__thumb {
+  width: 3.4rem; height: 3.4rem;
+  flex: none;
+  border-radius: var(--as-radius-sm);
+  border: 1px solid var(--as-border);
+  background: var(--as-sunken) center / cover no-repeat;
+  display: grid;
+  place-items: center;
+  color: var(--as-text-3);
+  overflow: hidden;
+}
+.ad-drop__thumb--round { border-radius: 50%; }
+.ad-drop__thumb--wide { width: 6.4rem; height: 3.4rem; }
+.ad-drop__thumb svg { width: 1.1rem; height: 1.1rem; }
+.ad-drop__copy { min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+.ad-drop__name { display: block; font-size: var(--as-text-sm); font-weight: 600; color: var(--as-text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-drop__meta { display: block; font-size: var(--as-text-xs); color: var(--as-text-3); }
+.ad-drop__clear { position: relative; z-index: 2; margin-left: auto; flex: none; }
+
+
+/* ==========================================================================
+   11 · TIMELINE — a state ladder with a "you are here"
+   ========================================================================== */
+
+.ad-timeline { display: flex; flex-direction: column; }
+.ad-tl {
+  position: relative;
+  display: flex;
+  gap: var(--as-space-4);
+  padding: 0 0 var(--as-space-5) var(--as-space-6);
+  border-left: 2px solid var(--as-border);
+  margin-left: 0.35rem;
+}
+.ad-tl:last-child { padding-bottom: 0; border-left-color: transparent; }
+.ad-tl::before {
+  content: "";
+  position: absolute;
+  left: -0.42rem; top: 0.28rem;
+  width: 0.7rem; height: 0.7rem;
+  border-radius: 50%;
+  background: var(--as-surface-3);
+  border: 2px solid var(--as-border-strong);
+}
+.ad-tl.is-now { border-left-color: var(--as-accent); }
+.ad-tl.is-now::before { background: var(--as-accent); border-color: var(--as-accent); box-shadow: 0 0 0 4px var(--as-accent-soft); }
+.ad-tl__when { font-size: var(--as-text-xs); font-weight: 700; color: var(--as-text-3); font-variant-numeric: tabular-nums; }
+.ad-tl.is-now .ad-tl__when { color: var(--as-accent); }
+.ad-tl__what { font-size: var(--as-text-sm); color: var(--as-text-2); }
+.ad-tl__what b { color: var(--as-text-1); }
+
+
+/* ==========================================================================
+   12 · STATUS LAMP — four states, because "unknown" is not "offline"
+   ==========================================================================
+   PLAN.md's rule, verbatim: "'offline' is a stated condition, never assumed to
+   be 'no'." A three-state lamp would force us to lie on the fourth.
+
+   ⚠ Assessed for promotion (README's gap audit, item 7): the PRINCIPLE behind
+   this — unknown must never render as red/offline — is platform-wide, not
+   local to this file. The 25 lines of CSS that draw it are trivial to move.
+   What blocks it is the same thing that blocks the switcher above: dashboard.js
+   emits these exact class names, and dashboard.html is the only place they are
+   composed, so renaming to `.as-lamp*` here without touching either would
+   silently stop the dashboard's real lamp from being styled at all. Left local
+   this pass; flagged as the first thing to promote once that file is in
+   scope. */
+
+.ad-lamp {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--as-space-2);
+  font-size: var(--as-text-xs);
+  font-weight: 650;
+  letter-spacing: var(--as-tracking-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.ad-lamp::before {
+  content: "";
+  width: 0.55rem; height: 0.55rem;
+  border-radius: 50%;
+  flex: none;
+  background: currentColor;
+}
+.ad-lamp--online   { color: var(--as-success); }
+.ad-lamp--online::before { animation: as-pulse 2.4s var(--as-ease) infinite; }
+.ad-lamp--degraded { color: var(--as-warn); }
+.ad-lamp--offline  { color: var(--as-danger); }
+/* Unknown is hollow on purpose: it is the absence of an answer, not an answer. */
+.ad-lamp--unknown  { color: var(--as-text-3); }
+.ad-lamp--unknown::before { background: transparent; box-shadow: inset 0 0 0 2px currentColor; }
+
+.ad-lamp--lg { font-size: var(--as-text-sm); }
+.ad-lamp--lg::before { width: 0.7rem; height: 0.7rem; }
+
+
+/* ==========================================================================
+   13 · KEY / VALUE ROWS
+   ========================================================================== */
+
+.ad-kv { display: flex; flex-direction: column; gap: 0; margin: 0; }
+.ad-kv__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--as-space-3);
+  padding: var(--as-space-2) 0;
+  border-bottom: 1px solid var(--as-border-soft);
+  font-size: var(--as-text-sm);
+}
+.ad-kv__row:last-child { border-bottom: 0; }
+.ad-kv__k { color: var(--as-text-3); }
+.ad-kv__v { color: var(--as-text-1); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.ad-kv__v--quiet { font-weight: 500; color: var(--as-text-2); }
+
+
+/* ==========================================================================
+   14 · BIG CODE — the single-use pairing code
+   ========================================================================== */
+
+.ad-bigcode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--as-space-3);
+  padding: var(--as-space-5);
+  border: 1px dashed var(--as-accent-line);
+  border-radius: var(--as-radius-md);
+  background: var(--as-accent-soft);
+  text-align: center;
+}
+.ad-bigcode__val {
+  font-family: var(--as-font-mono);
+  font-size: clamp(1.3rem, 1rem + 2.2vw, 2rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--as-accent);
+  word-break: break-all;
+}
+.ad-bigcode.is-spent { border-color: var(--as-border-strong); background: var(--as-sunken); }
+.ad-bigcode.is-spent .ad-bigcode__val { color: var(--as-text-3); text-decoration: line-through; }
+
+
+/* ==========================================================================
+   15 · MISC
+   ========================================================================== */
+
+/* Inline character counter for a bounded text field. The padding is the
+   fallback gap for browsers without :has(); the flex rule does the alignment. */
+.ad-count { font-size: var(--as-text-2xs); font-variant-numeric: tabular-nums; color: var(--as-text-3); margin-left: auto; padding-left: var(--as-space-3); }
+label.as-label:has(> .ad-count) { display: flex; align-items: baseline; gap: var(--as-space-2); }
+.ad-count.is-near { color: var(--as-warn); }
+.ad-count.is-over { color: var(--as-danger); font-weight: 700; }
+
+/* A yes/no/measured verdict cell in a comparison table. */
+.ad-verdict { display: inline-flex; align-items: center; gap: 0.4em; font-weight: 650; font-size: var(--as-text-xs); }
+.ad-verdict svg { width: 0.9rem; height: 0.9rem; }
+.ad-verdict--ok   { color: var(--as-success); }
+.ad-verdict--warn { color: var(--as-warn); }
+.ad-verdict--no   { color: var(--as-danger); }
+
+/* A section head inside a view: a rule with a label, cheaper than a card. */
+.ad-subhead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--as-space-3);
+  margin: var(--as-space-8) 0 var(--as-space-4);
+}
+.ad-subhead:first-child { margin-top: 0; }
+.ad-subhead__t { font-size: var(--as-text-md); font-weight: 650; color: var(--as-text-1); }
+.ad-subhead__n { font-size: var(--as-text-xs); color: var(--as-text-3); }
+.ad-subhead__act { margin-left: auto; }
+
+/* Dense outcome pill for the audit log. */
+.ad-outcome {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.12em 0.5em;
+  border-radius: var(--as-radius-xs);
+  font-size: var(--as-text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--as-tracking-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.ad-outcome--ok   { background: var(--as-success-soft); color: var(--as-success); }
+.ad-outcome--dry  { background: var(--as-frost-soft);   color: var(--as-frost); }
+.ad-outcome--ref  { background: var(--as-warn-soft);    color: var(--as-warn); }
+.ad-outcome--err  { background: var(--as-danger-soft);  color: var(--as-danger); }
+
+/* Wide tables must scroll inside their own box; the page never does. */
+.ad-scroll-cap { max-height: 26rem; overflow-y: auto; overscroll-behavior: contain; }
+
+/* A tiny mono id, used everywhere the registry / module ids surface. */
+.ad-id { font-family: var(--as-font-mono); font-size: var(--as-text-2xs); color: var(--as-text-3); }
+
+/* Two-up layout that collapses cleanly, with the aside second on mobile. */
+.ad-duo { display: grid; gap: var(--as-space-5); grid-template-columns: 1fr; align-items: start; }
+/* Same grid-blowout guard as .ad-side — without it a stat grid or a code block
+   in either column stretches the track past the viewport. */
+.ad-duo > * { min-width: 0; }
+@media (min-width: 62rem) { .ad-duo { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); } }
+@media (min-width: 62rem) { .ad-duo--even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+
+/* A quiet inline "mock" marker. Used wherever a real integration is faked, so
+   the demo can never be mistaken for the product. */
+.ad-mock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.1em 0.45em;
+  border: 1px dashed var(--as-warn);
+  border-radius: var(--as-radius-xs);
+  font-size: var(--as-text-2xs);
+  font-weight: 700;
+  letter-spacing: var(--as-tracking-wide);
+  text-transform: uppercase;
+  color: var(--as-warn);
+}
+
+/* Loading placeholder for a control grid — real skeletons, real geometry. */
+.ad-skel-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--as-space-3);
+  padding: var(--as-space-4);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-lg);
+  background: var(--as-surface-1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-switch__menu, .ad-result { animation: none; }
+  .ad-lamp--online::before { animation: none; }
+}
