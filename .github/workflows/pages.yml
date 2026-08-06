@@ -39,7 +39,16 @@ jobs:
           fail=0
           for f in *.html; do
             for ref in $(grep -oE '(href|src)="[^"#:]+"' "$f" | sed -E 's/.*="([^"]+)"/\1/'); do
-              case "$ref" in http*|//*|mailto:*|"") continue ;; esac
+              # ⚠ `?query` IS A SAME-PAGE LINK, NOT A PATH, and this gate used to
+              # stat it as one. The member app exits demo mode with href="?demo=0",
+              # which is valid HTML meaning "this page, with this query string" —
+              # `[ -e "?demo=0" ]` is false for it and always will be, so the gate
+              # failed the whole deploy on three healthy pages.
+              #
+              # It is skipped rather than resolved to $f because the ONLY thing
+              # this gate can prove about a query is that the page it points at
+              # exists, and the page it points at is the one we are reading.
+              case "$ref" in http*|//*|mailto:*|\?*|"") continue ;; esac
               if [ ! -e "$ref" ]; then echo "::error file=$f::missing asset $ref"; fail=1; fi
             done
           done
