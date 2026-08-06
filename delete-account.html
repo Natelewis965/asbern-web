@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Delete your account and data — Asbern</title>
+<meta name="description" content="How to delete your Asbern account and the data held about you: what deletion removes, what it cannot reach and why, and how long it takes.">
+<meta name="color-scheme" content="dark light">
+<script>
+(function(){try{var p=localStorage.getItem('asbern.theme')||'system';
+var r=p==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):p;
+document.documentElement.setAttribute('data-theme',r);
+document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
+</script>
+<link rel="stylesheet" href="assets/asbern.css">
+</head>
+<body>
+
+<a class="as-btn as-btn--secondary as-skip" href="#main">Skip to content</a>
+
+<header class="as-nav">
+  <div class="as-nav__inner">
+    <a class="as-wordmark" href="index.html" aria-label="Asbern — home">
+      <svg class="as-mark" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+      </svg>
+      Asbern
+    </a>
+    <nav class="as-nav__links" aria-label="Primary">
+      <a class="as-nav__link" href="screening.html">Screening Room</a>
+      <a class="as-nav__link" href="features.html">Modules</a>
+      <a class="as-nav__link" href="pricing.html">Pricing</a>
+    </nav>
+    <div class="as-nav__actions">
+      <button class="as-btn as-btn--ghost as-btn--icon" data-as-theme-toggle type="button" aria-label="Switch theme"></button>
+      <a class="as-btn as-btn--secondary as-btn--sm u-desktop-only" href="dashboard.html">Dashboard</a>
+      <a class="as-btn as-btn--primary as-btn--sm as-nav__cta" href="install.html">
+        <span data-as-icon="discord"></span> Add to Discord
+      </a>
+      <button class="as-btn as-btn--ghost as-btn--icon as-nav__burger" type="button"
+              data-as-drawer="#nav-drawer" aria-expanded="false" aria-controls="nav-drawer"
+              aria-label="Open menu" data-as-icon="menu"></button>
+    </div>
+  </div>
+</header>
+<div class="as-drawer" id="nav-drawer" data-as-drawer-panel hidden>
+  <a href="screening.html">Screening Room</a>
+  <a href="features.html">Modules</a>
+  <a href="pricing.html">Pricing</a>
+  <a href="dashboard.html">Dashboard</a>
+  <a class="as-btn as-btn--primary u-mt-2" href="install.html">Add to Discord</a>
+</div>
+
+<main id="main">
+
+<section class="as-section as-section--tight">
+  <div class="as-container as-container--narrow">
+    <span class="as-eyebrow">Legal</span>
+    <h1 class="as-display as-display--xl u-mt-2">Delete your account and data</h1>
+    <p class="as-lede u-mt-3">
+      This page exists so the request can be made from outside the app &mdash; without installing
+      anything and without asking a moderator first. It describes exactly what deletion removes,
+      what it cannot reach, and why.
+    </p>
+
+    <div class="as-prose u-mt-6">
+
+      <div id="who-holds-it" style="scroll-margin-top:5rem">
+        <h2>Who actually holds your data</h2>
+        <div class="as-note as-note--frost">
+          <span data-as-icon="info"></span>
+          <span><strong>Asbern is self-hosted.</strong> The bot runs on a computer belonging to whoever
+          installed it &mdash; normally the owner of your Discord server &mdash; and your data is stored on
+          that machine. We do not operate a service that receives it. So for a self-hosted server
+          <strong>the deletion is carried out by that server&rsquo;s owner, not by us</strong>, and the
+          routes below are how you reach them.</span>
+        </div>
+        <p>
+          If you signed in to the Asbern mobile app against our own service, we hold that sign-in record and
+          we act on the request ourselves.
+        </p>
+      </div>
+
+      <div id="how" style="scroll-margin-top:5rem">
+        <h2>Three ways to ask</h2>
+        <ul class="as-list u-text-sm">
+          <li class="as-list__item"><span data-as-icon="check"></span><span><strong>In the mobile app</strong>
+            &mdash; <code>Settings &rarr; Account &rarr; Delete account</code>. You are asked to type a
+            confirmation phrase, because this cannot be undone.</span></li>
+          <li class="as-list__item"><span data-as-icon="check"></span><span><strong>In Discord</strong> &mdash;
+            <code>/menu &rarr; Profile</code> can clear your history, and where the AI companions are enabled
+            it can show you everything they hold about you and delete all of it.</span></li>
+          <li class="as-list__item"><span data-as-icon="check"></span><span><strong>By asking the server
+            owner</strong> &mdash; on a self-hosted install they are the data controller, and the admin
+            console has a per-member erase.</span></li>
+        </ul>
+      </div>
+
+      <div id="what-goes" style="scroll-margin-top:5rem">
+        <h2>What deletion removes</h2>
+        <ul class="as-list u-text-sm">
+          <li class="as-list__item"><span data-as-icon="check"></span><span>Your sign-in record and any stored
+            authentication tokens, both on the device and on the server.</span></li>
+          <li class="as-list__item"><span data-as-icon="check"></span><span>Your progression &mdash; level, XP,
+            achievements, and your row in every leaderboard.</span></li>
+          <li class="as-list__item"><span data-as-icon="check"></span><span>Your currency balance, inventory
+            and transaction ledger.</span></li>
+          <li class="as-list__item"><span data-as-icon="check"></span><span>Your watch history, resume points
+            and favourites.</span></li>
+          <li class="as-list__item"><span data-as-icon="check"></span><span>Your activity counters and voice
+            co-presence records.</span></li>
+          <li class="as-list__item"><span data-as-icon="check"></span><span>Everything the AI companions hold
+            about you, transcripts and summaries alike, where that feature is enabled.</span></li>
+          <li class="as-list__item"><span data-as-icon="check"></span><span>Support tickets you opened, and the
+            answers you typed into their forms.</span></li>
+        </ul>
+      </div>
+
+      <div id="what-stays" style="scroll-margin-top:5rem">
+        <h2>What deletion cannot reach, and why</h2>
+        <div class="as-note as-note--warn">
+          <span data-as-icon="alert"></span>
+          <span>This list is here because it would be easy to leave out. A deletion page that promises more
+          than the software does is worse than one that is specific.</span>
+        </div>
+        <div class="as-table-wrap">
+          <table class="as-table as-table--compact">
+            <caption class="as-visually-hidden">Data that survives account deletion, and the reason</caption>
+            <thead><tr><th scope="col">What</th><th scope="col">Why it survives</th></tr></thead>
+            <tbody>
+              <tr>
+                <th scope="row">Your messages in Discord</th>
+                <td>They belong to Discord and to the server, not to Asbern. Delete them in Discord, or ask a
+                    moderator. Asbern does not store message content outside the narrow, disclosed cases in the
+                    <a href="privacy.html#content">privacy policy</a>.</td>
+              </tr>
+              <tr>
+                <th scope="row">Moderation records about you</th>
+                <td>Warnings, bans and case notes are the server&rsquo;s record of its own decisions. A member
+                    erasing the account of why they were actioned would defeat the point of keeping it. Ask the
+                    server owner.</td>
+              </tr>
+              <tr>
+                <th scope="row">Server-wide totals you contributed to</th>
+                <td>A counting channel&rsquo;s current number, or a server&rsquo;s all-time message count, is one
+                    shared figure rather than a pile of per-member rows. Your <em>per-member</em> share is
+                    removed; the aggregate is not recomputed downwards.</td>
+              </tr>
+              <tr>
+                <th scope="row">Backups, for up to 7 days</th>
+                <td>Daily snapshots roll on a seven-day window. Your data leaves the live store immediately and
+                    ages out of the backups within a week. Restoring a backup inside that window would bring it
+                    back &mdash; that is the trade a backup <em>is</em>.</td>
+              </tr>
+              <tr>
+                <th scope="row">Operational log entries</th>
+                <td>Raw entries age out after 90 days. They record that an action happened, not what was said.</td>
+              </tr>
+              <tr>
+                <th scope="row">Transcripts an administrator exported</th>
+                <td>Once a file has been downloaded it is outside the software entirely. Ask whoever exported it.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="how-long" style="scroll-margin-top:5rem">
+        <h2>How long it takes</h2>
+        <p>
+          The live deletion is immediate &mdash; the record is gone when the request returns, not queued for a
+          nightly job. Backups age out within <strong>7 days</strong> and raw operational log entries within
+          <strong>90 days</strong>, as above.
+        </p>
+      </div>
+
+      <div id="rejoin" style="scroll-margin-top:5rem">
+        <h2>If you come back afterwards</h2>
+        <p>
+          You start over. Deletion is not a reset with a copy kept behind it: there is no retained version to
+          restore, which is the entire point. If you only want to step away, simply leaving the server keeps
+          your progression &mdash; the <a href="privacy.html#retention">retention table</a> covers that case.
+        </p>
+      </div>
+
+      <div id="contact" style="scroll-margin-top:5rem">
+        <h2>If none of those work</h2>
+        <div class="as-note as-note--warn">
+          <span data-as-icon="alert"></span>
+          <span><strong>A contact address is not published yet.</strong> Printing &ldquo;email us&rdquo; beside
+          nothing would be worse than saying so plainly. Until there is one, the in-app and in-Discord routes
+          above are the working ones &mdash; and on a self-hosted server the owner is the data controller and
+          can always act.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="as-footer">
+  <div class="as-container">
+    <div class="as-footer__grid">
+      <div class="as-footer__brand" style="display:flex;flex-direction:column;gap:.75rem">
+        <a class="as-wordmark" href="index.html">
+          <svg class="as-mark" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+          </svg>
+          Asbern
+        </a>
+        <p class="u-text-xs as-muted">
+          Old Norse <em>Ásbjǫrn</em> — “god-bear”. The mark is a bind-rune: one stave, Ansuz on the left,
+          Bjarkan on the right.
+        </p>
+      </div>
+      <div>
+        <div class="as-footer__title">Product</div>
+        <div class="as-footer__links">
+          <a href="screening.html">Screening Room</a>
+          <a href="features.html">All modules</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="install.html">Add to Discord</a>
+          <a href="features.html#deployment">Self-hosting</a>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Developers</div>
+        <div class="as-footer__links">
+          <a href="dashboard.html">Dashboard preview</a>
+          <a href="bridge.html">Bridge agent</a>
+          <span class="as-footer__soon">Documentation <span class="as-badge as-badge--plain">Soon</span></span>
+          <span class="as-footer__soon">Status <span class="as-badge as-badge--plain">Soon</span></span>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Company</div>
+        <div class="as-footer__links">
+          <span class="as-footer__soon">Support server <span class="as-badge as-badge--plain">Soon</span></span>
+          <span class="as-footer__soon">Contact <span class="as-badge as-badge--plain">Soon</span></span>
+          <a href="features.html#roadmap">Roadmap</a>
+        </div>
+      </div>
+      <div>
+        <div class="as-footer__title">Legal</div>
+        <div class="as-footer__links">
+          <a href="privacy.html">Privacy policy <span class="as-badge as-badge--warn">Draft</span></a>
+          <a href="terms.html">Terms of service <span class="as-badge as-badge--warn">Draft</span></a>
+          <a href="privacy.html#retention">Data &amp; retention</a>
+          <a href="delete-account.html" aria-current="page">Delete your data</a>
+        </div>
+      </div>
+    </div>
+    <div class="as-footer__bottom">
+      <span>© <span data-as-year></span> Asbern. Not affiliated with Discord Inc.</span>
+      <span>This site is a preview. The two legal documents are drafts and are not yet in force.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/asbern.js"></script>
+</body>
+</html>
