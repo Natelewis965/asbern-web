@@ -4,9 +4,40 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Dashboard — Asbern</title>
-<meta name="description" content="The Asbern client dashboard: modules, the full 221-control console generated from the action registry, bot branding, permission health and your activity log.">
+<meta name="description" content="Configure your Discord server: sign in with Discord and manage every Asbern control from one page, generated from the bot's own action registry.">
 <meta name="color-scheme" content="dark light">
 <meta name="robots" content="noindex">
+
+<!-- =============================================================================
+     THE ADMIN CONSOLE. Discord sign-in, one server at a time, every control the
+     bot has — fetched from `@asbern/api`, never from a snapshot on this page.
+
+     ⚠ THERE IS NO CONTROL LIST IN THIS FILE AND NO PER-CONTROL MARKUP ANYWHERE
+     ON IT. `assets/dashboard-app.js` fetches the contract from
+     `GET /v1/guilds/{id}/actions`, re-hashes it, and generates every card from
+     it. Adding a control to the bot adds a card here with no edit to this page —
+     which is the entire point of `src/lib/adminactions.js` being a data table.
+
+     ⚠ AND THE FIXTURES ARE NOT LOADED. `assets/mock-data.js` and
+     `assets/dashboard.js` (which carries the generated snapshot) still power
+     preview.html, billing.html and bridge.html. They are deliberately absent
+     from this page: when the bot cannot be reached this console says so and
+     shows nothing else, because a dashboard that answers from fixtures while the
+     bot is down is a plausible wrong number — the exact defect that let a
+     221-control snapshot sit 86 behind the live registry in silence.
+
+     ── WHERE THE API IS ──────────────────────────────────────────────────────
+     Default: this page's own origin. That is the deployment to run — a reverse
+     proxy with `/v1/*` to the bot's web API and everything else to these static
+     files — because the CSRF token is a readable cookie the page must echo back,
+     and a browser will not hand a cross-site page another origin's cookie.
+
+     An operator who serves this page from somewhere else can bake in the API
+     origin below, or point the console at one from its Connection screen. LAW 1:
+     nothing about any particular install is hardcoded here.
+     ========================================================================= -->
+<meta name="asbern-api" content="">
+
 <!-- Theme before first paint, so the app never flashes the wrong one. Same four
      lines as index.html on purpose — this is the only inline script on the page. -->
 <script>
@@ -17,15 +48,17 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
 </script>
 <link rel="stylesheet" href="assets/asbern.css">
 <link rel="stylesheet" href="assets/dashboard.css">
+<link rel="stylesheet" href="assets/dashboard-app.css">
 </head>
-<body data-ad-page="dashboard">
+<body data-ad-page="console">
 
 <a class="as-btn as-btn--secondary as-skip" href="#main">Skip to content</a>
 
 <!-- ============================ TOP BAR ============================
-     Server selector on the left, the control search in the middle, the
-     account on the right — the arrangement every dashboard in this category
-     uses, so nobody has to learn it twice. -->
+     Server on the left, search in the middle, account on the right — the
+     arrangement every dashboard in this category uses, so nobody has to learn
+     it twice. The live lamp sits beside the account because it describes the
+     connection, not the content. -->
 <header class="as-nav ad-shellnav">
   <div class="as-nav__inner">
     <a class="as-wordmark" href="index.html" aria-label="Asbern — home">
@@ -37,15 +70,16 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
 
     <span class="ad-nav-sep" aria-hidden="true"></span>
 
-    <!-- Server selector. Rendered from data — an owner may run several. -->
+    <!-- Server picker. Rendered from /v1/me — an admin may run several. -->
     <div id="ad-serverselect"></div>
 
-    <!-- ⭐ The differentiator, deliberately not buried: one box that finds any
-         of the 221 controls across all 11 tabs, because the console is a
-         registry rather than 221 hand-built screens. -->
+    <!-- ⭐ One box that finds any control across all eleven tabs. With ~370 of
+         them, search is the primary navigation and not a convenience, which is
+         why it is in the bar and not inside a tab. ⌘K / Ctrl-K focuses it. -->
     <div id="ad-globalsearch" class="u-grow" style="position:relative;max-width:32rem;min-width:0"></div>
 
     <div class="as-nav__actions">
+      <span id="ad-livepill"></span>
       <button class="as-btn as-btn--ghost as-btn--icon" data-as-theme-toggle type="button" aria-label="Switch theme"></button>
       <div id="ad-account"></div>
     </div>
@@ -58,53 +92,61 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
   <aside class="as-shell__side ad-side">
     <nav class="as-sidebar" id="ad-sidenav" aria-label="Dashboard sections"></nav>
     <div class="ad-side-foot">
+      <a class="as-sidebar__item" href="preview.html"><span data-as-icon="external"></span><span>Offline preview</span></a>
       <a class="as-sidebar__item" href="index.html"><span data-as-icon="external"></span><span>Back to the site</span></a>
       <p class="u-text-xs as-muted u-mt-4" style="padding:0 var(--as-space-3)">
-        Preview build. Validation and both gates are real; the Discord call at the end is simulated.
+        Every control on this page runs through the bot’s own registry, with the same permission gate,
+        the same preview step and the same audit line as the Discord console.
       </p>
     </div>
   </aside>
 
-  <!-- ============================ MAIN ============================ -->
+  <!-- ============================ MAIN ============================
+       ⚠ ONE HOST, FILLED BY THE APP. There is no view markup on this page at
+       all — not a card, not a field, not a control id. Everything is generated
+       from the contract the API returns, so this file cannot fall behind the
+       registry the way a hand-written screen per control would. -->
   <main class="as-shell__main" id="main">
+    <div id="ad-main"></div>
 
-    <!-- Each view is filled by assets/dashboard.js from the registry and the
-         module tables. There is no per-item markup anywhere on this page. -->
-    <section class="ad-view" id="view-overview" aria-label="Overview"></section>
-    <section class="ad-view" id="view-modules" aria-label="Modules" hidden></section>
-    <section class="ad-view" id="view-module" aria-label="Module settings" hidden></section>
-    <section class="ad-view" id="view-controls" aria-label="All controls" hidden></section>
-    <section class="ad-view" id="view-branding" aria-label="Bot branding" hidden></section>
-    <section class="ad-view" id="view-permissions" aria-label="Permission health" hidden></section>
-    <section class="ad-view" id="view-activity" aria-label="Activity log" hidden></section>
+    <!-- Suggestion lists for the id fields. Populated from ids THIS admin has
+         used, in THIS browser — the API publishes no channel or role lists, and
+         inventing them would be a fixture. Secrets are excluded by type. -->
+    <datalist id="ad-ids-member"></datalist>
+    <datalist id="ad-ids-channel"></datalist>
+    <datalist id="ad-ids-category"></datalist>
+    <datalist id="ad-ids-role"></datalist>
+    <datalist id="ad-durations">
+      <option value="10m"></option><option value="30m"></option><option value="1h"></option>
+      <option value="6h"></option><option value="1d"></option><option value="7d"></option>
+    </datalist>
 
     <noscript>
       <div class="as-note as-note--warn">
-        <span>This dashboard renders every screen from the action registry and the module tables, which needs
-        JavaScript. The page structure, typography and both themes work without it — the views do not.</span>
+        <span>This console generates every screen from the bot’s control registry, which needs JavaScript.
+        The page structure, typography and both themes work without it — the views do not.</span>
       </div>
     </noscript>
 
     <footer class="u-mt-12" style="padding-top:var(--as-space-6);border-top:1px solid var(--as-border-soft)">
       <p class="u-text-xs as-muted">
         © <span data-as-year></span> Asbern · Not affiliated with Discord Inc. ·
-        The console on this page is generated from the same action registry the Discord bot renders,
-        so a control cannot exist in one surface and be missing from the other.
+        This page and the bot’s <code>/menu</code> console call the same <code>adminactions.run()</code>,
+        so a change made in either shows in both — there is nothing to synchronise.
       </p>
       <p class="u-text-xs as-muted u-mt-3">
         <a href="privacy.html">Privacy</a> &middot;
         <a href="terms.html">Terms</a> &middot;
-        <a href="privacy.html#retention">Data &amp; retention</a>
-          <a href="delete-account.html">Delete your data</a> &middot;
-        <a href="index.html">About Asbern</a>
+        <a href="privacy.html#retention">Data &amp; retention</a> &middot;
+        <a href="delete-account.html">Delete your data</a> &middot;
+        <a href="preview.html">Offline preview</a>
       </p>
     </footer>
-
   </main>
 </div>
 
-<script src="assets/mock-data.js"></script>
 <script src="assets/asbern.js"></script>
-<script src="assets/dashboard.js"></script>
+<script src="assets/dashboard-core.js"></script>
+<script src="assets/dashboard-app.js"></script>
 </body>
 </html>

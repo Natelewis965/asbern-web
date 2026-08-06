@@ -1488,19 +1488,26 @@ var MemberApp = (function () {
 
   /* -- 4.6 shared chrome -------------------------------------------------- */
 
-  /** Fill in the wallet pill(s) and keep them ticking with idle income. */
-  function wireWallet() {
+  /**
+   * The wallet pill in the top bar.
+   *
+   * ⚠ IT SHOWS NOTHING UNTIL A REAL BALANCE ARRIVES, and that is a fix rather
+   * than a style choice. This function used to open with `var me = Server.me()`
+   * — the MOCK — so every page painted §3's $1,284,500 into the navigation bar
+   * before any request had been made, on every page, signed in or not. It is the
+   * exact failure §5's header is about, and it was in the shared chrome, which
+   * is the worst place for it: a member who was signed out still saw a balance.
+   *
+   * `paintWallet()` is now called by `mount()` with a real figure, or with
+   * `null` for "not known", which renders an em dash.
+   */
+  var walletTick = null;
+
+  function paintWallet(value, ratePerSec) {
     var nodes = $$('[data-app-wallet]');
     if (!nodes.length) return;
     var gate = entitled('economy');
 
-    function paint(v) {
-      nodes.forEach(function (n) {
-        var amt = $('.app-wallet__amount', n);
-        if (amt) amt.textContent = fmt(v);
-        n.setAttribute('aria-label', gate.ok ? 'Balance ' + moneyFull(v) + ' Bucks' : 'Economy not on this plan');
-      });
-    }
     if (!gate.ok) {
       nodes.forEach(function (n) {
         n.innerHTML = icon('lock') + '<span>Economy off</span>';
@@ -1510,23 +1517,59 @@ var MemberApp = (function () {
       return;
     }
 
-    var me = Server.me();
-    var shown = me.cash;
-    paint(shown);
+    function paint(v) {
+      nodes.forEach(function (n) {
+        var amt = $('.app-wallet__amount', n);
+        /* ⚠ null IS AN EM DASH, NOT A ZERO. `wallet.known === false` means the
+           money store could not be read; printing 0 there is the wrong-number
+           class this repo has paid for repeatedly. */
+        if (amt) amt.textContent = (v === null || v === undefined) ? '—' : fmt(v);
+        n.setAttribute('aria-label', (v === null || v === undefined)
+          ? 'Balance unavailable' : 'Balance ' + moneyFull(v) + ' Bucks');
+      });
+    }
+
+    if (walletTick) { clearInterval(walletTick); walletTick = null; }
+    paint(value);
+    if (value === null || value === undefined) return;
 
     /* The idle tycoon really does accrue while you are away — economy.js
        accrues at the top of all 13 mutators. Ticking the pill is the honest
-       rendering of that, not decoration. */
+       rendering of that, not decoration.
+
+       ⚠ IT TICKS THE ACCRUAL ONLY, AND NEVER RE-READS. The old version polled a
+       mock every second. A projection from a known balance at a known rate is a
+       statement about the tycoon's arithmetic; a projection that drifted from
+       the server would be corrected by the next real read, which every write
+       already triggers. */
     if (A.reducedMotion) return;
-    var rate = me.incomePerSec;
+    var rate = Number(ratePerSec) || 0;
     if (rate <= 0) return;
-    var base = Server.balance(), t0 = Date.now();
-    setInterval(function () {
-      var live = Server.balance();
-      if (live !== base) { base = live; t0 = Date.now(); }
+    var base = value, t0 = Date.now(), shown = value;
+    walletTick = setInterval(function () {
       var v = Math.floor(base + rate * ((Date.now() - t0) / 1000));
       if (v !== shown) { shown = v; paint(v); }
     }, 1000);
+    /* ⚠ Node's `setInterval` returns an object with `.unref()`; a browser's
+       returns a number. CLAUDE.md: an un-`unref()`'d timer hangs `npm test` for
+       ever, and this file is loaded into a `vm` by the drift harness. */
+    if (walletTick && typeof walletTick.unref === 'function') walletTick.unref();
+  }
+
+  /** Called at boot so the pill is never blank-looking before a load. */
+  function wireWallet() { paintWallet(null, 0); }
+
+  /**
+   * The server's name, wherever a page shows it.
+   *
+   * ⚠ LAW 1. Every member page used to have the string "Hearthstead" typed into
+   * its eyebrow — this guild's name, in a repo that is going public, on four
+   * pages. The name is now data, and when the API cannot supply one (the
+   * `guildInfo` seam is optional and fails to "unknown" rather than to a guess)
+   * the page says "Your server" rather than naming the wrong one.
+   */
+  function paintGuild(name) {
+    $$('[data-guild-name]').forEach(function (n) { n.textContent = name || 'Your server'; });
   }
 
   /** Mark the current page in the top nav and the bottom tab bar. */
@@ -1569,6 +1612,557 @@ var MemberApp = (function () {
     window.setTimeout(function () { live.textContent = msg; }, 30);
   }
 
+  /* ======================================================================
+     §5 · LIVE — the real member surface
+     ----------------------------------------------------------------------
+     §3 is the mock backend this file shipped with. §5 is the production
+     half its own header promised: "In production §3 is deleted and every
+     `MemberApp.server.*` call becomes an HTTP request to `/v1/...`".
+
+     ⚠⚠ THE ONE RULE IN THIS SECTION, AND IT IS ABOUT MONEY.
+
+     A FAILED REQUEST NEVER FALLS BACK TO §3. Not once, not "just for the
+     balance", not "so the page still looks right". §3's member has
+     $1,284,500 and a 14-day streak; painting those numbers when the API
+     could not be reached is not a degraded experience, it is a lie about
+     somebody's money — and it is indistinguishable from the real thing at
+     a glance, which is what makes it worse than an error page.
+
+     So there are exactly four terminal states and each one is rendered
+     differently and unmistakably:
+
+       live        signed in, guild resolved, data fetched. The only state
+                   that ever shows a figure.
+       signed-out  no session. A sign-in screen. No figures.
+       unreachable the API did not answer. An error, with the reason. No
+                   figures.
+       demo        §3, entered ONLY by explicit opt-in (?demo=1 or the
+                   button on the sign-in screen), and it wears a banner on
+                   every page for as long as it lasts.
+
+     ⚠ AND `demo` IS NEVER REACHED BY FALLING. `Live.load()` has no branch
+     that turns a failure into a demo; the ONLY way in is a URL the person
+     typed or a button they pressed. `test/v172-member-web.test.js` drives
+     this file with a rejecting `fetch` and asserts the result is an error
+     rather than Sigrún's balance.
+     ====================================================================== */
+
+  var Live = (function () {
+
+    /* ---- 5.1 where the API is ---------------------------------------- */
+    /*
+       Same origin by default, because the sane deployment puts the member
+       API behind the same reverse proxy that serves these files — the
+       session cookie is host-scoped, so a different host means a different
+       cookie and no sign-in at all.
+
+       ⚠ LAW 1: NOTHING ABOUT ANY PARTICULAR SERVER IS BAKED IN. No guild
+       id, no hostname, no path prefix beyond the API's own /v1. An operator
+       who does split the hosts declares it once, in the page:
+
+           <meta name="asbern-api" content="https://api.example.com">
+    */
+    function apiBase() {
+      try {
+        var meta = document.querySelector('meta[name="asbern-api"]');
+        if (meta && meta.getAttribute('content')) return String(meta.getAttribute('content')).replace(/\/+$/, '');
+      } catch (e) { /* no DOM yet */ }
+      if (typeof window !== 'undefined' && window.ASBERN_API) return String(window.ASBERN_API).replace(/\/+$/, '');
+      return '';
+    }
+
+    /* The CSRF half of the double-submit pair. The cookie is deliberately
+       readable (it authorises nothing on its own); the header is what the
+       server checks against the session's copy. */
+    function csrf() {
+      try {
+        var m = /(?:^|;\s*)asbern_csrf=([^;]*)/.exec(document.cookie || '');
+        return m ? decodeURIComponent(m[1]) : '';
+      } catch (e) { return ''; }
+    }
+
+    var state = {
+      mode: 'unknown',      // unknown | live | signed-out | unreachable | demo
+      error: null,          // { code, message }
+      me: null,             // { id, … } from the session
+      guilds: [],
+      guildId: null,
+      data: {}              // path -> payload
+    };
+
+    var GUILD_KEY = 'asbern.app.guild';
+
+    /* ---- 5.2 the transport ------------------------------------------- */
+    /*
+       ⚠ EVERY FAILURE IS TYPED AND NONE OF THEM IS SILENT. A caller gets
+       `{ ok:false, code }` and never `null`, because `null` is what a
+       renderer treats as "no data yet" and then paints a zero over.
+    */
+    function request(method, path, body) {
+      var url = apiBase() + '/v1/member/' + path;
+      var opts = {
+        method: method,
+        credentials: 'include',
+        headers: { 'Accept': 'application/json' }
+      };
+      if (body !== undefined && body !== null) {
+        opts.headers['Content-Type'] = 'application/json';
+        opts.headers['X-Asbern-Csrf'] = csrf();
+        opts.body = JSON.stringify(body);
+      }
+      var f;
+      try { f = fetch(url, opts); }
+      catch (e) {
+        /* fetch can throw synchronously on a malformed URL. */
+        return Promise.resolve({ ok: false, code: 'unreachable', message: String(e && e.message || e) });
+      }
+      return f.then(function (r) {
+        return r.json().then(function (j) { return { r: r, j: j }; },
+          function () { return { r: r, j: null }; });
+      }).then(function (res) {
+        var j = res.j || {};
+        if (res.r.ok) return { ok: true, status: res.r.status, data: j };
+        return {
+          ok: false, status: res.r.status,
+          code: j.code || ('http-' + res.r.status),
+          message: j.error || j.why || null,
+          data: j
+        };
+      }, function (err) {
+        /* ⚠ THE NETWORK FAILURE PATH. This is the one that must not become
+           a fallback. It returns a refusal; the caller renders it. */
+        return { ok: false, code: 'unreachable', message: String((err && err.message) || err) };
+      });
+    }
+
+    function get(path) { return request('GET', path); }
+    function post(path, body) { return request('POST', path, body || {}); }
+
+    /* ---- 5.3 session ------------------------------------------------- */
+
+    function session() {
+      return request('GET', 'session').then(function (r) {
+        if (!r.ok) { state.mode = 'unreachable'; state.error = { code: r.code, message: r.message }; return state; }
+        if (!r.data.signedIn) { state.mode = 'signed-out'; state.me = null; state.guilds = []; return state; }
+        state.me = r.data.me || null;
+        state.guilds = r.data.guilds || [];
+        state.mode = 'live';
+        return state;
+      });
+    }
+
+    /**
+     * Which server are we looking at?
+     *
+     * ⚠ THE INTERSECTION THE SERVER ALREADY COMPUTED, NEVER A GUESS. The
+     * list came from `/session`, which is "guilds this install serves ∧
+     * guilds you are in". A client that picked from its own Discord list
+     * would offer servers this deployment does not run.
+     */
+    function pickGuild() {
+      var wanted = null;
+      try { wanted = new URLSearchParams(window.location.search).get('guild'); } catch (e) { /* no URL */ }
+      if (!wanted) { try { wanted = localStorage.getItem(GUILD_KEY); } catch (e) { /* private mode */ } }
+      var ids = state.guilds.map(function (g) { return String(g.id); });
+      var id = (wanted && ids.indexOf(String(wanted)) > -1) ? String(wanted) : ids[0] || null;
+      state.guildId = id;
+      if (id) { try { localStorage.setItem(GUILD_KEY, id); } catch (e) { /* private mode */ } }
+      return id;
+    }
+
+    /** Fetch one guild-scoped read into the cache. */
+    function fetchOne(name) {
+      return get(state.guildId + '/' + name).then(function (r) {
+        if (r.ok) { state.data[name] = r.data; return { ok: true }; }
+        return { ok: false, code: r.code, message: r.message, name: name };
+      });
+    }
+
+    /**
+     * Sign in, resolve the guild, and load everything a page asked for.
+     *
+     * ⚠ ONE FAILED READ FAILS THE PAGE. Rendering four live panels beside
+     * one that quietly kept yesterday's numbers is the same defect as the
+     * mock fallback, only smaller and harder to notice.
+     */
+    /**
+     * ⚠ `shell` IS ALWAYS FETCHED, ON EVERY PAGE, AND THAT IS A CORRECTNESS FIX.
+     *
+     * The wallet pill and the server's name live in the navigation bar of every
+     * member page. When only the profile page asked for its data, Casino,
+     * Boards and Watch rendered an em dash beside "Your server" over perfectly
+     * live content — which reads as broken. It is a deliberately small payload
+     * (`{ user, guild, wallet, capabilities }`) rather than `bootstrap`, so the
+     * three pages that do not need the quest board do not pay for it.
+     */
+    function load(needs) {
+      return session().then(function (s) {
+        if (s.mode !== 'live') return s;
+        if (!pickGuild()) { state.mode = 'no-guild'; return state; }
+        var list = ['shell'].concat(needs || []).filter(function (n, i, a) { return a.indexOf(n) === i; });
+        return Promise.all(list.map(fetchOne)).then(function (results) {
+          for (var i = 0; i < results.length; i++) {
+            if (!results[i].ok) {
+              state.mode = 'unreachable';
+              state.error = { code: results[i].code, message: results[i].message, part: results[i].name };
+              return state;
+            }
+          }
+          return state;
+        });
+      });
+    }
+
+    /** Re-read one payload after a write. Returns a promise of the payload. */
+    function refresh(name) {
+      return fetchOne(name).then(function (r) { return r.ok ? state.data[name] : null; });
+    }
+
+    function action(path, body) { return post(state.guildId + '/' + path, body); }
+
+    return {
+      state: state,
+      apiBase: apiBase, csrf: csrf,
+      request: request, get: get, post: post,
+      session: session, load: load, refresh: refresh, action: action,
+      pickGuild: pickGuild,
+      /* Exposed for the tests, which drive these directly rather than
+         through a DOM that would have to be simulated first. */
+      _reset: function () {
+        state.mode = 'unknown'; state.error = null; state.me = null;
+        state.guilds = []; state.guildId = null; state.data = {};
+      }
+    };
+  })();
+
+  /* -- 5.4 the live source ------------------------------------------------
+     An adapter that presents the API's payloads in the SAME shape §3's mock
+     endpoints return, so the pages' rendering code is identical either way.
+
+     ⚠ EVERY FIELD IS EITHER A MEASUREMENT OR null, AND null IS NOT ZERO.
+     `wallet.known === false` means the money store could not be read — the
+     server says so explicitly rather than sending `cash: 0`, because a real
+     member's balance rendered as zero is the money-shaped lie this whole
+     section exists to prevent. The `cash()` accessor returns null there and
+     every renderer must branch on it.
+     -------------------------------------------------------------------- */
+
+  function liveSource() {
+    var D = Live.state.data;
+
+    /* ⚠ `shell` IS THE FALLBACK FOR EVERY CHROME FIELD, and `bootstrap` wins
+       when a page asked for it. The two carry the same `user`, `guild` and
+       `wallet` blocks from the same functions on the server, so they cannot
+       disagree — but only one of them is fetched on three of the four pages. */
+    function sh() { return D.shell || {}; }
+    function boot() { return D.bootstrap || {}; }
+    function w() { return boot().wallet || D.wallet || sh().wallet || { known: false }; }
+    function lv() { return boot().level || D.level || { known: false }; }
+
+    var src = {
+      mode: 'live',
+      guildId: Live.state.guildId,
+      raw: D,
+
+      /** null when the store could not be read. Never 0. */
+      cash: function () { var x = w(); return x.known ? x.cash : null; },
+      balance: function () { var x = w(); return x.known ? x.cash : null; },
+
+      me: function () {
+        var x = w(), l = lv();
+        var who = boot().user || sh().user || {};
+        /* ⚠ "You", NOT A USER ID. The session store holds a Discord user id and
+           nothing else about the person — deliberately, so that it never becomes
+           personal data — and a name arrives only when the bot is attached to
+           resolve one live. Rendering the raw id would put an 18-digit number
+           where a name goes, and slicing it for initials produced "20". Second
+           person is the honest default and it reads better than a guess. */
+        var name = who.displayName || 'You';
+        return {
+          id: who.id || (Live.state.me && Live.state.me.userId) || null,
+          name: name,
+          initials: who.displayName ? String(name).slice(0, 2).toUpperCase() : 'YOU'.slice(0, 2),
+          avatarUrl: who.avatarUrl || null,
+          joinedAt: null,
+          level: l.known ? l.level : null,
+          prestige: l.known ? l.prestige : 0,
+          xpInto: l.known ? l.into : 0,
+          xpNeed: l.known ? l.need : 0,
+          lifetimeXp: l.known ? l.xp : 0,
+          rank: l.rank || null,
+          nextRank: l.nextRank || null,
+          atMaxRank: !!l.atMaxRank,
+          nextPrestigeCost: l.nextPrestigeCost || null,
+          known: !!x.known,
+          cash: x.known ? x.cash : null,
+          spent: x.known ? x.spent : 0,
+          netWorth: x.known ? x.netWorth : null,
+          netPeak: x.known ? x.netPeak : 0,
+          incomePerSec: x.known ? x.incomePerSec : 0,
+          assets: (x.known && x.assets) || {},
+          assetCount: x.known ? Object.keys(x.assets || {}).length : 0,
+          daily: x.known ? x.daily : { streak: 0, nextAt: 0, readyIn: 0 },
+          work: x.known ? x.work : { nextAt: 0, readyIn: 0 },
+          equippedIcon: '',
+          stats: (x.known && x.stats) || {},
+          activity: (boot().activity || D.activity || { windows: {} }).windows || {}
+        };
+      },
+
+      guild: function () {
+        var g = boot().guild || sh().guild || {};
+        return {
+          id: Live.state.guildId,
+          name: g.name || null,
+          members: g.memberCount == null ? null : g.memberCount,
+          memberCount: g.memberCount == null ? null : g.memberCount,
+          online: null,
+          plan: planGet()
+        };
+      },
+
+      achievements: function () {
+        var a = boot().achievements || D.achievements || { items: [], total: 0, unlocked: 0 };
+        return (a.items || []).map(function (x) {
+          return { key: x.key, name: x.name, emoji: x.emoji, desc: x.desc, held: !!x.held };
+        });
+      },
+
+      quests: function () { return boot().quests || D.quests || {}; },
+      capabilities: function () { return boot().capabilities || D.capabilities || {}; },
+      tycoon: function () { return D.tycoon || { known: false, assets: [] }; },
+      ledger: function () { return (D.ledger && D.ledger.items) || []; },
+      watch: function () { return D.watch || null; },
+      casino: function () { return D.casino || null; },
+      inventory: function () { return D.inventory || { known: false, rows: [] }; },
+      shop: function () { return D.shop || { known: false, items: [] }; },
+      boards: function () { return D.boards || null; },
+      activity: function () { return boot().activity || D.activity || { known: false, windows: {} }; },
+
+      /* ---- writes ---------------------------------------------------
+         ⚠ THE CLIENT NEVER DECIDES. Every one of these posts and renders
+         whatever comes back — including the refusal. There is no
+         `if (cash >= cost)` anywhere in this file, and there must never be
+         one: a client-side affordability check on a balance that is by
+         definition a moment old is exactly the pre-authorisation the server
+         refuses to trust. A stale balance produces a clean "not enough",
+         which is a correct outcome rather than a bug.                    */
+      act: function (path, body) { return Live.action(path, body); },
+      reload: function (name) { return Live.refresh(name); }
+    };
+    return src;
+  }
+
+  /* -- 5.5 the demo source ------------------------------------------------
+     §3, reached only on purpose. Every method is the mock endpoint it always
+     was; the only difference is that `mode` says `demo`, which is what the
+     banner and every honest renderer key off.
+     -------------------------------------------------------------------- */
+
+  function demoSource() {
+    var s = {
+      mode: 'demo',
+      guildId: Server.guild().id,
+      cash: function () { return Server.balance(); },
+      balance: function () { return Server.balance(); },
+      me: Server.me,
+      guild: Server.guild,
+      achievements: Server.achievements,
+      quests: Server.quests,
+      ledger: Server.ledger,
+      watch: function () { return null; },
+      casino: function () { return null; },
+      screening: Server.screening,
+      boards: function () { return null; },
+      activity: function () { return { known: true, windows: Server.me().activity }; },
+      capabilities: function () { return { economy: true, casino: true, leveling: true, shop: true }; },
+      tycoon: function () {
+        var me = Server.me();
+        return {
+          known: true, cash: me.cash, netPeak: me.netPeak, incomePerSec: me.incomePerSec,
+          assets: ASSETS.map(function (a) {
+            var l = me.assets[a.id] || 0, c = assetCost(a.id, l);
+            return {
+              id: a.id, name: a.name, emoji: a.emoji, branch: a.branch, desc: a.desc,
+              income: a.income, unlock: a.unlock, level: l, cost: c,
+              locked: me.netPeak < a.unlock, affordable: c <= me.cash
+            };
+          })
+        };
+      },
+      inventory: function () { return { known: true, rows: [] }; },
+      shop: function () { return { known: true, items: [] }; },
+      /* ⚠ A DEMO WRITE CHANGES NOTHING AND SAYS SO. Silently succeeding
+         would teach somebody that the button works. */
+      act: function () {
+        return Promise.resolve({ ok: false, code: 'demo', message: 'This is example data — nothing here is your account.' });
+      },
+      reload: function () { return Promise.resolve(null); },
+      server: Server
+    };
+    return s;
+  }
+
+  /* -- 5.6 the mount ------------------------------------------------------
+     The single entry point every member page uses. It decides which of the
+     four states the page is in, paints the chrome for that state, and calls
+     the page's own renderer ONLY in `live` and `demo`.
+     -------------------------------------------------------------------- */
+
+  var DEMO_KEY = 'asbern.app.demo';
+
+  function demoWanted() {
+    try {
+      if (new URLSearchParams(window.location.search).get('demo') === '1') {
+        try { sessionStorage.setItem(DEMO_KEY, '1'); } catch (e) { /* private mode */ }
+        return true;
+      }
+      return sessionStorage.getItem(DEMO_KEY) === '1';
+    } catch (e) { return false; }
+  }
+
+  /** Replace everything inside <main> with one full-page state card. */
+  function pageState(html) {
+    var main = $('#main');
+    if (!main) return;
+    main.innerHTML = '<div class="app-gate">' + html + '</div>';
+    mountIcons(main);
+    if (A && A.mount) A.mount(main);
+  }
+
+  function signInHtml() {
+    return '' +
+      '<div class="app-gate__card as-card">' +
+        '<span class="app-gate__glyph">' + icon('discord') + '</span>' +
+        '<h1 class="as-display as-display--lg app-gate__title">Sign in to see your account</h1>' +
+        '<p class="as-lead app-gate__body">' +
+          'Everything here — your balance, your level, your achievements, what you have watched — belongs to a ' +
+          'Discord account. We ask Discord who you are and nothing else: no email, no password, no message history.' +
+        '</p>' +
+        '<div class="app-gate__actions">' +
+          '<a class="as-btn as-btn--primary as-btn--lg" href="' + esc(Live.apiBase()) + '/v1/auth/login" data-app-signin>' +
+            icon('discord') + ' Continue with Discord' +
+          '</a>' +
+          '<a class="as-btn as-btn--ghost" href="?demo=1">Look around with example data</a>' +
+        '</div>' +
+        '<p class="u-text-xs as-muted app-gate__foot">' +
+          'Example data is clearly labelled on every screen and is nobody’s real account. ' +
+          '<a href="privacy.html">What is stored about you</a>.' +
+        '</p>' +
+      '</div>';
+  }
+
+  function unreachableHtml(err) {
+    var code = (err && err.code) || 'unreachable';
+    var part = err && err.part ? ' while loading <code class="u-mono">' + esc(err.part) + '</code>' : '';
+    return '' +
+      '<div class="app-gate__card as-card app-gate__card--bad">' +
+        '<span class="app-gate__glyph app-gate__glyph--bad">' + icon('alert') + '</span>' +
+        '<h1 class="as-display as-display--lg app-gate__title">We could not reach your server</h1>' +
+        /* ⚠ THIS SENTENCE IS THE FEATURE. It is the difference between an
+           honest outage and a page full of somebody else's numbers. */
+        '<p class="as-lead app-gate__body">' +
+          'Nothing is shown here rather than something out of date. A balance from a minute ago looks exactly ' +
+          'like a balance from now, and we will not print one and hope.' +
+        '</p>' +
+        '<p class="u-text-sm as-muted app-gate__body">The bot answered with <code class="u-mono">' + esc(code) + '</code>' + part + '.</p>' +
+        '<div class="app-gate__actions">' +
+          '<button class="as-btn as-btn--primary" type="button" data-app-retry>Try again</button>' +
+          '<a class="as-btn as-btn--ghost" href="?demo=1">Look around with example data</a>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function noGuildHtml() {
+    return '' +
+      '<div class="app-gate__card as-card">' +
+        '<span class="app-gate__glyph">' + icon('users') + '</span>' +
+        '<h1 class="as-display as-display--lg app-gate__title">No server in common</h1>' +
+        '<p class="as-lead app-gate__body">' +
+          'You are signed in, but none of the servers you are in are running this bot. Ask an admin to add it, ' +
+          'or switch to a Discord account that is in one.' +
+        '</p>' +
+        '<div class="app-gate__actions">' +
+          '<a class="as-btn as-btn--secondary" href="install.html">How to add it</a>' +
+          '<button class="as-btn as-btn--ghost" type="button" data-app-signout>Sign out</button>' +
+        '</div>' +
+      '</div>';
+  }
+
+  /** The persistent "this is not your account" banner. */
+  function demoBanner() {
+    var main = $('#main');
+    if (!main || $('[data-app-demobanner]')) return;
+    var n = A.el('div', { class: 'app-demobar', 'data-app-demobanner': '', role: 'status' });
+    n.innerHTML = '<span class="as-badge as-badge--warn">Example data</span>' +
+      '<span>Nothing on this screen is your account — no balance, no level, no history. ' +
+      '<a href="?demo=0" data-app-exitdemo>Sign in to see yours</a>.</span>';
+    main.insertBefore(n, main.firstChild);
+  }
+
+  /**
+   * Boot a member page.
+   *
+   * @param opts.needs  which guild-scoped reads this page needs, by name.
+   * @param render      `function (source, ctx)` — called once, only when
+   *                    there is something honest to render.
+   */
+  function mount(opts, render) {
+    if (typeof opts === 'function') { render = opts; opts = {}; }
+    opts = opts || {};
+    var needs = opts.needs || [];
+
+    /* Delegated once, before anything async, so the retry button on the
+       error card works even if a second load also fails. */
+    if (!mount._wired) {
+      mount._wired = true;
+      A.on('click', '[data-app-retry]', function () { location.reload(); });
+      A.on('click', '[data-app-exitdemo]', function (e) {
+        e.preventDefault();
+        try { sessionStorage.removeItem(DEMO_KEY); } catch (err) { /* private mode */ }
+        location.search = '';
+      });
+      A.on('click', '[data-app-signout]', function (e) {
+        e.preventDefault();
+        Live.post('../auth/logout').then(function () { location.reload(); }, function () { location.reload(); });
+      });
+    }
+
+    if (demoWanted()) {
+      var d = demoSource();
+      demoBanner();
+      paintWallet(d.balance(), d.me().incomePerSec);
+      paintGuild(d.guild().name);
+      try { render(d, { mode: 'demo' }); } catch (e) { if (window.console) console.error(e); }
+      return Promise.resolve(d);
+    }
+
+    return Live.load(needs).then(function (s) {
+      /* ⚠ THE PILL IS CLEARED ON EVERY NON-LIVE STATE. Leaving a figure in the
+         navigation bar above an "we could not reach your server" card would be
+         the same lie in a smaller font. */
+      if (s.mode === 'signed-out') { paintWallet(null, 0); pageState(signInHtml()); return null; }
+      if (s.mode === 'no-guild') { paintWallet(null, 0); pageState(noGuildHtml()); return null; }
+      if (s.mode !== 'live') { paintWallet(null, 0); pageState(unreachableHtml(s.error)); return null; }
+      var src = liveSource();
+      paintWallet(src.cash(), src.me().incomePerSec);
+      paintGuild(src.guild().name);
+      try { render(src, { mode: 'live' }); }
+      catch (e) {
+        if (window.console) console.error(e);
+        pageState(unreachableHtml({ code: 'render-failed', message: String(e && e.message) }));
+      }
+      return src;
+    }, function (e) {
+      paintWallet(null, 0);
+      /* Belt and braces: `Live.load` already turns every rejection into a
+         state, so reaching here means a bug in this file. It still must not
+         become a mock render. */
+      pageState(unreachableHtml({ code: 'unreachable', message: String(e && e.message) }));
+      return null;
+    });
+  }
+
   /* -- 4.7 boot ---------------------------------------------------------- */
 
   function mountIcons(scope) {
@@ -1606,8 +2200,20 @@ var MemberApp = (function () {
     WINDOWS: WINDOWS, BOT_SHARE: BOT_SHARE,
     TIERS: TIERS, MODULES: MODULES, tierName: tierName, tierRank: tierRank,
 
-    /* the mock backend */
+    /* ⚠ THE MOCK BACKEND, AND IT IS NOT WHAT PAGES USE ANY MORE.
+       `mount()` hands a page its source; a page that reaches for `server`
+       directly is asking for §3 by name, which is only correct inside
+       `demoSource()`. Kept exported because the demo mode is a real, supported
+       state and because deleting it would take the drift harness with it. */
     server: Server,
+
+    /* §5 — the live surface */
+    live: Live, mount: mount, liveSource: liveSource, demoSource: demoSource,
+    paintWallet: paintWallet, paintGuild: paintGuild,
+    /* The four terminal states, exported so a test asserts the SET rather than
+       a rendered string. A fifth one appearing without a renderer is the class
+       of bug panel.js's registry exists to catch. */
+    MODES: ['live', 'signed-out', 'unreachable', 'demo'],
 
     /* client */
     entitled: entitled, lockedHtml: lockedHtml,

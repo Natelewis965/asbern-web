@@ -1,0 +1,412 @@
+/* =============================================================================
+   ASBERN · assets/dashboard-app.css
+   -----------------------------------------------------------------------------
+   THE ADMIN CONSOLE'S OWN LAYER, ON TOP OF asbern.css AND dashboard.css.
+
+   ⚠ THIS FILE ADDS AND NEVER OVERRIDES. `dashboard.css` already owns the shell,
+   the guild switcher, the CONTROL CARD, the result strip, the module card, the
+   status lamp and the key/value rows — and `dashboard-core.js` emits exactly
+   those class names, on purpose, so the real console inherits the design system
+   the preview build established rather than growing a second one beside it.
+   Nothing below re-declares an `.ad-control*`, an `.ad-result*`, an `.ad-mod*`
+   or an `.ad-lamp*` rule; it fills the gaps the preview never needed — a
+   sign-in screen, a server chooser, a page head, a stat row, an activity log.
+
+   NAMING (dashboard.css's own convention, unchanged)
+     .ad-*      dashboard-local component, candidate for promotion into asbern.css
+     .as-*      the design system. Composed, never redefined.
+     data-ad-*  JS hooks. Never styled.
+
+   ⚠ NO COLOUR, NO FONT AND NO SPACING VALUE IS LITERAL BELOW. Every one is a
+   `--as-*` token, so both themes and any future palette change move this file
+   with them. That is the same rule dashboard.css opens with, and it is why the
+   console does not need a `@media (prefers-color-scheme)` block of its own:
+   asbern.css already flips the tokens under `[data-theme]`, and this layer only
+   ever reads them.
+   ========================================================================== */
+
+
+/* ==========================================================================
+   1 · PAGE HEAD — the one piece of typographic hierarchy every view shares
+   ========================================================================== */
+
+.ad-pagehead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--as-space-4);
+  padding-bottom: var(--as-space-5);
+  margin-bottom: var(--as-space-6);
+  border-bottom: 1px solid var(--as-border-soft);
+}
+.ad-pagehead__title {
+  font-family: var(--as-font-display);
+  font-size: var(--as-text-2xl);
+  line-height: var(--as-leading-tight);
+  letter-spacing: var(--as-tracking-tight);
+  color: var(--as-text-1);
+  margin: 0;
+}
+.ad-pagehead__sub {
+  margin: var(--as-space-2) 0 0;
+  max-width: 62ch;
+  font-size: var(--as-text-sm);
+  color: var(--as-text-2);
+}
+.ad-pagehead__side { display: flex; align-items: center; gap: var(--as-space-3); flex: none; }
+
+.ad-section { margin-top: var(--as-space-8); }
+.ad-section__title {
+  display: flex;
+  align-items: center;
+  gap: var(--as-space-2);
+  margin: 0 0 var(--as-space-4);
+  font-size: var(--as-text-md);
+  font-weight: 650;
+  letter-spacing: var(--as-tracking-wide);
+  text-transform: uppercase;
+  color: var(--as-text-3);
+}
+/* A hairline that starts where the heading ends. Cheaper than a rule above the
+   section and it never collides with the first card's own border. */
+.ad-section__title::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--as-border-soft);
+}
+
+.ad-empty {
+  padding: var(--as-space-8) var(--as-space-4);
+  text-align: center;
+  font-size: var(--as-text-sm);
+  color: var(--as-text-3);
+  border: 1px dashed var(--as-border);
+  border-radius: var(--as-radius-md);
+}
+
+.ad-note-block { align-items: flex-start; }
+.ad-why { margin: var(--as-space-2) 0 0; padding-left: 1.1rem; font-size: var(--as-text-sm); }
+.ad-why li { margin-block: 0.2rem; }
+
+/* Screen-reader-only. asbern.css has no such utility and this file may not add
+   one to its namespace, so it lives here under the .ad- prefix. */
+.ad-sr {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+
+/* ==========================================================================
+   2 · SIGN-IN — the first screen, and for most visitors the only one
+   ==========================================================================
+   ⚠ DELIBERATELY NOT A CENTRED HERO WITH A GRADIENT. Every page in this suite
+   is left-aligned on a measured column with one accent; a dashboard login that
+   suddenly centres everything and grows a purple wash reads as a different
+   product. The card is offset, the rule under the title is the same hairline
+   the page heads use, and the accent appears exactly once, on the button. */
+
+.ad-signin {
+  display: flex;
+  justify-content: flex-start;
+  padding: var(--as-space-8) 0 var(--as-space-16);
+}
+.ad-signin__card {
+  width: min(38rem, 100%);
+  padding: var(--as-space-8);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-lg);
+  background: var(--as-surface-1);
+  box-shadow: var(--as-hairline);
+}
+.ad-signin__mark {
+  display: inline-grid;
+  place-items: center;
+  width: 3rem; height: 3rem;
+  border-radius: var(--as-radius-md);
+  border: 1px solid var(--as-accent-line);
+  background: var(--as-accent-soft);
+  color: var(--as-accent);
+}
+.ad-signin__title {
+  margin: var(--as-space-5) 0 0;
+  font-family: var(--as-font-display);
+  font-size: var(--as-text-2xl);
+  line-height: var(--as-leading-tight);
+  letter-spacing: var(--as-tracking-tight);
+  color: var(--as-text-1);
+}
+.ad-signin__sub {
+  margin: var(--as-space-3) 0 var(--as-space-6);
+  max-width: 52ch;
+  font-size: var(--as-text-sm);
+  color: var(--as-text-2);
+}
+.ad-signin__facts {
+  list-style: none;
+  margin: var(--as-space-8) 0 0;
+  padding: var(--as-space-5) 0 0;
+  border-top: 1px solid var(--as-border-soft);
+  display: grid;
+  gap: var(--as-space-4);
+}
+.ad-signin__facts li {
+  display: flex;
+  gap: var(--as-space-3);
+  font-size: var(--as-text-sm);
+  color: var(--as-text-2);
+}
+.ad-signin__facts svg { width: 1.05rem; height: 1.05rem; flex: none; margin-top: 0.15rem; color: var(--as-text-3); }
+.ad-signin__facts b { color: var(--as-text-1); font-weight: 650; }
+.ad-signin__api {
+  margin: var(--as-space-6) 0 0;
+  font-size: var(--as-text-xs);
+  color: var(--as-text-3);
+}
+
+
+/* ==========================================================================
+   3 · SERVER CHOOSER — ids, because ids are all the API publishes
+   ========================================================================== */
+
+.ad-guildgrid {
+  display: grid;
+  gap: var(--as-space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+}
+.ad-guildcard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--as-space-2);
+  padding: var(--as-space-5);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-md);
+  background: var(--as-surface-1);
+  color: var(--as-text-1);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--as-dur-fast) var(--as-ease), background-color var(--as-dur-fast) var(--as-ease);
+}
+.ad-guildcard:hover { border-color: var(--as-accent-line); background: var(--as-surface-2); }
+.ad-guildcard__mark {
+  display: grid;
+  place-items: center;
+  width: 2.5rem; height: 2.5rem;
+  border-radius: var(--as-radius-sm);
+  border: 1px solid var(--as-border);
+  background: var(--as-surface-2);
+  font-family: var(--as-font-mono);
+  font-size: var(--as-text-sm);
+  font-weight: 650;
+  color: var(--as-text-2);
+}
+.ad-guildcard__name { font-size: var(--as-text-base); font-weight: 650; }
+.ad-guildcard__id { font-family: var(--as-font-mono); font-size: var(--as-text-2xs); color: var(--as-text-3); }
+
+.ad-guildmark {
+  font-family: var(--as-font-mono);
+  font-size: var(--as-text-2xs);
+  font-weight: 650;
+}
+
+
+/* ==========================================================================
+   4 · OVERVIEW — stat row, tab grid, two-up panels
+   ==========================================================================
+   ⚠ NUMBERS ARE TABULAR AND THE LABEL SITS UNDER THEM, not beside. A stat
+   whose label is on the same line wraps differently at every count, and this row
+   re-renders whenever the registry grows. */
+
+.ad-stats {
+  display: grid;
+  gap: var(--as-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+}
+.ad-stat {
+  padding: var(--as-space-4) var(--as-space-5);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-md);
+  background: var(--as-surface-1);
+}
+.ad-stat__n {
+  font-family: var(--as-font-display);
+  font-size: var(--as-text-3xl);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--as-text-1);
+}
+.ad-stat__l {
+  margin-top: var(--as-space-2);
+  font-size: var(--as-text-xs);
+  font-weight: 650;
+  letter-spacing: var(--as-tracking-wide);
+  text-transform: uppercase;
+  color: var(--as-text-2);
+}
+.ad-stat__s { margin-top: var(--as-space-2); font-size: var(--as-text-xs); color: var(--as-text-3); }
+
+.ad-tabgrid {
+  display: grid;
+  gap: var(--as-space-3);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+}
+.ad-tabcard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--as-space-1);
+  padding: var(--as-space-4);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-md);
+  background: var(--as-surface-1);
+  color: var(--as-text-1);
+  transition: border-color var(--as-dur-fast) var(--as-ease), transform var(--as-dur-fast) var(--as-ease);
+}
+.ad-tabcard:hover { border-color: var(--as-accent-line); text-decoration: none; }
+@media (prefers-reduced-motion: no-preference) { .ad-tabcard:hover { transform: translateY(-1px); } }
+.ad-tabcard__emoji { font-size: 1.15rem; line-height: 1; }
+.ad-tabcard__name { font-size: var(--as-text-sm); font-weight: 650; }
+.ad-tabcard__count { font-size: var(--as-text-2xs); color: var(--as-text-3); }
+
+.ad-panel {
+  padding: var(--as-space-5);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-md);
+  background: var(--as-surface-1);
+}
+.ad-panel__title {
+  display: flex;
+  align-items: center;
+  gap: var(--as-space-2);
+  margin: 0 0 var(--as-space-2);
+  font-size: var(--as-text-base);
+  font-weight: 650;
+  color: var(--as-text-1);
+}
+.ad-panel__title svg { width: 1rem; height: 1rem; color: var(--as-text-3); }
+
+
+/* ==========================================================================
+   5 · SIDEBAR ADDITIONS
+   ========================================================================== */
+
+.as-sidebar .ad-side-emoji { width: 1rem; text-align: center; flex: none; font-size: 0.85rem; line-height: 1; }
+.as-sidebar__head {
+  margin: var(--as-space-5) 0 var(--as-space-2);
+  padding: 0 var(--as-space-3);
+  font-size: var(--as-text-2xs);
+  font-weight: 650;
+  letter-spacing: var(--as-tracking-caps);
+  text-transform: uppercase;
+  color: var(--as-text-3);
+}
+.as-sidebar__item .ad-count { margin-left: auto; }
+
+
+/* ==========================================================================
+   6 · ACCOUNT + LIVE PILL
+   ========================================================================== */
+
+.ad-account { display: flex; align-items: center; gap: var(--as-space-2); }
+.ad-account__id {
+  font-family: var(--as-font-mono);
+  font-size: var(--as-text-2xs);
+  color: var(--as-text-3);
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 46rem) { .ad-account__id { display: none; } }
+
+
+/* ==========================================================================
+   7 · SECRET FIELDS + MONO INPUTS
+   ==========================================================================
+   ⚠ THE NOTE UNDER A SECRET FIELD IS PART OF THE CONTRACT, NOT DECORATION.
+   `packages/api/src/audit.js` DROPS a secret param's key rather than masking it,
+   and the reason it gives is that `"token": "[REDACTED]"` still publishes the
+   field name. An admin pasting a credential into a browser deserves to be told,
+   at the field, that it is not stored, not echoed and not in the audit line. */
+
+.ad-secret-note {
+  border-left: 2px solid var(--as-warn);
+  padding-left: var(--as-space-2);
+  color: var(--as-text-3);
+}
+.as-input--mono { font-family: var(--as-font-mono); font-size: var(--as-text-sm); letter-spacing: 0.02em; }
+input[type="password"].as-input { font-family: var(--as-font-mono); letter-spacing: 0.12em; }
+
+
+/* ==========================================================================
+   8 · MODULE READ-STATE
+   ========================================================================== */
+
+.ad-mod__read {
+  display: grid;
+  gap: var(--as-space-2);
+  padding-top: var(--as-space-3);
+  border-top: 1px dashed var(--as-border-soft);
+}
+.ad-modread { display: grid; gap: var(--as-space-1); }
+.ad-modread__id { font-family: var(--as-font-mono); font-size: var(--as-text-2xs); color: var(--as-text-3); }
+.ad-modread__at { font-size: var(--as-text-2xs); color: var(--as-text-3); }
+.ad-modread__body .ad-result { font-size: var(--as-text-xs); }
+
+
+/* ==========================================================================
+   9 · ACTIVITY LOG
+   ==========================================================================
+   A table shape without a <table>: the columns must collapse to a stack on a
+   phone, and a real table cannot without duplicating the headers. */
+
+.ad-log {
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-md);
+  overflow: hidden;
+  background: var(--as-surface-1);
+}
+.ad-log__row {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(8rem, 1fr) minmax(0, 14rem) minmax(0, 1fr) 5rem;
+  align-items: center;
+  gap: var(--as-space-3);
+  padding: var(--as-space-3) var(--as-space-4);
+  border-bottom: 1px solid var(--as-border-soft);
+  font-size: var(--as-text-xs);
+}
+.ad-log__row:last-child { border-bottom: 0; }
+.ad-log__what { color: var(--as-text-1); font-weight: 600; }
+.ad-log__id, .ad-log__params {
+  font-family: var(--as-font-mono);
+  font-size: var(--as-text-2xs);
+  color: var(--as-text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ad-log__at { color: var(--as-text-3); text-align: right; }
+
+@media (max-width: 60rem) {
+  .ad-log__row { grid-template-columns: auto 1fr; grid-auto-flow: row dense; }
+  .ad-log__at { grid-column: 2; text-align: left; }
+  .ad-log__id, .ad-log__params { grid-column: 1 / -1; white-space: normal; }
+}
+
+
+/* ==========================================================================
+   10 · SKELETONS — what "not asked yet" looks like
+   ==========================================================================
+   ⚠ A SKELETON IS ONLY EVER SHOWN FOR `null`, WHICH MEANS "NOT ASKED YET".
+   A failure gets the failure screen and never this: a spinner that never
+   resolves is how a console tells an admin nothing at all, for as long as they
+   are willing to wait. */
+
+.ad-skel-wrap { display: grid; gap: var(--as-space-3); }
+.ad-skel-line { height: 1.1rem; border-radius: var(--as-radius-xs); }
+.ad-skel-pill { display: inline-block; width: 6rem; height: 1.9rem; border-radius: var(--as-radius-sm); }

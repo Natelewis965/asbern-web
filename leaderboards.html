@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Leaderboards — Asbern</title>
-<meta name="description" content="Messages, voice, wealth, level and watch time on Hearthstead — with an honest note about which boards can actually be windowed and which cannot.">
+<meta name="description" content="Messages, voice, wealth, level and watch time on your server — with an honest note about which boards can actually be windowed and which cannot.">
 <meta name="color-scheme" content="dark light">
 <script>
 (function(){try{var p=localStorage.getItem('asbern.theme')||'system';
@@ -32,6 +32,7 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
       <a class="as-nav__link" href="watch.html" data-app-nav="watch">Watch</a>
       <a class="as-nav__link" href="casino.html" data-app-nav="casino">Casino</a>
       <a class="as-nav__link" href="leaderboards.html" data-app-nav="boards">Leaderboards</a>
+      <a class="as-nav__link" href="stats.html" data-app-nav="stats">Analytics</a>
     </nav>
     <div class="as-nav__actions">
       <a class="app-wallet" href="app.html#tycoon" data-app-wallet>
@@ -47,7 +48,7 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
   <div class="app-head">
     <div class="app-head__row">
       <div>
-        <span class="as-eyebrow">Hearthstead</span>
+        <span class="as-eyebrow" data-guild-name>Your server</span>
         <h1 class="as-display as-display--lg">Leaderboards</h1>
       </div>
       <p class="u-text-xs as-muted">Bots never rank. There is a note below about how much that removes.</p>
@@ -77,9 +78,6 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
       <a href="privacy.html#choices">Delete your history</a> &middot;
       <a href="index.html">About Asbern</a>
     </p>
-    <p class="u-text-xs as-muted">
-      Preview build with example data. Nothing here is your real balance, level or history.
-    </p>
   </footer>
 
 </main>
@@ -97,6 +95,9 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
   <a class="app-tabbar__item" href="leaderboards.html" data-app-nav="boards">
     <span data-as-icon="trophy"></span><span>Boards</span>
   </a>
+  <a class="app-tabbar__item" href="stats.html" data-app-nav="stats">
+    <span data-as-icon="chart"></span><span>Analytics</span>
+  </a>
 </nav>
 
 <script src="assets/mock-data.js"></script>
@@ -104,286 +105,191 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
 <script src="assets/app.js"></script>
 <script>
 /* =============================================================================
-   leaderboards.html
+   leaderboards.html — LIVE.
 
-   The interesting thing about this screen is what it REFUSES to do.
+   The interesting thing about this screen is still what it REFUSES to do.
 
-   Only two of the five boards can be filtered by period, because only two of
-   them come from statsQuery. Wealth is live standings, level has no time
-   dimension at all, and watch time is a running lifetime total that was never
-   bucketed by period. Rather than render five identical period bars and quietly
-   ignore three of them, the control is disabled with the reason attached — and
-   the reason is a real finding for the API phase, not a design flourish.
+   ⚠ THE WEALTH BOARD CANNOT BE WINDOWED, AND IT SAYS SO RATHER THAN PRETENDING.
+   `economy.json` holds a POSITION, not a HISTORY: cash and assets have no
+   timestamps, netPeak and lifetimeEarned are running totals, and the ledger is
+   capped at 40 entries and self-evicting. So the server answers a request for
+   "this month" with `windowed:false` and a typed reason, and this page prints
+   that reason. All-time numbers under a "This month" heading would be a
+   plausible wrong number, which is the exact defect class this repo has spent
+   days removing.
+
+   ⚠ AND WHAT IT REFUSES TO SHOW ABOUT OTHER PEOPLE. A leaderboard is the one
+   place on this whole surface where somebody else's row appears at all, and the
+   server strips it to a position and a total before it leaves the process:
+   another member's cash, their net peak and their biggest casino win are not in
+   this payload. Only the signed-in member's own row carries them.
    ========================================================================== */
 (function () {
   'use strict';
   var M = window.MemberApp, A = window.Asbern;
-  var esc = M.esc, $ = M.$, $$ = M.$$;
+  var esc = M.esc, $ = M.$;
 
-  var BOARDS = [
-    {
-      id: 'messages', label: 'Messages', icon: 'message', module: 'stats-basic',
-      unit: 'msgs', windowed: true,
-      value: function (v) { return A.num(v); },
-      source: 'statsQuery.leaderboard({ metric: "messages" })'
-    },
-    {
-      id: 'voice', label: 'Voice', icon: 'mic', module: 'stats-basic',
-      unit: 'engaged', windowed: true,
-      value: function (v) { return M.hm(v); },
-      sub: function (r) { return r.sub != null ? M.hm(r.sub) + ' connected' : null; },
-      source: 'statsQuery.leaderboard({ metric: "voice" })',
-      note: 'Ranked on <strong>engaged</strong> minutes — time with at least one other human in the channel, unmuted. ' +
-            'Connected time rides along on each row so you can see the difference, but it is not what ranks.'
-    },
-    {
-      id: 'wealth', label: 'Wealth', icon: 'coins', module: 'economy',
-      unit: 'net worth', windowed: false,
-      value: function (v) { return M.money(v); },
-      source: 'economy.leaderboard()',
-      why: 'Wealth is a standings table, not a period table. `economy.leaderboard()` ranks LIVE net worth — cash plus ' +
-           'everything permanently invested — and there is no window argument to give it. “Who got richest last week” ' +
-           'is a different query against a ledger nobody has written yet.'
-    },
-    {
-      id: 'level', label: 'Level', icon: 'trophy', module: 'leveling',
-      unit: 'level', windowed: false,
-      value: function (v) { return String(v); },
-      sub: function (r) { return r.prestige ? M.prestigeLabel(r.prestige) : null; },
-      source: 'leveling.leaderboard()',
-      why: 'Level is cumulative by definition, so there is nothing to window. The order is prestige first, then lifetime ' +
-           'XP — which is why somebody on a lower level can sit above somebody on a higher one.'
-    },
-    {
-      id: 'watch', label: 'Watch time', icon: 'film', module: 'screening-room',
-      unit: 'lifetime', windowed: false,
-      value: function (v) { return M.hm(v); },
-      source: '⛔ no such function today',
-      why: 'This board is <strong>lifetime only, and that is a gap rather than a decision</strong>. watch-history keeps ' +
-           'running totals and a per-title “last watched”, never per-period milliseconds — so “hours watched this month” ' +
-           'is not a number anything can currently answer. Wrapped hits the same wall and says so on the card instead ' +
-           'of guessing.'
-    }
+  var METRICS = [
+    { id: 'voice', name: 'Voice', unit: 'minutes', windowed: true },
+    { id: 'messages', name: 'Messages', unit: 'messages', windowed: true },
+    { id: 'presence', name: 'Connected', unit: 'minutes', windowed: true },
+    { id: 'watch', name: 'Watch time', unit: 'ms', windowed: true },
+    { id: 'wealth', name: 'Wealth', unit: 'bucks', windowed: false },
+    { id: 'level', name: 'Level', unit: 'xp', windowed: false }
   ];
 
-  var current = 'messages';
-  var window_ = 'month';
-  var showBots = false;
-
-  /* --------------------------------------------------------------- TABS */
-  function tabs() {
-    $('[data-boards]').innerHTML = BOARDS.map(function (b) {
-      return '<button class="as-tab" type="button" role="tab" data-board-pick="' + b.id + '"' +
-        ' aria-selected="' + (b.id === current) + '" tabindex="' + (b.id === current ? 0 : -1) + '">' +
-        esc(b.label) + '</button>';
-    }).join('');
-  }
-
-  A.on('click', '[data-board-pick]', function (ev, btn) {
-    current = btn.getAttribute('data-board-pick');
-    tabs(); paint();
-  });
-  A.on('keydown', '[data-board-pick]', function (ev, btn) {
-    var d = ev.key === 'ArrowRight' ? 1 : ev.key === 'ArrowLeft' ? -1 : 0;
-    if (!d) return;
-    ev.preventDefault();
-    var i = BOARDS.map(function (b) { return b.id; }).indexOf(current);
-    current = BOARDS[(i + d + BOARDS.length) % BOARDS.length].id;
-    tabs(); paint();
-    var next = $('[data-board-pick="' + current + '"]');
-    if (next) next.focus();
-  });
-
-  /* -------------------------------------------------------------- PAINT */
-  function paint() {
-    var b = BOARDS.filter(function (x) { return x.id === current; })[0];
-    var host = $('[data-board]');
-    var gate = M.entitled(b.module);
-
-    if (!gate.ok) {
-      host.innerHTML = M.lockedHtml(gate, {
-        extra: b.id === 'watch'
-          ? '<p class="app-lock__body">Watch time is only collected when there is a screening room collecting it. ' +
-            'Nothing has been hidden from you — there is genuinely nothing here to hide.</p>'
-          : ''
-      });
-      M.mountIcons(host);
+  M.mount({ needs: ['boards'] }, function (S, ctx) {
+    var demo = ctx.mode === 'demo';
+    if (demo) {
+      $('[data-board]').innerHTML =
+        '<div class="as-card"><h2 class="app-sec__title u-mb-4">Boards need your server</h2>' +
+        '<p class="u-text-sm as-muted">A leaderboard is a list of real people. There is nothing honest to invent here, ' +
+        'so example data does not fake one.</p>' +
+        '<a class="as-btn as-btn--primary u-mt-4" href="?demo=0">Sign in</a></div>';
       return;
     }
 
-    var histGate = M.entitled('stats-history');
-    var needsHistory = b.windowed && (window_ === 'year' || window_ === 'all');
-    var data = M.server.boards(b.id, window_, showBots);
+    var metric = 'voice';
+    var window_ = 'month';
+    var loading = false;
 
-    host.innerHTML =
-      periodBar(b, histGate) +
-      (needsHistory && !histGate.ok
-        ? M.lockedHtml(histGate, {
-            extra: '<p class="app-lock__body">The collector has been writing this the whole time and still is. ' +
-                   'Upgrading shows the full history immediately; downgrading hides it and never deletes it.</p>'
-          })
-        : boardBody(b, data)) +
-      sourceNote(b);
-
-    M.mountIcons(host);
-    A.mount(host);
-  }
-
-  function periodBar(b, histGate) {
-    var disabledReason = b.windowed ? null : 'This board has no time dimension — see the note below.';
-    return '' +
-    '<div class="as-row as-row--between u-mb-4" style="align-items:flex-end">' +
-      '<div class="app-periods" role="group" aria-label="Timeframe">' +
-        M.WINDOWS.map(function (w) {
-          var lockedTier = (w.key === 'year' || w.key === 'all') && !histGate.ok;
-          var off = !b.windowed || lockedTier;
-          var tip = !b.windowed ? disabledReason : lockedTier ? 'Needs ' + M.tierName('community') : '';
-          return '<button class="as-chip" type="button" data-win="' + w.key + '"' +
-            ' aria-pressed="' + (b.windowed && w.key === window_) + '"' +
-            (off ? ' disabled aria-disabled="true"' : '') +
-            (tip ? ' data-as-tip="' + esc(tip) + '"' : '') + '>' +
-            (lockedTier ? M.icon('lock') : '') + esc(w.short) + '</button>';
-        }).join('') +
-      '</div>' +
-      (b.id === 'messages'
-        ? '<label class="as-switch"><input type="checkbox" data-bots ' + (showBots ? 'checked' : '') + '>' +
-          '<span class="as-switch__label">Show what the bot filter removes</span></label>'
-        : '') +
-    '</div>' +
-    '<p class="u-text-xs as-muted u-mb-4">' +
-      (b.windowed
-        ? esc(M.WINDOWS.filter(function (w) { return w.key === window_; })[0].label)
-        : '<strong>' + esc(b.unit === 'lifetime' ? 'Lifetime' : 'Live standings') + '</strong> — this board is not windowed') +
-    '</p>';
-  }
-
-  function boardBody(b, data) {
-    if (!data.rows.length) {
-      return '<div class="as-empty">' +
-        '<span class="as-empty__icon">' + M.icon(b.icon) + '</span>' +
-        '<span class="as-empty__title">Nothing in this window yet</span>' +
-        '<p class="as-empty__body">Nobody has any ' + esc(b.label.toLowerCase()) + ' in this timeframe. ' +
-          'Try a wider one — the data is not missing, the window is just narrow.</p>' +
-      '</div>';
+    function fetchBoard() {
+      loading = true;
+      paintTabs();
+      return M.live.get(M.live.state.guildId + '/boards?metric=' + encodeURIComponent(metric) + '&window=' + encodeURIComponent(window_))
+        .then(function (r) {
+          loading = false;
+          if (!r.ok) { paintError(r); return; }
+          M.live.state.data.boards = r.data;
+          paint();
+        }, function () { loading = false; paintError({ code: 'unreachable' }); });
     }
 
-    var top3 = data.rows.slice(0, 3);
-    var podium = '<div class="app-podium u-mb-6">' +
-      [top3[1], top3[0], top3[2]].map(function (r, i) {
-        if (!r) return '<div class="app-podium__slot" aria-hidden="true"></div>';
-        var pos = r.rank;
-        return '<div class="app-podium__slot' + (pos === 1 ? ' app-podium__slot--1' : '') + '">' +
-          '<span class="app-podium__pos">' + pos + '</span>' +
-          M.avatar(r.initials, r.me ? 'as-avatar--accent' : (pos === 1 ? 'as-avatar--accent' : '')) +
-          '<span class="app-podium__name">' + esc(r.name) + (r.me ? ' (you)' : '') + '</span>' +
-          '<span class="app-podium__val">' + esc(b.value(r.value)) + '</span>' +
+    function paintError(r) {
+      $('[data-board]').innerHTML =
+        '<div class="as-card app-gate__card--bad">' +
+          '<p class="u-text-sm"><strong>That board could not be read.</strong> It is left blank rather than filled ' +
+          'with the last one, because a leaderboard that quietly shows the wrong window is worse than one that is missing.</p>' +
+          '<p class="u-text-xs as-muted u-mt-2">Code <code class="u-mono">' + esc((r && r.code) || 'unreachable') + '</code>.</p>' +
         '</div>';
-      }).join('') + '</div>';
+      paintTabs();
+    }
 
-    var rows = '<div class="as-panel"><div class="app-board">' + data.rows.map(function (r) {
-      var sub = b.sub ? b.sub(r) : null;
-      return '<div class="app-row' + (r.me ? ' app-row--me' : '') + (r.bot ? ' app-row--bot' : '') + '"' +
-        (r.me ? ' aria-label="Your position, rank ' + r.rank + '"' : '') + '>' +
-        '<span class="app-row__rank">' + r.rank + '</span>' +
-        M.avatar(r.initials, r.me ? 'as-avatar--accent' : '') +
-        '<span style="min-width:0">' +
-          '<span class="app-row__name">' + esc(r.name) + (r.me ? ' <span class="as-muted">(you)</span>' : '') +
-            (r.bot ? ' <span class="as-badge as-badge--plain">bot · excluded</span>' : '') + '</span>' +
-          (sub ? '<span class="app-row__sub">' + esc(sub) + '</span>' : '') +
-        '</span>' +
-        '<span class="app-row__val">' + esc(b.value(r.value)) + '<span class="app-row__unit">' + esc(b.unit) + '</span></span>' +
-      '</div>';
-    }).join('') + '</div></div>';
+    function paintTabs() {
+      $('[data-boards]').innerHTML = METRICS.map(function (m) {
+        return '<button class="as-tab" role="tab" type="button" data-metric="' + m.id + '"' +
+          ' aria-selected="' + (m.id === metric) + '">' + esc(m.name) + '</button>';
+      }).join('');
+    }
 
-    var standing = data.me
-      ? '<div class="as-card as-card--accent u-mt-4">' +
-          '<div class="as-row as-row--between">' +
-            '<div style="min-width:0">' +
-              '<span class="as-eyebrow">Your position</span>' +
-              '<p class="app-figure__value u-mt-2">#' + data.me.rank + ' <span class="as-muted" style="font-size:var(--as-text-sm)">of ' + data.me.of + ' ranked</span></p>' +
-            '</div>' +
-            '<span class="as-badge as-badge--accent">' + esc(b.value(data.me.value)) + '</span>' +
-          '</div>' +
-          (data.me.rank > 1
-            ? '<p class="u-text-xs as-muted u-mt-3">' +
-              esc(b.value(data.rows[data.me.rank - 2].value - data.me.value)) + ' behind ' +
-              esc(data.rows[data.me.rank - 2].name) + '.</p>'
-            : '<p class="u-text-xs as-muted u-mt-3">Top of the board.</p>') +
-        '</div>'
-      : '';
+    function paint() {
+      var b = S.boards();
+      var host = $('[data-board]');
+      paintTabs();
+      if (!b) { host.innerHTML = ''; return; }
 
-    return podium + rows + standing + (b.id === 'messages' ? botDisclosure(data) : '');
-  }
+      var def = METRICS.filter(function (m) { return m.id === metric; })[0] || METRICS[0];
+      var rows = b.rows || [];
 
-  /* ---------------------------------------------------------- BOT FILTER */
-  /*
-     ⚠ MEASURED. 22 bot ids were 48.6% of every message ever recorded on the
-     server this was built against — 20,869 of 42,979 — and 61.3% of the recent
-     sixty days, rising. A message board that counted them would be a board of
-     which bot talks most.
-  */
-  function botDisclosure(data) {
-    var s = M.BOT_SHARE;
-    var human = 1 - s.allTime;
-    return '' +
-    '<details class="as-acc u-mt-6"' + (showBots ? ' open' : '') + '>' +
-      '<summary class="as-acc__summary">Why bots are not on this board</summary>' +
-      '<div class="as-acc__body">' +
-        '<p class="u-text-sm">On the server this product was built for, <strong>' + M.pct1(s.allTime) + ' of every message ever ' +
-          'recorded belonged to a bot</strong> — ' + s.botIds + ' bot accounts against ' + s.humans + ' people. Over the last ' +
-          'sixty days it was ' + M.pct1(s.recent60d) + ' and rising. Counting them would have made the all-time message board ' +
-          'a chart of which bot is chattiest.</p>' +
-        '<figure class="u-mt-4" style="margin:0">' +
-          '<figcaption class="u-text-2xs as-muted u-mb-2">All-time messages, by author type</figcaption>' +
-          '<div class="app-share" role="img" aria-label="Humans ' + M.pct1(human) + ', bots ' + M.pct1(s.allTime) + '">' +
-            '<span class="app-share__seg app-share__seg--human" style="width:' + (human * 100).toFixed(1) + '%"></span>' +
-            '<span class="app-share__seg app-share__seg--bot" style="width:' + (s.allTime * 100).toFixed(1) + '%"></span>' +
-          '</div>' +
-          '<div class="as-row as-row--between u-text-2xs as-muted u-mt-2">' +
-            '<span><span style="display:inline-block;width:.6rem;height:.6rem;border-radius:2px;background:var(--as-accent);vertical-align:middle"></span> ' +
-              'People — ' + M.pct1(human) + '</span>' +
-            '<span><span style="display:inline-block;width:.6rem;height:.6rem;border-radius:2px;background:var(--as-border-strong);vertical-align:middle"></span> ' +
-              'Bots — ' + M.pct1(s.allTime) + '</span>' +
-          '</div>' +
-        '</figure>' +
-        '<p class="u-text-xs as-muted u-mt-4">The filter is fed from three independent sources so it works whichever data ' +
-          'lane the row lands on, and it is applied inside the query rather than bolted on at render — which is the ' +
-          'difference between a board that never shows a bot and a board that usually does not.</p>' +
-        (showBots
-          ? '<div class="as-note as-note--warn u-mt-3 u-text-xs">' + M.icon('alert') +
-            '<span>The toggle above is showing you what the filter takes out. Those rows are marked <em>excluded</em> and ' +
-            'are never in the real board, at any tier, for anybody.</span></div>'
-          : '') +
-      '</div>' +
-    '</details>';
-  }
+      /* ⚠ THE WINDOW ACTUALLY SERVED, NOT THE ONE ASKED FOR. `b.windowed` is
+         false for wealth and level; printing the requested window there is the
+         lie this whole file is about. */
+      var windowNote = b.windowed === false
+        ? '<div class="as-note as-note--warn u-mb-4 u-text-xs">' + M.icon('alert') +
+          '<span><strong>This board has no time dimension.</strong> You asked for ' + esc(b.requested || window_) +
+          ' and this is <strong>all time</strong> — because the store behind it holds a position and not a history. ' +
+          'Reason code <code class="u-mono">' + esc(b.reason || 'noTimeDimension') + '</code>.</span></div>'
+        : '';
 
-  /* ------------------------------------------------------------- SOURCE */
-  function sourceNote(b) {
-    return '' +
-    '<div class="as-note ' + (b.why ? 'as-note--warn' : '') + ' u-mt-6 u-text-xs">' +
-      M.icon(b.why ? 'alert' : 'info') +
-      '<span>' +
-        (b.note ? b.note + '<br><br>' : '') +
-        (b.why ? b.why + '<br><br>' : '') +
-        '<span class="as-muted u-mono">' + esc(b.source) + '</span>' +
-      '</span>' +
-    '</div>';
-  }
+      var periods = def.windowed
+        ? '<div class="app-periods u-mb-4" role="group" aria-label="Timeframe">' +
+            M.WINDOWS.map(function (w) {
+              return '<button class="as-chip" type="button" data-period="' + w.key + '" aria-pressed="' + (w.key === window_) + '">' + esc(w.short) + '</button>';
+            }).join('') +
+          '</div>'
+        : '';
 
-  A.on('click', '[data-win]', function (ev, btn) {
-    if (btn.disabled) return;
-    window_ = btn.getAttribute('data-win');
+      if (!rows.length) {
+        host.innerHTML = periods + windowNote +
+          '<div class="as-empty"><span class="as-empty__icon">' + M.icon('trophy') + '</span>' +
+          '<p class="as-empty__title">Nobody is on this board yet</p>' +
+          '<p class="as-empty__body">That is an empty board, not a failed one — the difference matters, so it is stated.</p></div>';
+        M.mountIcons(host); A.mount(host);
+        return;
+      }
+
+      function value(r) {
+        if (metric === 'wealth') return M.money(r.worth);
+        if (metric === 'watch') return M.hm(Math.round((r.count || 0) / 60000));
+        if (metric === 'voice' || metric === 'presence') return M.hm(r.count || 0);
+        return A.num(r.count || 0);
+      }
+
+      var top = rows.slice(0, 3);
+      var rest = rows.slice(3, 50);
+
+      host.innerHTML = periods + windowNote +
+        '<div class="app-podium u-mb-6">' + [1, 0, 2].map(function (i) {
+          var r = top[i];
+          if (!r) return '';
+          return '<div class="app-podium__slot' + (i === 0 ? ' app-podium__slot--1' : '') + '">' +
+            '<span class="app-podium__pos">' + (i + 1) + '</span>' +
+            '<span class="app-podium__name">' + esc(nameFor(r)) + '</span>' +
+            '<span class="app-podium__val">' + esc(value(r)) + '</span>' +
+          '</div>';
+        }).join('') + '</div>' +
+        '<div class="app-board">' + rest.map(function (r, i) {
+          return '<div class="app-row' + (r.me ? ' app-row--me' : '') + '">' +
+            '<span class="app-row__rank">' + (i + 4) + '</span>' +
+            '<span class="app-row__name">' + esc(nameFor(r)) + '</span>' +
+            '<span class="app-row__val">' + esc(value(r)) + '</span>' +
+          '</div>';
+        }).join('') + '</div>' +
+        (b.me
+          ? '<p class="u-text-sm u-mt-4">You are <strong>' + ordinal(b.me.place) + '</strong> of ' + A.num(b.me.of) + '.</p>'
+          : '<p class="u-text-sm as-muted u-mt-4">You are not on this board yet. That is not last place — it is no placement, ' +
+            'and the two are different.</p>') +
+        '<div class="as-note u-mt-6 u-text-xs">' + M.icon('shield') +
+          '<span><strong>Other people’s rows are trimmed before they leave the server.</strong> A leaderboard is the ' +
+          'only place anybody else appears on this site, and all it carries is a position and the figure being ranked — ' +
+          'never somebody else’s balance, their net peak, or their casino record. Yours carries all of it, because it ' +
+          'is yours.</span></div>' +
+        '<p class="u-text-xs as-muted u-mt-3">Bots never rank. Every row here is a person.</p>';
+
+      M.mountIcons(host);
+      A.mount(host);
+    }
+
+    /* ⚠ A DISCORD ID, NOT A NAME — AND SAYING SO IS THE HONEST RENDER.
+       The member API holds a user id and deliberately never pairs it with a
+       display name: `packages/api`'s decision 3 says an email or a name beside a
+       Discord id turns the session store into personal data, and decision 4
+       applies the same rule to the audit trail. Until a name seam exists, a
+       shortened id is what there is, and "you" is marked. */
+    function nameFor(r) {
+      if (r.me) return 'You';
+      var id = String(r.userId || '');
+      return id ? ('Member ' + id.slice(-4)) : 'Member';
+    }
+    function ordinal(n) {
+      var t = n % 100;
+      if (t >= 11 && t <= 13) return n + 'th';
+      return n + ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
+    }
+
+    A.on('click', '[data-metric]', function (ev, btn) {
+      if (loading) return;
+      metric = btn.getAttribute('data-metric');
+      fetchBoard();
+    });
+    A.on('click', '[data-period]', function (ev, btn) {
+      if (loading) return;
+      window_ = btn.getAttribute('data-period');
+      fetchBoard();
+    });
+
     paint();
-    M.announce('Showing ' + window_ + '.');
   });
-  A.on('change', '[data-bots]', function (ev, el) {
-    showBots = el.checked;
-    paint();
-  });
-
-  tabs();
-  paint();
 })();
 </script>
 </body>

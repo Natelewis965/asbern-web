@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Your profile — Asbern</title>
-<meta name="description" content="Your rank, your balance, your achievements and the challenges you have running on Hearthstead.">
+<meta name="description" content="Your rank, your balance, your achievements and the challenges you have running on your Discord server.">
 <meta name="color-scheme" content="dark light">
 <!-- Theme applied before first paint so the page never flashes the wrong one.
      Identical to the marketing site's snippet on purpose — one stored key. -->
@@ -35,6 +35,7 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
       <a class="as-nav__link" href="watch.html" data-app-nav="watch">Watch</a>
       <a class="as-nav__link" href="casino.html" data-app-nav="casino">Casino</a>
       <a class="as-nav__link" href="leaderboards.html" data-app-nav="boards">Leaderboards</a>
+      <a class="as-nav__link" href="stats.html" data-app-nav="stats">Analytics</a>
     </nav>
     <div class="as-nav__actions">
       <a class="app-wallet" href="app.html#tycoon" data-app-wallet>
@@ -51,7 +52,7 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
   <div class="app-head">
     <div class="app-head__row">
       <div>
-        <span class="as-eyebrow">Hearthstead</span>
+        <span class="as-eyebrow" data-guild-name>Your server</span>
         <h1 class="as-display as-display--lg">Your profile</h1>
       </div>
       <p class="u-text-xs as-muted" data-guild-line></p>
@@ -72,6 +73,20 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
 
     <!-- =========================== MAIN COLUMN =========================== -->
     <div class="app-stack--6" style="display:flex;flex-direction:column">
+
+      <!-- ---------------------- WHAT YOU CAN COLLECT ----------------------
+           ⚠ THE ONLY PLACE ON THIS PAGE THAT MOVES MONEY BY ITSELF. Each
+           button posts and renders whatever the server returns, including a
+           refusal — no button here decides whether it is allowed to run. -->
+      <section class="as-card" aria-labelledby="collect-h" data-collect>
+        <div class="app-sec__head" style="margin-bottom:var(--as-space-5)">
+          <h2 id="collect-h" class="app-sec__title">Collect</h2>
+          <span class="app-sec__note">The same money path as the bot</span>
+        </div>
+        <div class="as-stack as-stack--3">
+          <span class="as-skeleton as-skeleton--line"></span>
+        </div>
+      </section>
 
       <!-- ---------------------- RANK & XP ---------------------- -->
       <section class="as-card" aria-labelledby="xp-h">
@@ -135,7 +150,7 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
 
       <!-- ---------------------- WHAT'S ON THIS PLAN ---------------------- -->
       <section class="as-card" aria-labelledby="plan-h">
-        <h2 id="plan-h" class="app-sec__title u-mb-4">What Hearthstead has switched on</h2>
+        <h2 id="plan-h" class="app-sec__title u-mb-4">What this server has switched on</h2>
         <div data-plan></div>
       </section>
 
@@ -161,9 +176,6 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
       <a href="privacy.html#choices">Delete your history</a> &middot;
       <a href="index.html">About Asbern</a>
     </p>
-    <p class="u-text-xs as-muted">
-      Preview build with example data. Nothing here is your real balance, level or history.
-    </p>
   </footer>
 
 </main>
@@ -182,6 +194,9 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
   <a class="app-tabbar__item" href="leaderboards.html" data-app-nav="boards">
     <span data-as-icon="trophy"></span><span>Boards</span>
   </a>
+  <a class="app-tabbar__item" href="stats.html" data-app-nav="stats">
+    <span data-as-icon="chart"></span><span>Analytics</span>
+  </a>
 </nav>
 
 <!-- Achievement detail sheet -->
@@ -199,458 +214,603 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
 <script src="assets/app.js"></script>
 <script>
 /* =============================================================================
-   app.html — the member home.
+   app.html — the member home, LIVE.
 
-   Everything on this page is rendered from MemberApp.server.* (the mock
-   backend) and the rules ported in assets/app.js §2. No number below is typed
-   into the markup; if a figure looks wrong, the rule it came from is wrong.
+   ⚠ EVERY FIGURE ON THIS PAGE COMES FROM THE MEMBER API, OR IS NOT SHOWN.
+   The page renders inside `MemberApp.mount()`, which resolves to exactly one of
+   four states — live, signed-out, unreachable, demo — and calls this function
+   only for the two that have something honest to paint. There is no path from a
+   failed request to `mock-data.js`; see assets/app.js §5 for why that is a money
+   rule rather than a style one.
+
+   ⚠ AND NO BUTTON ON THIS PAGE DECIDES WHETHER IT IS ALLOWED TO RUN. Daily,
+   Work, Claim and every tycoon purchase post to the server and render what comes
+   back, refusals included. A client-side `if (cash >= cost)` on a balance that is
+   by definition a moment old is exactly the pre-authorisation the server refuses
+   to trust — and it is how two surfaces spending one balance becomes a bug
+   instead of a clean "not enough".
    ========================================================================== */
 (function () {
   'use strict';
-  var M = window.MemberApp, A = window.Asbern, AM = window.AsbernMock;
-  var esc = M.esc, $ = M.$, $$ = M.$$;
+  var M = window.MemberApp, A = window.Asbern;
+  var esc = M.esc, $ = M.$;
 
-  var me      = M.server.me();
-  var guild   = M.server.guild();
-  var achs    = M.server.achievements();
-  var quests  = M.server.quests();
+  M.mount({ needs: ['bootstrap', 'tycoon', 'ledger'] }, function (S, ctx) {
 
-  /* ---------------------------------------------------------------- GUILD */
-  M.text('[data-guild-line]',
-    guild.name + ' · ' + A.num(guild.members) + ' members · ' + M.tierName(M.plan.get()) + ' plan');
+    var demo = ctx.mode === 'demo';
 
-  /* ----------------------------------------------------------------- HERO */
-  (function hero() {
-    var rank      = M.rankForLevel(me.level);
-    var next      = M.nextMilRank(me.level);
-    var wealth    = M.wealthTier(me.netPeak);
-    var nextWealth= M.nextWealthTier(me.netPeak);
-    var ecoGate   = M.entitled('economy');
+    /* ------------------------------------------------------- small helpers */
 
-    var badges = [
-      '<span class="as-badge as-badge--accent">' + esc(rank.name) + '</span>',
-      '<span class="as-badge">Level ' + me.level + '</span>'
-    ];
-    if (me.prestige) badges.push('<span class="as-badge as-badge--frost">' + esc(M.prestigeLabel(me.prestige)) + '</span>');
-    if (ecoGate.ok) badges.push('<span class="as-badge">' + wealth.emoji + ' ' + esc(wealth.name) + '</span>');
-
-    var figures = ecoGate.ok
-      ? M.figure('Balance', M.money(me.cash), esc(M.moneyFull(me.cash)), true) +
-        M.figure('Net worth', M.money(me.netWorth), 'cash + everything invested') +
-        M.figure('Earning', esc(M.moneyRate(me.incomePerSec)), me.assetCount + ' of 12 assets') +
-        M.figure('Achievements', achs.filter(function (a) { return a.held; }).length + ' <small style="font-size:.6em;color:var(--as-text-3)">/ 16</small>', 'live against the rules')
-      : M.figure('Level', String(me.level), esc(rank.name), true) +
-        M.figure('Prestige', me.prestige ? String(me.prestige) : '—', me.prestige ? esc(M.prestigeLabel(me.prestige)) : 'not yet') +
-        M.figure('Achievements', achs.filter(function (a) { return a.held; }).length + ' <small style="font-size:.6em;color:var(--as-text-3)">/ 16</small>', 'free on every plan') +
-        M.figure('Economy', 'Off', 'not on this plan');
-
-    $('[data-hero]').innerHTML =
-      '<div class="app-hero__top">' +
-        '<span class="app-hero__avatar">' + esc(me.initials) +
-          '<span class="app-hero__icon" title="Equipped name icon">' + me.equippedIcon + '</span>' +
-        '</span>' +
-        '<div style="min-width:0;flex:1 1 auto">' +
-          '<div class="app-hero__name">' + esc(me.name) + '</div>' +
-          '<div class="u-text-xs as-muted">Member of ' + esc(guild.name) + ' since ' +
-            new Date(me.joinedAt).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) + '</div>' +
-          '<div class="app-hero__meta">' + badges.join('') + '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="app-hero__figures">' + figures + '</div>' +
-      (ecoGate.ok && nextWealth
-        ? '<p class="u-text-xs as-muted">' + wealth.emoji + ' <strong>' + esc(wealth.name) + '</strong> — a net-worth tier, not a Discord rank. ' +
-            esc(M.moneyFull(nextWealth.at - me.netPeak)) + ' more at your best to reach ' + nextWealth.emoji + ' ' + esc(nextWealth.name) + '. ' +
-            'Tiers unlock name-icons; they do not unlock money.</p>'
-        : '');
-  })();
-
-  /* ------------------------------------------------------------------- XP */
-  (function xp() {
-    var rank = M.rankForLevel(me.level);
-    var next = M.nextMilRank(me.level);
-    var toNextRank = next ? next.level - me.level : 0;
-
-    var html = M.meter('Level ' + me.level + ' → ' + (me.level + 1), me.xpInto, me.xpNeed, {
-      text: A.num(me.xpInto) + ' / ' + A.num(me.xpNeed) + ' XP', lg: true
-    });
-
-    html += '<div class="u-mt-4">' + M.kv([
-      ['Rank', esc(rank.name) + ' <span class="as-muted">(' + (rank.index + 1) + ' of 21)</span>'],
-      next
-        ? ['Next rank', esc(next.name) + ' <span class="as-muted">at level ' + next.level + '</span>']
-        : ['Next rank', 'Master General — the top of the ladder', true],
-      ['Lifetime XP', A.num(me.lifetimeXp)],
-      ['This climb', A.num(M.totalXpToReach(me.level) + me.xpInto) + ' of ' + A.num(M.totalXpToReach(M.LVL.MASTER_GENERAL_LEVEL)) + ' to Master General'],
-      me.prestige
-        ? ['Prestige', esc(M.prestigeLabel(me.prestige)) + ' <span class="as-muted">· next costs ' + esc(M.moneyFull(M.prestigeCost(me.prestige + 1))) + '</span>']
-        : ['Prestige', 'unlocks at Master General', true]
-    ]) + '</div>';
-
-    /* Where XP comes from — the real rates, including the anti-farm shape. */
-    html +=
-      '<details class="as-acc u-mt-4">' +
-        '<summary class="as-acc__summary">How XP is earned</summary>' +
-        '<div class="as-acc__body">' +
-          M.kv([
-            ['A message', M.LVL.MSG_XP_MIN + '–' + M.LVL.MSG_XP_MAX + ' XP <span class="as-muted">· once a minute</span>'],
-            ['A voice minute', M.LVL.VOICE_XP_PER_MIN + ' XP <span class="as-muted">· unmuted, not deafened, ≥2 humans, not AFK</span>'],
-            ['Voice daily cap', A.num(M.LVL.VOICE_XP_DAILY_CAP) + ' XP <span class="as-muted">· 120 minutes</span>'],
-            ['An economy action', M.LVL.ECON_XP_PER_ACTION + ' XP <span class="as-muted">· capped at ' + M.LVL.ECON_XP_DAILY_CAP + '/day</span>']
-          ]) +
-          '<p class="u-text-xs as-muted u-mt-3">Then a diminishing daily curve: ' +
-            M.LVL.DAILY_BANDS.map(function (b) { return 'the ' + esc(b.label) + ' counts ×' + b.mult; }).join(', ') +
-            '. It is what stops anyone no-lifing to the top, and it is why the gap between the most and least active member is smaller than their raw activity.</p>' +
-        '</div>' +
-      '</details>';
-
-    /* ⭐ The principle, stated where it is natural. PRICING.md §2 and the
-       verification draft both make this a hard rule, not a marketing line. */
-    html +=
-      '<div class="as-note as-note--accent u-mt-4">' + M.icon('shield') +
-        '<span><strong>XP cannot be bought.</strong> Not with a subscription, not with a boost, not by anybody. ' +
-        'The only way up this ladder is to be here. Nothing on any paid tier grants XP, adds a multiplier, ' +
-        'or touches your balance — that is a rule in the product, not a promise in a footer.</span>' +
-      '</div>';
-
-    $('[data-xp]').innerHTML = html;
-  })();
-
-  /* --------------------------------------------------------------- QUESTS */
-  (function questsRender() {
-    var gate = M.entitled('challenges');
-    var host = $('[data-quests]');
-    if (!gate.ok) { host.innerHTML = M.lockedHtml(gate); return; }
-
-    function questCard(q) {
-      var p = M.clamp(q.have / q.need, 0, 1);
-      var done = q.have >= q.need;
-      var unit = q.unit ? ' ' + q.unit : '';
-      var reward = '';
-      if (q.reward.role) {
-        reward = q.reward.roleIcon + ' ' + esc(q.reward.role) + ' + ' + M.money(q.reward.cash) + ' + ' + A.num(q.reward.xp) + ' XP';
-      } else {
-        reward = M.money(q.reward.cash) + ' + ' + A.num(q.reward.xp) + ' XP';
-      }
-      var kindBadge = {
-        daily: '<span class="as-badge">Today</span>',
-        weekly: '<span class="as-badge">This week</span>',
-        goal: '<span class="as-badge as-badge--frost">Server goal</span>',
-        season: '<span class="as-badge as-badge--frost">Season</span>'
-      }[q.kind];
-      var tierBadge = q.tier ? '<span class="as-badge as-badge--plain">' + esc(q.tier) + '</span>' : '';
-
-      return '' +
-      '<div class="app-quest' + (done ? ' app-quest--claimable' : '') + '">' +
-        '<span class="app-quest__glyph">' + q.icon + '</span>' +
-        '<div class="app-quest__body">' +
-          '<div class="app-quest__title">' +
-            '<span class="app-quest__name">' + esc(q.name) + '</span>' + kindBadge + tierBadge +
-          '</div>' +
-          '<p class="app-quest__ask">' + esc(q.ask) + '</p>' +
-          M.meter(done ? 'Complete' : 'Progress', q.have, q.need, {
-            text: A.num(q.have) + ' / ' + A.num(q.need) + esc(unit),
-            variant: done ? 'done' : ''
-          }) +
-          '<div class="app-quest__foot">' +
-            '<span class="app-quest__reward">' + M.icon('gift') + reward + '</span>' +
-            (done
-              ? '<button class="as-btn as-btn--primary as-btn--sm" type="button" data-claim="' + esc(q.id) + '">Claim</button>'
-              : '<span class="u-text-xs as-muted">Resets ' + esc(q.resetsIn) + '</span>') +
-          '</div>' +
-        '</div>' +
-      '</div>';
+    /** The refusal, in the member's words. Never a bare code. */
+    var REFUSALS = {
+      cooldown: 'Not ready yet — the cooldown is still running.',
+      poor: 'Not enough in hand for that.',
+      locked: 'Not unlocked yet — your best net worth has to reach the unlock first.',
+      disabled: 'That is switched off in this server.',
+      unknown: 'That does not exist here.',
+      'store-unreadable': 'Your balance could not be read just now. Nothing was charged.',
+      'member-rate-limited': 'Too many actions in a row. Give it a minute.',
+      'member-store-unreadable': 'Your balance could not be read just now. Nothing was charged.',
+      demo: 'This is example data — nothing here is your account.',
+      unreachable: 'We could not reach your server, so nothing was done.'
+    };
+    function refusalOf(r) {
+      var reason = (r && r.data && r.data.reason) || (r && r.code) || 'failed';
+      var extra = (r && r.data && (r.data.error || r.data.why)) || null;
+      return REFUSALS[reason] || extra || ('That was refused (' + reason + ').');
     }
 
-    host.innerHTML =
-      '<div class="app-stack" style="display:flex;flex-direction:column">' +
-        questCard(quests.daily) + questCard(quests.weekly) +
-        questCard(quests.goal) + questCard(quests.season) +
-      '</div>' +
-      '<details class="as-acc u-mt-4">' +
-        '<summary class="as-acc__summary">Coming up</summary>' +
-        '<div class="as-acc__body">' +
-          '<p class="u-text-xs as-muted u-mb-4">The rotation is a pure function of the date, so it is the same for everyone and it is knowable in advance. ' +
-          'Difficulty is paid for: an easy daily pays ' + M.money(M.rewardFor('daily', 'easy').cash) +
-          ', a hard one ' + M.money(M.rewardFor('daily', 'hard').cash) + '.</p>' +
-          quests.upcoming.map(function (u) {
-            return '<div class="as-row as-row--between u-text-sm" style="padding:.4rem 0;border-bottom:1px solid var(--as-border-soft)">' +
-              '<span>' + u.icon + ' <strong>' + esc(u.name) + '</strong> <span class="as-muted">· ' + esc(u.ask) + '</span></span>' +
-              '<span class="as-badge as-badge--plain">' + esc(u.kind) + ' · ' + esc(u.tier) + '</span>' +
-            '</div>';
-          }).join('') +
-        '</div>' +
-      '</details>';
+    /** null is an em dash. It is never a zero. */
+    function m(v) { return (v === null || v === undefined) ? '—' : M.money(v); }
+    function mFull(v) { return (v === null || v === undefined) ? '—' : M.moneyFull(v); }
 
-    A.on('click', '[data-claim]', function (ev, btn) {
-      btn.disabled = true;
-      btn.textContent = 'Claimed';
-      A.toast('Reward paid through the same audited money path as everything else.', { variant: 'success' });
-      M.announce('Challenge reward claimed.');
-    });
-  })();
+    var busy = false;
 
-  /* ---------------------------------------------------------- ACHIEVEMENTS */
-  (function achsRender() {
-    var held = achs.filter(function (a) { return a.held; }).length;
-    M.text('[data-achs-count]', held + ' of 16 held');
-
-    $('[data-achs]').innerHTML = '<div class="app-achs">' + achs.map(function (a, i) {
-      var cls = 'app-ach ' + (a.held ? 'app-ach--earned' : 'app-ach--locked') + (a.mastery ? ' app-ach--mastery' : '');
-      return '<button class="' + cls + '" type="button" data-ach="' + i + '" aria-label="' +
-        esc(a.name + (a.held ? ' — earned' : ' — locked') + '. ' + a.desc) + '">' +
-        '<span class="app-ach__glyph" aria-hidden="true">' + a.emoji + '</span>' +
-        '<span class="app-ach__name">' + esc(a.name) + '</span>' +
-        '<span class="app-ach__desc">' + esc(a.desc) + '</span>' +
-        (!a.held ? '<span class="u-text-2xs as-muted">' + progressLine(a) + '</span>' : '') +
-      '</button>';
-    }).join('') + '</div>';
-
-    function progressLine(a) {
-      if (a.mastery) return a.have + ' of 15 so far';
-      var have = a.money ? M.money(a.have) : A.num(a.have);
-      var need = a.money ? M.money(a.need) : A.num(a.need);
-      return have + ' / ' + need;
+    /**
+     * Run one money action.
+     *
+     * ⚠ THE RE-READ IS NOT OPTIONAL. The response carries a `wallet` block, but
+     * the page also holds a level, a quest board and a ledger that the same
+     * action may have moved. Repainting from a fresh read is the only way the
+     * whole page agrees with itself; repainting from the response would leave
+     * four panels correct and three stale.
+     */
+    function money(path, body, okMsg) {
+      if (busy) return;
+      busy = true;
+      document.body.setAttribute('aria-busy', 'true');
+      S.act(path, body || {}).then(function (r) {
+        var ok = r.ok && r.data && r.data.ok !== false;
+        if (!ok) { A.toast(refusalOf(r), { variant: 'danger', duration: 4200 }); return null; }
+        A.toast(typeof okMsg === 'function' ? okMsg(r.data) : okMsg, { variant: 'success' });
+        M.announce(typeof okMsg === 'function' ? okMsg(r.data) : okMsg);
+        return Promise.all([S.reload('bootstrap'), S.reload('tycoon'), S.reload('ledger')]);
+      }).then(function () {
+        busy = false;
+        document.body.removeAttribute('aria-busy');
+        paint();
+      }, function () {
+        busy = false;
+        document.body.removeAttribute('aria-busy');
+        A.toast(REFUSALS.unreachable, { variant: 'danger' });
+      });
     }
 
-    M.set('[data-achs-note]',
-      'Held is evaluated <strong>live against the rules</strong>, so a lapsed streak takes the badge back off the count — ' +
-      'the icon you equipped stays yours either way. Every one of the sixteen unlocks a selectable name-icon, and only one ' +
-      'icon ever shows next to your name, so they are alternates to your rank icon rather than extras.');
-
-    A.on('click', '[data-ach]', function (ev, btn) {
-      var a = achs[Number(btn.getAttribute('data-ach'))];
-      M.text('#ach-modal-title', a.name);
-      var have = a.money ? M.moneyFull(a.have) : A.num(a.have);
-      var need = a.money ? M.moneyFull(a.need) : A.num(a.need);
-      M.set('[data-ach-body]',
-        '<div class="as-row" style="gap:var(--as-space-4);align-items:flex-start">' +
-          '<span class="app-ach__glyph" style="width:3rem;height:3rem;font-size:1.5rem">' + a.emoji + '</span>' +
-          '<div class="as-stack--2" style="display:flex;flex-direction:column;gap:.4rem;min-width:0">' +
-            '<p>' + esc(a.desc) + '</p>' +
-            '<span class="as-badge ' + (a.held ? 'as-badge--success' : '') + '">' + (a.held ? 'Held' : 'Locked') + '</span>' +
-          '</div>' +
-        '</div>' +
-        (a.mastery ? '' : '<div class="u-mt-6">' + M.meter('Progress', a.have, a.need, { text: have + ' / ' + need }) + '</div>') +
-        (a.special ? '<p class="u-text-xs as-muted u-mt-3">Also satisfied by: ' + esc(a.special) + '.</p>' : ''));
-      A.modal('#ach-modal');
-    });
-  })();
-
-  /* ---------------------------------------------------------------- STATS */
-  (function statsRender() {
-    var current = 'week';
-    var periods = $('[data-stats-periods]');
+    /* --------------------------------------------------------------- PAINT */
 
     function paint() {
-      var win = M.WINDOWS.filter(function (w) { return w.key === current; })[0];
-      var histGate = M.entitled('stats-history');
-      var needsHistory = current === 'year' || current === 'all';
+      var me = S.me();
+      var boot = S.raw.bootstrap || {};
+      var guild = (boot.guild) || S.guild();
+      var achs = S.achievements();
+      var quests = S.quests();
+      var ecoGate = M.entitled('economy');
 
-      periods.innerHTML = M.WINDOWS.map(function (w) {
-        var locked = (w.key === 'year' || w.key === 'all') && !histGate.ok;
-        return '<button class="as-chip" type="button" data-window="' + w.key + '"' +
-          ' aria-pressed="' + (w.key === current) + '"' +
-          (locked ? ' disabled aria-disabled="true" data-as-tip="Needs ' + esc(M.tierName('community')) + '"' : '') +
-          '>' + (locked ? M.icon('lock') : '') + esc(w.short) + '</button>';
-      }).join('');
+      M.paintWallet(me.cash, me.incomePerSec);
 
-      M.text('[data-stats-window]', win.label);
+      /* ------------------------------------------------------------ GUILD */
+      var gname = guild.name || 'This server';
+      M.text('[data-guild-line]', gname +
+        (guild.memberCount ? ' · ' + A.num(guild.memberCount) + ' members' : '') +
+        (demo ? ' · example data' : ''));
+      document.title = 'Your profile — Asbern';
 
-      var host = $('[data-stats]');
-      if (needsHistory && !histGate.ok) {
-        host.innerHTML = M.lockedHtml(histGate, {
-          extra: '<p class="app-lock__body"><strong>Nothing has been lost.</strong> The collector keeps writing ' +
-                 'year and all-time data whether or not the plan can read it. Upgrading reveals the whole history instantly; ' +
-                 'downgrading hides it and never erases it.</p>'
-        });
-        return;
-      }
+      /* ------------------------------------------------------------- HERO */
+      (function hero() {
+        var rank = me.rank || (me.level != null ? M.rankForLevel(me.level) : null);
+        var wealth = ecoGate.ok && me.netPeak != null ? M.wealthTier(me.netPeak) : null;
+        var nextWealth = wealth ? M.nextWealthTier(me.netPeak) : null;
 
-      var a = me.activity[current];
-      var solo = a.presentMinutes > 0 ? (a.presentMinutes - a.voiceMinutes) / a.presentMinutes : 0;
+        var badges = [];
+        if (rank) badges.push('<span class="as-badge as-badge--accent">' + esc(rank.name) + '</span>');
+        if (me.level != null) badges.push('<span class="as-badge">Level ' + me.level + '</span>');
+        if (me.prestige) badges.push('<span class="as-badge as-badge--frost">' + esc(M.prestigeLabel(me.prestige)) + '</span>');
+        if (wealth) badges.push('<span class="as-badge">' + wealth.emoji + ' ' + esc(wealth.name) + '</span>');
 
-      host.innerHTML =
-        '<div class="app-tiles">' +
-          statTile('message', 'Messages', A.num(a.messages), null) +
-          statTile('mic', 'Voice', M.hm(a.voiceMinutes), 'engaged — ≥2 humans, unmuted') +
-          statTile('heart', 'Reactions', A.num(a.reactions), null) +
-          statTile('film', 'Watch time', M.hm(a.watchMinutes), 'measured at the stream gate') +
-        '</div>' +
-        '<div class="as-card u-mt-4">' +
-          M.kv([
-            ['Connected to voice', M.hm(a.presentMinutes) + ' <span class="as-muted">· all of it, muted or alone</span>'],
-            ['In voice with someone', M.hm(a.voiceMinutes) + ' <span class="as-muted">· what XP and challenges count</span>'],
-            ['On your own', M.pct(solo) + ' of your connected time', true],
-            ['Messages per voice hour', (a.presentMinutes > 0 ? (a.messages / (a.presentMinutes / 60)).toFixed(1) : '—'), true]
-          ]) +
-          '<div class="as-note u-mt-4 u-text-xs">' + M.icon('info') +
-            '<span><strong>Connected</strong> and <strong>in voice with someone</strong> are two different questions and this app ' +
-            'never adds them together. Sitting in an empty channel is real presence and it earns money; it is not the same as ' +
-            'being in a conversation, and only the second earns XP.</span>' +
+        var held = achs.filter(function (a) { return a.held; }).length;
+
+        /* ⚠ A BALANCE THAT COULD NOT BE READ SAYS SO. `me.known === false` is
+           the money store refusing to be spent as an empty one — v1.5's rule
+           after the 2026-08-01 wipe. An em dash is the honest render. */
+        var figures = ecoGate.ok
+          ? M.figure('Balance', m(me.cash), me.known ? esc(mFull(me.cash)) : 'could not be read just now', true) +
+            M.figure('Net worth', m(me.netWorth), 'cash + everything invested') +
+            M.figure('Earning', esc(M.moneyRate(me.incomePerSec || 0)), me.assetCount + ' of ' + M.ASSETS.length + ' assets') +
+            M.figure('Achievements', held + ' <small style="font-size:.6em;color:var(--as-text-3)">/ ' + achs.length + '</small>', 'live against the rules')
+          : M.figure('Level', me.level == null ? '—' : String(me.level), rank ? esc(rank.name) : '', true) +
+            M.figure('Prestige', me.prestige ? String(me.prestige) : '—', me.prestige ? esc(M.prestigeLabel(me.prestige)) : 'not yet') +
+            M.figure('Achievements', held + ' <small style="font-size:.6em;color:var(--as-text-3)">/ ' + achs.length + '</small>', 'free on every plan') +
+            M.figure('Economy', 'Off', 'not on this plan');
+
+        $('[data-hero]').innerHTML =
+          '<div class="app-hero__top">' +
+            '<span class="app-hero__avatar">' + esc(me.initials) + '</span>' +
+            '<div style="min-width:0;flex:1 1 auto">' +
+              '<div class="app-hero__name">' + esc(me.name) + '</div>' +
+              '<div class="u-text-xs as-muted">Signed in with Discord' + (demo ? ' — not really; this is example data' : '') + '</div>' +
+              '<div class="app-hero__meta">' + badges.join('') + '</div>' +
+            '</div>' +
           '</div>' +
-        '</div>' +
-        (current === 'year'
-          ? '<div class="as-note as-note--warn u-mt-4 u-text-xs">' + M.icon('alert') +
-            '<span>“Year” here is a <strong>rolling twelve months</strong> — the last 365 days, not January to December. ' +
-            'The store is bucketed by month, so a calendar year is a different query and this one is not it.</span></div>'
-          : '') +
-        '<div class="u-mt-6">' + earnings(a) + '</div>';
+          '<div class="app-hero__figures">' + figures + '</div>' +
+          (nextWealth
+            ? '<p class="u-text-xs as-muted">' + wealth.emoji + ' <strong>' + esc(wealth.name) + '</strong> — a net-worth tier, not a Discord rank. ' +
+                esc(M.moneyFull(nextWealth.at - me.netPeak)) + ' more at your best to reach ' + nextWealth.emoji + ' ' + esc(nextWealth.name) + '. ' +
+                'Tiers unlock name-icons; they do not unlock money.</p>'
+            : '');
+      })();
+
+      /* ---------------------------------------------------------- COLLECT */
+      (function collect() {
+        var host = $('[data-collect]');
+        if (!ecoGate.ok) { host.innerHTML = '<h2 class="app-sec__title u-mb-4">Collect</h2>' + M.lockedHtml(ecoGate); return; }
+
+        var dailyReady = me.daily && me.daily.readyIn <= 0;
+        var workReady = me.work && me.work.readyIn <= 0;
+        var owed = (quests && quests.claimable) || 0;
+
+        function row(key, glyph, title, sub, btnLabel, ready, tip) {
+          return '' +
+          '<div class="app-collect">' +
+            '<span class="app-collect__glyph">' + glyph + '</span>' +
+            '<div class="app-collect__body">' +
+              '<div class="app-collect__title">' + esc(title) + '</div>' +
+              '<div class="app-collect__sub">' + sub + '</div>' +
+            '</div>' +
+            '<button class="as-btn ' + (ready ? 'as-btn--primary' : 'as-btn--secondary') + ' as-btn--sm"' +
+              ' type="button" data-money="' + esc(key) + '"' +
+              (tip ? ' data-as-tip="' + esc(tip) + '"' : '') + '>' + esc(btnLabel) + '</button>' +
+          '</div>';
+        }
+
+        host.innerHTML =
+          '<div class="app-sec__head" style="margin-bottom:var(--as-space-5)">' +
+            '<h2 id="collect-h" class="app-sec__title">Collect</h2>' +
+            '<span class="app-sec__note">The same money path as the bot</span>' +
+          '</div>' +
+          row('daily', '🎁', 'Daily bonus',
+              (me.daily.streak ? '<strong>' + me.daily.streak + '-day streak</strong> · next pays ' + esc(M.moneyFull(M.ECON.dailyAmount(me.daily.streak + 1))) : 'Starts a streak') +
+              (dailyReady ? ' · <span class="app-pos">ready now</span>' : ' · ' + esc(M.until(me.daily.nextAt))),
+              dailyReady ? 'Claim' : 'Not yet', dailyReady,
+              dailyReady ? '' : 'Press it anyway — the server decides, not this page') +
+          row('work', '🛠️', 'Work a shift',
+              'Pays ' + esc(M.moneyFull(M.ECON.WORK_MIN)) + '–' + esc(M.moneyFull(M.ECON.WORK_MAX)) + ' every 15 minutes' +
+              (workReady ? ' · <span class="app-pos">ready now</span>' : ' · ' + esc(M.until(me.work.nextAt))),
+              workReady ? 'Work' : 'Not yet', workReady, '') +
+          row('claim', '✅', 'Finished challenges',
+              owed ? '<strong>' + owed + '</strong> waiting to be paid' : 'Nothing owed right now — the bot also pays these automatically',
+              owed ? ('Claim ' + owed) : 'Nothing owed', owed > 0, '') +
+          '<p class="u-text-2xs as-muted u-mt-3">These press the <strong>same functions</strong> the Discord menu presses — not a copy of them. ' +
+            'If the bot claimed your daily thirty seconds ago, this says so instead of paying twice.</p>';
+      })();
+
+      /* -------------------------------------------------------------- XP */
+      (function xp() {
+        var host = $('[data-xp]');
+        if (me.level == null) {
+          host.innerHTML = '<p class="u-text-sm as-muted">Your level could not be read just now.</p>';
+          return;
+        }
+        var rank = me.rank, next = me.nextRank;
+        var html = M.meter('Level ' + me.level + ' → ' + (me.level + 1), me.xpInto, me.xpNeed, {
+          text: A.num(me.xpInto) + ' / ' + A.num(me.xpNeed) + ' XP', lg: true
+        });
+
+        html += '<div class="u-mt-4">' + M.kv([
+          ['Rank', rank ? esc(rank.name) : '—'],
+          next
+            ? ['Next rank', esc(next.name) + ' <span class="as-muted">at level ' + next.level + '</span>']
+            : ['Next rank', 'Master General — the top of the ladder', true],
+          ['Lifetime XP', A.num(me.lifetimeXp)],
+          me.prestige
+            ? ['Prestige', esc(M.prestigeLabel(me.prestige)) + ' <span class="as-muted">· next costs ' + esc(M.moneyFull(me.nextPrestigeCost || M.prestigeCost(me.prestige + 1))) + '</span>']
+            : ['Prestige', me.atMaxRank ? 'ready — costs ' + esc(M.moneyFull(me.nextPrestigeCost || 0)) : 'unlocks at Master General', !me.atMaxRank]
+        ]) + '</div>';
+
+        /* ⚠ PRESTIGE IS DELIBERATELY NOT A BUTTON HERE. It spends money AND
+           grants a Discord role, and the role half needs the bot — so a web
+           button could take the money and fail the grant. The API says the same
+           thing in its `withheld` block; this line is that decision, rendered. */
+        if (me.atMaxRank) {
+          html += '<div class="as-note as-note--frost u-mt-4 u-text-xs">' + M.icon('info') +
+            '<span><strong>Prestige is done in Discord.</strong> It spends money and grants a role in the same breath, ' +
+            'and only the bot can hand out a role — so a button here could take the payment and fail the promotion.</span></div>';
+        }
+
+        html +=
+          '<details class="as-acc u-mt-4">' +
+            '<summary class="as-acc__summary">How XP is earned</summary>' +
+            '<div class="as-acc__body">' +
+              M.kv([
+                ['A message', M.LVL.MSG_XP_MIN + '–' + M.LVL.MSG_XP_MAX + ' XP <span class="as-muted">· once a minute</span>'],
+                ['A voice minute', M.LVL.VOICE_XP_PER_MIN + ' XP <span class="as-muted">· unmuted, not deafened, ≥2 humans, not AFK</span>'],
+                ['Voice daily cap', A.num(M.LVL.VOICE_XP_DAILY_CAP) + ' XP <span class="as-muted">· 120 minutes</span>'],
+                ['An economy action', M.LVL.ECON_XP_PER_ACTION + ' XP <span class="as-muted">· capped at ' + M.LVL.ECON_XP_DAILY_CAP + '/day</span>']
+              ]) +
+            '</div>' +
+          '</details>' +
+          '<div class="as-note as-note--accent u-mt-4">' + M.icon('shield') +
+            '<span><strong>XP cannot be bought.</strong> Not with a subscription, not with a boost, not by anybody. ' +
+            'Nothing on any paid tier grants XP, adds a multiplier, or touches your balance — that is a rule in the ' +
+            'product, not a promise in a footer.</span>' +
+          '</div>';
+
+        host.innerHTML = html;
+      })();
+
+      /* ---------------------------------------------------------- QUESTS */
+      (function questsRender() {
+        var gate = M.entitled('challenges');
+        var host = $('[data-quests]');
+        if (!gate.ok) { host.innerHTML = M.lockedHtml(gate); return; }
+
+        /**
+         * ⚠ `known === false` IS NOT ZERO, AND THIS IS THE WHOLE REASON THIS
+         * NORMALISER EXISTS. A delta challenge with no baseline yet reports
+         * `known:false`, and a bar drawn at 0% for it is a measurement the bot
+         * never took. panel.js states the same rule for the Discord card: show
+         * the objective and say the progress is not in yet.
+         */
+        function card(q, kind, label) {
+          if (!q) {
+            return '<div class="app-quest app-quest--empty">' +
+              '<span class="app-quest__glyph">·</span>' +
+              '<div class="app-quest__body"><div class="app-quest__title">' +
+              '<span class="app-quest__name">' + esc(label) + '</span></div>' +
+              '<p class="app-quest__ask">Nothing scheduled right now.</p></div></div>';
+          }
+          var name = q.title || q.name || label;
+          var ask = q.objective || q.ask || '';
+          var value = (q.value === null || q.value === undefined) ? null : q.value;
+          var target = q.target || q.need || q.needWeeks || 0;
+          var done = !!q.done;
+          var reward = q.reward || {};
+          var role = reward.role ? ((reward.role.icon || '') + ' ' + (reward.role.name || reward.role) + ' + ') : '';
+          var rewardHtml = role + M.money(reward.cash || 0) + ' + ' + A.num(reward.xp || 0) + ' XP';
+          var kindBadge = {
+            daily: '<span class="as-badge">Today</span>',
+            weekly: '<span class="as-badge">This week</span>',
+            goal: '<span class="as-badge as-badge--frost">Server goal</span>',
+            season: '<span class="as-badge as-badge--frost">Season</span>'
+          }[kind] || '';
+          var tierBadge = q.tier && typeof q.tier === 'string' ? '<span class="as-badge as-badge--plain">' + esc(q.tier) + '</span>' : '';
+
+          var body;
+          if (!q.known) {
+            body = '<p class="u-text-xs as-muted app-quest__unknown">' + M.icon('info') +
+              ' Progress is still being counted — this is not a zero, it is a number we do not have yet.</p>';
+          } else {
+            body = M.meter(done ? 'Complete' : 'Progress', value || 0, target, {
+              text: A.num(value || 0) + ' / ' + A.num(target) + (q.unit ? ' ' + esc(q.unit) : ''),
+              variant: done ? 'done' : ''
+            });
+          }
+
+          return '' +
+          '<div class="app-quest' + (q.claimable ? ' app-quest--claimable' : done ? ' app-quest--done' : '') + '">' +
+            '<span class="app-quest__glyph">' + (q.icon || '🎯') + '</span>' +
+            '<div class="app-quest__body">' +
+              '<div class="app-quest__title">' +
+                '<span class="app-quest__name">' + esc(name) + '</span>' + kindBadge + tierBadge +
+              '</div>' +
+              '<p class="app-quest__ask">' + esc(ask) + (q.measure ? ' <span class="as-muted">· ' + esc(q.measure) + '</span>' : '') + '</p>' +
+              body +
+              '<div class="app-quest__foot">' +
+                '<span class="app-quest__reward">' + M.icon('gift') + rewardHtml + '</span>' +
+                (q.claimed ? '<span class="as-badge as-badge--success">Paid</span>'
+                  : q.claimable ? '<button class="as-btn as-btn--primary as-btn--sm" type="button" data-money="claim">Claim</button>'
+                  : '') +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        }
+
+        var s = quests.season;
+        host.innerHTML =
+          '<div class="app-stack" style="display:flex;flex-direction:column">' +
+            card(quests.daily, 'daily', 'Today') +
+            card(quests.weekly, 'weekly', 'This week') +
+            card(quests.goal, 'goal', 'Server goal') +
+            card(s ? {
+              known: s.known, value: s.value, target: s.needWeeks, unit: 'weeks',
+              name: 'Season ' + s.season + ' — ' + s.name, icon: '🏛️',
+              objective: s.activeMins + '+ minutes in voice in ' + s.needWeeks + ' of ' + s.weeks + ' weeks',
+              reward: s.reward, done: s.done, claimed: false, claimable: false
+            } : null, 'season', 'Season') +
+          '</div>' +
+          (quests.events && quests.events.weekend
+            ? '<div class="as-note ' + (quests.events.weekendLive ? 'as-note--accent' : '') + ' u-mt-4 u-text-xs">' + M.icon('zap') +
+              '<span><strong>' + esc(quests.events.weekend.name) + '</strong> — ' +
+              (quests.events.weekendLive ? 'live now until Monday 3am' : 'starts Friday') + '. ' +
+              esc(quests.events.weekend.what || '') + '</span></div>'
+            : '');
+      })();
+
+      /* ---------------------------------------------------- ACHIEVEMENTS */
+      (function achsRender() {
+        var held = achs.filter(function (a) { return a.held; }).length;
+        M.text('[data-achs-count]', held + ' of ' + achs.length + ' held');
+
+        $('[data-achs]').innerHTML = '<div class="app-achs">' + achs.map(function (a, i) {
+          var cls = 'app-ach ' + (a.held ? 'app-ach--earned' : 'app-ach--locked');
+          return '<button class="' + cls + '" type="button" data-ach="' + i + '" aria-label="' +
+            esc(a.name + (a.held ? ' — earned' : ' — locked') + '. ' + (a.desc || '')) + '">' +
+            '<span class="app-ach__glyph" aria-hidden="true">' + a.emoji + '</span>' +
+            '<span class="app-ach__name">' + esc(a.name) + '</span>' +
+            '<span class="app-ach__desc">' + esc(a.desc || '') + '</span>' +
+          '</button>';
+        }).join('') + '</div>';
+
+        M.set('[data-achs-note]',
+          'Held is evaluated <strong>live against the rules</strong>, so a lapsed streak takes the badge back off the count — ' +
+          'the icon you equipped stays yours either way. Every one unlocks a selectable name-icon, and only one icon ever ' +
+          'shows next to your name.');
+
+        A.on('click', '[data-ach]', function (ev, btn) {
+          var a = achs[Number(btn.getAttribute('data-ach'))];
+          M.text('#ach-modal-title', a.name);
+          M.set('[data-ach-body]',
+            '<div class="as-row" style="gap:var(--as-space-4);align-items:flex-start">' +
+              '<span class="app-ach__glyph" style="width:3rem;height:3rem;font-size:1.5rem">' + a.emoji + '</span>' +
+              '<div class="as-stack--2" style="display:flex;flex-direction:column;gap:.4rem;min-width:0">' +
+                '<p>' + esc(a.desc || '') + '</p>' +
+                '<span class="as-badge ' + (a.held ? 'as-badge--success' : '') + '">' + (a.held ? 'Held' : 'Locked') + '</span>' +
+              '</div>' +
+            '</div>');
+          A.modal('#ach-modal');
+        });
+      })();
+
+      /* ------------------------------------------------------------ STATS */
+      (function statsRender() {
+        var periods = $('[data-stats-periods]');
+        var windows = S.activity().windows || {};
+
+        function paintStats() {
+          var win = M.WINDOWS.filter(function (w) { return w.key === current; })[0];
+          var histGate = M.entitled('stats-history');
+          var needsHistory = current === 'year' || current === 'all';
+
+          periods.innerHTML = M.WINDOWS.map(function (w) {
+            var locked = (w.key === 'year' || w.key === 'all') && !histGate.ok;
+            return '<button class="as-chip" type="button" data-window="' + w.key + '"' +
+              ' aria-pressed="' + (w.key === current) + '"' +
+              (locked ? ' disabled aria-disabled="true" data-as-tip="Needs ' + esc(M.tierName('community')) + '"' : '') +
+              '>' + (locked ? M.icon('lock') : '') + esc(w.short) + '</button>';
+          }).join('');
+
+          M.text('[data-stats-window]', win.label);
+          var host = $('[data-stats]');
+
+          if (needsHistory && !histGate.ok) {
+            host.innerHTML = M.lockedHtml(histGate, {
+              extra: '<p class="app-lock__body"><strong>Nothing has been lost.</strong> The collector keeps writing ' +
+                     'year and all-time data whether or not the plan can read it.</p>'
+            });
+            return;
+          }
+
+          var a = windows[current];
+          /* ⚠ A WINDOW WITH NO ROW IS SAID OUT LOUD. localstats returns null for
+             a window it has nothing for, and rendering four zero tiles there is
+             indistinguishable from a real week of silence. */
+          if (!a) {
+            host.innerHTML = '<div class="as-empty"><span class="as-empty__icon">' + M.icon('chart') + '</span>' +
+              '<p class="as-empty__title">Nothing recorded for this window</p>' +
+              '<p class="as-empty__body">That is the absence of a measurement, not a measured zero.</p></div>';
+            return;
+          }
+
+          var solo = a.presenceHours > 0 ? (a.presenceHours - a.voiceHours) / a.presenceHours : 0;
+          host.innerHTML =
+            '<div class="app-tiles">' +
+              tile('message', 'Messages', A.num(a.messages)) +
+              tile('mic', 'In voice', a.voiceHours + ' h', 'engaged — ≥2 humans, unmuted') +
+              tile('users', 'Connected', a.presenceHours + ' h', 'all of it, muted or alone') +
+              tile('trend', 'On your own', M.pct(solo), 'of your connected time') +
+            '</div>' +
+            '<div class="as-card u-mt-4">' +
+              '<div class="as-note u-text-xs">' + M.icon('info') +
+                '<span><strong>Connected</strong> and <strong>in voice with someone</strong> are two different questions and ' +
+                'this page never adds them together. Sitting in an empty channel is real presence and it earns money; only ' +
+                'the second earns XP.</span>' +
+              '</div>' +
+            '</div>' +
+            (current === 'year'
+              ? '<div class="as-note as-note--warn u-mt-4 u-text-xs">' + M.icon('alert') +
+                '<span>“Year” here is a <strong>rolling twelve months</strong> — the last 365 days, not January to December.</span></div>'
+              : '');
+        }
+
+        function tile(ic, label, value, note) {
+          return '<div class="as-stat">' +
+            '<span class="as-stat__label">' + esc(label) + '</span>' +
+            '<span class="as-stat__value">' + esc(value) + '</span>' +
+            (note ? '<span class="as-stat__note">' + esc(note) + '</span>' : '') +
+          '</div>';
+        }
+
+        paintStats();
+        if (!statsRender.wired) {
+          statsRender.wired = true;
+          A.on('click', '[data-window]', function (ev, btn) {
+            if (btn.disabled) return;
+            current = btn.getAttribute('data-window');
+            paintStats();
+            M.announce('Showing ' + current + '.');
+          });
+        }
+      })();
+
+      /* ---------------------------------------------------------- WRAPPED */
+      (function wrapped() {
+        var gate = M.entitled('wrapped');
+        var host = $('[data-wrapped]');
+        if (!gate.ok) {
+          host.className = 'as-card';
+          host.innerHTML = '<h2 id="wrapped-h" class="app-sec__title u-mb-4">Wrapped</h2>' + M.lockedHtml(gate);
+          return;
+        }
+        var a = (S.activity().windows || {}).year;
+        host.className = 'as-card as-card--accent';
+        host.innerHTML =
+          '<div class="as-row as-row--between u-mb-4">' +
+            '<h2 id="wrapped-h" class="app-sec__title" style="color:var(--as-accent)">Wrapped</h2>' +
+            '<span class="as-badge as-badge--accent">Opens on the occasion</span>' +
+          '</div>' +
+          '<p class="u-text-sm">Your year here, as one card. It opens on the <strong>occasion</strong> your server ' +
+            'picks — year-end by default, and the owner can move it.</p>' +
+          (a ? '<div class="u-mt-4">' + M.kv([
+            ['Messages so far', A.num(a.messages)],
+            ['In voice', A.num(a.voiceHours) + ' h'],
+            ['Connected', A.num(a.presenceHours) + ' h']
+          ]) + '</div>' : '<p class="u-text-xs as-muted u-mt-3">Nothing counted for the last twelve months yet.</p>') +
+          '<p class="u-text-2xs as-muted u-mt-3">Wrapped reads the same rolling-twelve-month window as the Year filter, ' +
+            'so it is “your last year”, not “this calendar year”.</p>';
+      })();
+
+      /* ----------------------------------------------------------- TYCOON */
+      (function tycoon() {
+        var host = $('[data-tycoon]');
+        if (!ecoGate.ok) { host.innerHTML = '<h2 class="app-sec__title u-mb-4">Idle tycoon</h2>' + M.lockedHtml(ecoGate); return; }
+        var t = S.tycoon();
+        if (!t.known) {
+          host.innerHTML = '<h2 id="tycoon-h" class="app-sec__title u-mb-4">Idle tycoon</h2>' +
+            '<p class="u-text-sm as-muted">Your assets could not be read just now.</p>';
+          return;
+        }
+
+        var owned = t.assets.filter(function (a) { return a.level > 0; });
+        var buyable = t.assets.filter(function (a) { return !a.locked; });
+
+        host.innerHTML =
+          '<div class="as-row as-row--between u-mb-4">' +
+            '<h2 id="tycoon-h" class="app-sec__title">Idle tycoon</h2>' +
+            '<span class="as-badge as-badge--accent">' + esc(M.moneyRate(t.incomePerSec)) + '</span>' +
+          '</div>' +
+          (owned.length
+            ? owned.map(function (a) {
+                return '<div class="as-row as-row--between u-text-sm" style="padding:.35rem 0;border-bottom:1px solid var(--as-border-soft)">' +
+                  '<span style="min-width:0">' + a.emoji + ' <strong>' + esc(a.name) + '</strong> <span class="as-muted">Lv ' + a.level + '</span></span>' +
+                  '<span class="app-num as-muted">' + esc(M.moneyRate(a.income * a.level)) + '</span>' +
+                '</div>';
+              }).join('')
+            : '<p class="u-text-sm as-muted">No assets yet — the first one is ' + esc(M.moneyFull(M.assetCost('popcorn', 0))) + '.</p>') +
+          '<div class="u-mt-4">' + buyable.slice(0, 4).map(function (a) {
+            /* ⚠ THE BUTTON IS NEVER DISABLED BY AFFORDABILITY. It is styled by
+               it, and the server decides. A disabled button on a stale balance
+               is a member being told they cannot afford something they can. */
+            return '<div class="app-buy">' +
+              '<span class="app-buy__glyph">' + a.emoji + '</span>' +
+              '<div class="app-buy__body">' +
+                '<div class="app-buy__name">' + esc(a.name) + (a.level ? ' <span class="as-muted">→ Lv ' + (a.level + 1) + '</span>' : '') + '</div>' +
+                '<div class="app-buy__sub">' + esc(M.moneyRate(a.income)) + ' per level</div>' +
+              '</div>' +
+              '<button class="as-btn ' + (a.affordable ? 'as-btn--primary' : 'as-btn--secondary') + ' as-btn--sm"' +
+                ' type="button" data-buy="' + esc(a.id) + '">' + esc(M.money(a.cost)) + '</button>' +
+            '</div>';
+          }).join('') + '</div>' +
+          '<p class="u-text-2xs as-muted u-mt-3">Income accrues while you are away, up to <strong>48 hours</strong>. ' +
+            'Checking every other day banks the whole haul.</p>';
+      })();
+
+      /* ----------------------------------------------------------- LEDGER */
+      (function ledger() {
+        var host = $('[data-ledger]');
+        if (!ecoGate.ok) { host.innerHTML = '<p class="u-text-sm as-muted">The economy is not on this server’s plan.</p>'; return; }
+        var rows = S.ledger();
+        if (!rows.length) {
+          host.innerHTML = '<p class="u-text-sm as-muted">Nothing yet. Every movement of money lands here.</p>';
+          return;
+        }
+        host.innerHTML = rows.slice(0, 8).map(function (l) {
+          var when = l.t ? new Date(l.t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+          return '<div class="as-row as-row--between u-text-sm" style="padding:.4rem 0;border-bottom:1px solid var(--as-border-soft);align-items:flex-start">' +
+            '<span style="min-width:0">' +
+              '<strong>' + esc(l.r || 'Movement') + '</strong><br>' +
+              '<span class="u-text-xs as-muted">' + esc(when) + '</span>' +
+            '</span>' +
+            '<span class="app-num ' + (l.d >= 0 ? 'app-pos' : 'app-neg') + '" style="font-weight:700;white-space:nowrap">' +
+              M.signedMoney(l.d) + '</span>' +
+          '</div>';
+        }).join('') +
+        '<p class="u-text-xs as-muted u-mt-3">Every line here is also an entry in a durable audit log. ' +
+          'Money that appears without one is a bug, and there is a test that says so.</p>';
+      })();
+
+      /* ------------------------------------------------------------- PLAN */
+      (function plan() {
+        var memberFacing = ['leveling', 'achievements', 'economy', 'casino', 'challenges', 'wrapped',
+                            'stats-basic', 'stats-history', 'screening-room', 'live-tv', 'game-servers'];
+        var caps = S.capabilities() || {};
+        $('[data-plan]').innerHTML =
+          '<p class="u-text-sm as-muted u-mb-4">Modules are bought by your server’s owner, per server. ' +
+            'You cannot buy anything here and there is nothing to buy — the subscription never touches Bucks, XP or odds.</p>' +
+          '<div class="as-list">' + memberFacing.map(function (id) {
+            var mod = M.MODULES[id], g = M.entitled(id);
+            /* The owner's own switch beats the plan: a module the plan allows but
+               the owner turned off is OFF, and saying "included" there would be
+               wrong in the direction that raises a support ticket. */
+            var switchedOff = (id === 'economy' && caps.economy === false) ||
+                              (id === 'casino' && caps.casino === false) ||
+                              (id === 'leveling' && caps.leveling === false);
+            var ok = g.ok && !switchedOff;
+            var glyph = ok ? M.icon('check') : M.icon(mod.status === 'planned' ? 'minus' : 'lock');
+            var note = ok ? '' : (switchedOff ? ' — switched off by your owner'
+                        : mod.status === 'planned' ? ' — not built'
+                        : mod.status === 'dark' ? ' — off'
+                        : ' — needs ' + M.tierName(mod.min));
+            return '<div class="as-list__item' + (ok ? '' : ' as-list__item--no') + '">' + glyph +
+                   '<span>' + esc(mod.name) + '<span class="as-muted">' + note + '</span></span></div>';
+          }).join('') + '</div>' +
+          '<p class="u-text-xs as-muted u-mt-4">Dropping a module makes it read-only. Balances are not zeroed, ' +
+            'levels are not reset, and nothing is deleted.</p>';
+      })();
+
+      M.mountIcons(document);
+      A.mount(document);
     }
 
-    function statTile(ic, label, value, note) {
-      return '<div class="as-stat">' +
-        '<span class="as-stat__label">' + esc(label) + '</span>' +
-        '<span class="as-stat__value">' + esc(value) + '</span>' +
-        (note ? '<span class="as-stat__note">' + esc(note) + '</span>' : '') +
-      '</div>';
-    }
+    var current = 'week';
 
-    /* What this activity is worth, using the real rates. Only shown when the
-       economy is actually on this plan — otherwise it is a number about a
-       feature the member does not have. */
-    function earnings(a) {
-      var gate = M.entitled('economy');
-      if (!gate.ok) return '';
-      var msg = Math.min(a.messages * M.ECON.MESSAGE_EARN, a.messages * M.ECON.MESSAGE_EARN);
-      var voice = a.voiceMinutes * M.ECON.VOICE_EARN;
-      var watch = Math.floor(a.watchMinutes / 60) * M.ECON.WATCH_HOUR_EARN;
-      return '' +
-      '<details class="as-acc">' +
-        '<summary class="as-acc__summary">What activity pays</summary>' +
-        '<div class="as-acc__body">' +
-          M.kv([
-            ['A message', M.moneyFull(M.ECON.MESSAGE_EARN) + ' <span class="as-muted">· at most ' + M.moneyFull(M.ECON.MESSAGE_MINUTE_CAP) + ' a minute, so three paid messages</span>'],
-            ['A voice minute', M.moneyFull(M.ECON.VOICE_EARN) + ' <span class="as-muted">· no daily cap</span>'],
-            ['An hour watching', M.moneyFull(M.ECON.WATCH_HOUR_EARN) + ' <span class="as-muted">· per <em>completed</em> hour</span>'],
-            ['Daily claim', M.moneyFull(M.ECON.dailyAmount(me.daily.streak)) + ' <span class="as-muted">· day ' + me.daily.streak + ' of your streak</span>'],
-            ['Work shift', M.moneyFull(M.ECON.WORK_MIN) + '–' + M.moneyFull(M.ECON.WORK_MAX) + ' <span class="as-muted">· every 15 minutes</span>']
-          ]) +
-          '<p class="u-text-xs as-muted u-mt-3">These are a <strong>floor</strong>, not the way up. Over this window they come to about ' +
-            M.moneyFull(msg + voice + watch) + ' — against ' + M.moneyRate(me.incomePerSec) +
-            ' from the tycoon, which is where wealth actually comes from.</p>' +
-          '<p class="u-text-xs as-muted u-mt-2"><strong>Watching pays by the completed hour and that is not a style choice.</strong> ' +
-            'Money is floored to whole dollars, so a rate of ' + M.moneyFull(1) + ' an hour spread across the 30-second progress tick ' +
-            'is less than a cent a tick — which floors to zero, every time, and would pay nobody anything.</p>' +
-        '</div>' +
-      '</details>';
-    }
+    /* ---------------------------------------------------- the money wiring */
+    A.on('click', '[data-money]', function (ev, btn) {
+      var k = btn.getAttribute('data-money');
+      if (k === 'daily') money('daily', {}, function (d) { return 'Daily claimed — ' + M.moneyFull(d.amount) + (d.streak > 1 ? ' · ' + d.streak + '-day streak' : ''); });
+      else if (k === 'work') money('work', {}, function (d) { return 'Shift done — ' + M.moneyFull(d.amount) + '.'; });
+      else if (k === 'claim') money('claim', {}, function (d) {
+        var n = (d.claimed || []).length;
+        return n ? 'Paid ' + n + ' reward' + (n === 1 ? '' : 's') + '.' : 'Nothing was owed — the bot had already paid it.';
+      });
+    });
 
-    A.on('click', '[data-window]', function (ev, btn) {
-      if (btn.disabled) return;
-      current = btn.getAttribute('data-window');
-      paint();
-      M.announce('Showing ' + current + '.');
+    A.on('click', '[data-buy]', function (ev, btn) {
+      money('tycoon/buy', { assetId: btn.getAttribute('data-buy') }, function (d) {
+        return 'Bought — now level ' + d.level + '.';
+      });
     });
 
     paint();
-  })();
-
-  /* -------------------------------------------------------------- WRAPPED */
-  (function wrapped() {
-    var gate = M.entitled('wrapped');
-    var host = $('[data-wrapped]');
-    if (!gate.ok) {
-      host.className = 'as-card';
-      host.innerHTML = '<h2 id="wrapped-h" class="app-sec__title u-mb-4">Wrapped</h2>' + M.lockedHtml(gate);
-      return;
-    }
-    var a = me.activity.year;
-    host.className = 'as-card as-card--accent';
-    host.innerHTML =
-      '<div class="as-row as-row--between u-mb-4">' +
-        '<h2 id="wrapped-h" class="app-sec__title" style="color:var(--as-accent)">Wrapped</h2>' +
-        '<span class="as-badge as-badge--accent">Not open yet</span>' +
-      '</div>' +
-      '<p class="u-text-sm">Your year on Hearthstead, as one card. It opens on the <strong>occasion</strong> your ' +
-        'server picks — year-end by default, and the owner can move it.</p>' +
-      '<div class="u-mt-4">' + M.kv([
-        ['Messages so far', A.num(a.messages)],
-        ['In voice', A.num(M.hoursFromMin(a.voiceMinutes)) + ' h'],
-        ['Watched', A.num(M.hoursFromMin(a.watchMinutes)) + ' h'],
-        ['Your busiest day', 'Saturday', true]
-      ]) + '</div>' +
-      '<button class="as-btn as-btn--secondary as-btn--block u-mt-4" type="button" data-wrapped-peek>' +
-        'Peek at what it will say' +
-      '</button>' +
-      '<p class="u-text-2xs as-muted u-mt-3">Wrapped reads the same rolling-twelve-month window as the Year filter, ' +
-        'so it is “your last year”, not “this calendar year”. The card says so too.</p>';
-
-    A.on('click', '[data-wrapped-peek]', function () {
-      A.toast('Wrapped opens on the occasion. Nothing is computed early — the window has to close first.', { variant: 'accent', duration: 4200 });
-    });
-  })();
-
-  /* --------------------------------------------------------------- TYCOON */
-  (function tycoon() {
-    var gate = M.entitled('economy');
-    var host = $('[data-tycoon]');
-    if (!gate.ok) { host.innerHTML = '<h2 class="app-sec__title u-mb-4">Idle tycoon</h2>' + M.lockedHtml(gate); return; }
-
-    var owned = M.ASSETS.filter(function (a) { return me.assets[a.id]; });
-    var next  = M.ASSETS.filter(function (a) { return !me.assets[a.id]; })[0];
-
-    host.innerHTML =
-      '<div class="as-row as-row--between u-mb-4">' +
-        '<h2 id="tycoon-h" class="app-sec__title">Idle tycoon</h2>' +
-        '<span class="as-badge as-badge--accent">' + esc(M.moneyRate(me.incomePerSec)) + '</span>' +
-      '</div>' +
-      owned.map(function (a) {
-        var lvl = me.assets[a.id];
-        return '<div class="as-row as-row--between u-text-sm" style="padding:.35rem 0;border-bottom:1px solid var(--as-border-soft)">' +
-          '<span style="min-width:0">' + a.emoji + ' <strong>' + esc(a.name) + '</strong> <span class="as-muted">Lv ' + lvl + '</span></span>' +
-          '<span class="app-num as-muted">' + esc(M.moneyRate(a.income * lvl)) + '</span>' +
-        '</div>';
-      }).join('') +
-      (next
-        ? '<div class="u-mt-4">' + M.meter('Next: ' + next.emoji + ' ' + next.name, me.netPeak, next.unlock, {
-            text: M.money(me.netPeak) + ' / ' + M.money(next.unlock) + ' peak'
-          }) + '</div>'
-        : '') +
-      '<p class="u-text-2xs as-muted u-mt-3">Income accrues while you are away, up to <strong>48 hours</strong>. ' +
-        'Checking every other day banks the whole haul; there is nothing to lose by not being here.</p>';
-  })();
-
-  /* --------------------------------------------------------------- LEDGER */
-  (function ledger() {
-    var gate = M.entitled('economy');
-    var host = $('[data-ledger]');
-    if (!gate.ok) { host.innerHTML = '<p class="u-text-sm as-muted">The economy is not on this server’s plan.</p>'; return; }
-    host.innerHTML = M.server.ledger().map(function (l) {
-      return '<div class="as-row as-row--between u-text-sm" style="padding:.4rem 0;border-bottom:1px solid var(--as-border-soft);align-items:flex-start">' +
-        '<span style="min-width:0">' +
-          '<strong>' + esc(l.kind) + '</strong><br>' +
-          '<span class="u-text-2xs as-muted">' + esc(l.at) + ' · ' + esc(l.detail) + '</span>' +
-        '</span>' +
-        '<span class="app-num ' + (l.amount >= 0 ? 'app-pos' : 'app-neg') + '" style="font-weight:700;white-space:nowrap">' +
-          M.signedMoney(l.amount) + '</span>' +
-      '</div>';
-    }).join('') +
-    '<p class="u-text-2xs as-muted u-mt-3">Every line here is also an entry in a durable audit log. ' +
-      'Money that appears without one is a bug, and there is a test that says so.</p>';
-  })();
-
-  /* ----------------------------------------------------------------- PLAN */
-  (function plan() {
-    var current = M.plan.get();
-    var memberFacing = ['leveling', 'achievements', 'economy', 'casino', 'challenges', 'wrapped',
-                        'stats-basic', 'stats-history', 'screening-room', 'live-tv', 'game-servers', 'music'];
-    $('[data-plan]').innerHTML =
-      '<p class="u-text-sm as-muted u-mb-4">Modules are bought by your server’s owner, per server. ' +
-        'You cannot buy anything here and there is nothing to buy — the subscription never touches Bucks, XP or odds.</p>' +
-      '<div class="as-list">' + memberFacing.map(function (id) {
-        var mod = M.MODULES[id], g = M.entitled(id);
-        var glyph = g.ok ? M.icon('check') : M.icon(mod.status === 'planned' ? 'minus' : 'lock');
-        var note = g.ok ? '' : (mod.status === 'planned' ? ' — not built' :
-                    mod.status === 'dark' ? ' — off' : ' — needs ' + M.tierName(mod.min));
-        return '<div class="as-list__item' + (g.ok ? '' : ' as-list__item--no') + '">' + glyph +
-               '<span>' + esc(mod.name) + '<span class="as-muted">' + note + '</span></span></div>';
-      }).join('') + '</div>' +
-      '<p class="u-text-2xs as-muted u-mt-4">Dropping a module makes it read-only. Balances are not zeroed, ' +
-        'levels are not reset, and nothing is deleted.</p>';
-  })();
-
-  M.mountIcons(document);
-  A.mount(document);
+  });
 })();
 </script>
 </body>

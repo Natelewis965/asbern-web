@@ -196,9 +196,43 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
     <div class="as-card as-card--quiet u-mt-8" style="text-align:left">
       <div class="u-text-xs as-muted u-mb-2">The URL it will use, once there is an application to point at:</div>
       <pre class="as-code u-scroll-x"><code id="invite-url">…</code></pre>
+      <!-- ⚠ CORRECTED WHEN THE DASHBOARD LOGIN SHIPPED. This paragraph used to
+           end "Asbern does not use an OAuth code grant, does not read your
+           Discord account, and never asks for your password." The first two
+           clauses stopped being true the moment dashboard.html could sign an
+           admin in: that IS an authorization code grant (with PKCE), and it does
+           read the account — an id and a guild list. `packages/api/README.md`
+           flagged this sentence by name as something that had to be edited in
+           the same change, because it is a public claim sitting beside the
+           privacy policy. The distinction it was reaching for is real, so it is
+           now drawn where it belongs: INSTALLING the bot needs no grant;
+           CONFIGURING it from the web does, and only for administrators. -->
       <p class="u-text-xs as-muted u-mt-3">
-        Scopes are <code>bot</code> and <code>applications.commands</code>, and nothing else. Asbern does not use
-        an OAuth code grant, does not read your Discord account, and never asks for your password.
+        Scopes are <code>bot</code> and <code>applications.commands</code>, and nothing else. <strong>Installing
+        Asbern involves no OAuth code grant</strong> — it reads nothing about your account and never asks for
+        your password.
+      </p>
+      <!-- ⚠ AMENDED AGAIN WHEN THE MEMBER APP SHIPPED. This paragraph described
+           one sign-in and gated it on Administrator, which was true while the
+           dashboard was the only thing behind a login. There are now TWO
+           surfaces on one grant: the admin console, which still needs
+           Administrator, and the member app, which needs only that you are in
+           the server. Leaving the sentence as it was would have told ordinary
+           members that signing in was not for them — a public claim, next to the
+           privacy policy, that had quietly become false. -->
+      <p class="u-text-xs as-muted u-mt-2">
+        Signing in to the web is separate and optional. That one <em>is</em> an authorization code grant (with
+        PKCE), and it requests <code>identify</code> and <code>guilds</code> — your user id and which servers you
+        are in. <strong>Never <code>email</code></strong>: an address beside a Discord id would turn the session
+        store into personal data. Sessions last 8 hours, or 1 idle hour, and hold no message content. You can run
+        the bot forever without anybody ever signing in.
+      </p>
+      <p class="u-text-xs as-muted u-mt-2">
+        One sign-in, two surfaces, two different gates. <a href="app.html">Your own account</a> — balance, level,
+        achievements, what you have watched — needs only that you are <em>in</em> the server; every read and every
+        write on it is scoped to your own row and there is no request that can name somebody else. The
+        <a href="dashboard.html">admin console</a> additionally requires <strong>Administrator</strong>, because it
+        can wipe an economy and ban in bulk. <code>MANAGE_GUILD</code> is deliberately not accepted for that one.
       </p>
     </div>
   </div>

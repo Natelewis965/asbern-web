@@ -1,0 +1,228 @@
+/* ===========================================================================
+   assets/stats.css — the Analytics surface.
+
+   ⚠ EVERY COLOUR IS A TOKEN FROM asbern.css. Not one hex literal lives in this
+   file. That is what makes light and dark work from a single rule set: the
+   tokens are re-declared per theme in three places (`:root`, the
+   `[data-theme="light"]` override, and the `prefers-color-scheme` copy for
+   JavaScript-off), and anything reading them follows automatically. A hex here
+   is how a chart ends up dark-grey-on-black in one theme and invisible in the
+   other.
+
+   ⚠ AND NO NEW COMPONENTS WHERE ONE EXISTS. Tiles are `.as-stat`, filters are
+   `.as-chip`, sections are `.as-card`, tabs are `.as-tabs`/`.as-tab`, tables are
+   `.as-table` inside `.as-table-wrap`, caveats are `.as-note`, empties are
+   `.as-empty`. Everything below is only what a chart genuinely needs and the
+   system does not already have.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Filter bar — one row above the charts, as the interaction spec requires:
+   changing a filter must never move the charts around underneath the control
+   that changed them.
+   --------------------------------------------------------------------------- */
+.sx-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--as-space-2);
+  padding: var(--as-space-3) var(--as-space-4);
+  background: var(--as-surface-1);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-lg);
+  box-shadow: var(--as-hairline);
+}
+.sx-filters__label {
+  font-size: var(--as-text-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--as-tracking-caps);
+  color: var(--as-text-3);
+  margin-right: var(--as-space-1);
+}
+.sx-filters__sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--as-border);
+  margin: 0 var(--as-space-2);
+}
+.sx-custom {
+  display: flex;
+  align-items: center;
+  gap: var(--as-space-2);
+  flex-wrap: wrap;
+}
+.sx-custom input[type="date"] {
+  font: inherit;
+  font-size: var(--as-text-xs);
+  color: var(--as-text-1);
+  background: var(--as-surface-2);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-sm);
+  padding: 0.3rem 0.45rem;
+  color-scheme: inherit;
+}
+.sx-custom input[type="date"]:focus-visible {
+  outline: 2px solid var(--as-focus);
+  outline-offset: 1px;
+}
+
+/* ---------------------------------------------------------------------------
+   ⚠ THE SCROLL BOX. Wide content — a 24-column heatmap, a 30-bar series, a
+   table — scrolls INSIDE ITS OWN CONTAINER. It must never widen the document:
+   a page whose body scrolls sideways makes every other section unreachable on a
+   phone, and the cause is always one figure nobody boxed.
+   --------------------------------------------------------------------------- */
+.sx-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--as-space-1);
+  max-width: 100%;
+}
+.sx-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  /* Charts are drawn at a natural width and allowed to shrink, never to grow
+     past their own geometry — an upscaled 7-bar chart is all whitespace. */
+  min-width: 0;
+}
+
+/* Chart text. Sized in px inside the SVG's own coordinate space so a scaled
+   chart keeps legible labels rather than shrinking them with the geometry. */
+.sx-tick {
+  font-family: var(--as-font-sans);
+  font-size: 11px;
+  fill: var(--as-text-3);
+  font-variant-numeric: tabular-nums;
+}
+.sx-tick--now { fill: var(--as-text-2); font-weight: 600; }
+.sx-endlabel {
+  font-family: var(--as-font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--as-text-1);
+  font-variant-numeric: tabular-nums;
+}
+.sx-name {
+  font-family: var(--as-font-sans);
+  font-size: 12px;
+  fill: var(--as-text-2);
+}
+/* ⚠ The viewer's own row is marked by WEIGHT AND INK, not by a colour swap.
+   Recolouring one bar in a categorical ranking breaks the rule that colour
+   follows the entity — and it makes "me" indistinguishable from a series. */
+.sx-name--me { fill: var(--as-text-1); font-weight: 700; }
+.sx-val {
+  font-family: var(--as-font-sans);
+  font-size: 12px;
+  fill: var(--as-text-3);
+  font-variant-numeric: tabular-nums;
+}
+.sx-bar { transition: fill-opacity var(--as-dur-fast) var(--as-ease); }
+.sx-svg:hover .sx-bar { fill-opacity: 0.42; }
+.sx-svg .sx-bar:hover { fill-opacity: 1; }
+
+.sx-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--as-space-4);
+  margin-top: var(--as-space-2);
+  font-size: var(--as-text-xs);
+  color: var(--as-text-2);
+}
+.sx-legend__item { display: inline-flex; align-items: center; gap: 0.4rem; }
+.sx-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+  flex: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Section chrome
+   --------------------------------------------------------------------------- */
+.sx-section { margin-top: var(--as-space-8); }
+.sx-section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--as-space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--as-space-3);
+}
+.sx-section__title {
+  font-family: var(--as-font-display);
+  font-size: var(--as-text-lg);
+  color: var(--as-text-1);
+  letter-spacing: var(--as-tracking-tight);
+}
+.sx-section__note {
+  font-size: var(--as-text-xs);
+  color: var(--as-text-3);
+  max-width: 46ch;
+}
+
+/* A two-up chart row that becomes one column on narrow screens. */
+.sx-duo {
+  display: grid;
+  gap: var(--as-space-4);
+  grid-template-columns: 1fr;
+}
+@media (min-width: 60rem) {
+  .sx-duo { grid-template-columns: 1fr 1fr; }
+}
+
+/* ---------------------------------------------------------------------------
+   ⚠ THE TABLE VIEW IS NOT DECORATION. Every chart on this page has a
+   `<details>` table beside it holding the same numbers. That is the
+   accessibility floor: a chart encodes with position and colour, and neither
+   survives a screen reader, a printout, or forced-colors mode. The aria-label
+   states the headline; the table states everything.
+   --------------------------------------------------------------------------- */
+.sx-data { margin-top: var(--as-space-3); }
+.sx-data > summary {
+  cursor: pointer;
+  font-size: var(--as-text-xs);
+  color: var(--as-text-3);
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0;
+}
+.sx-data > summary::-webkit-details-marker { display: none; }
+.sx-data > summary::before {
+  content: "▸";
+  transition: transform var(--as-dur-fast) var(--as-ease);
+  display: inline-block;
+}
+.sx-data[open] > summary::before { transform: rotate(90deg); }
+.sx-data > summary:hover { color: var(--as-text-2); }
+.sx-data > summary:focus-visible {
+  outline: 2px solid var(--as-focus);
+  outline-offset: 2px;
+  border-radius: var(--as-radius-xs);
+}
+
+/* Member-detail lock — the isolation rule, made visible. */
+.sx-locked {
+  display: flex;
+  gap: var(--as-space-3);
+  align-items: flex-start;
+  padding: var(--as-space-5);
+  border: 1px dashed var(--as-border-strong);
+  border-radius: var(--as-radius-lg);
+  background: var(--as-sunken);
+  color: var(--as-text-2);
+  font-size: var(--as-text-sm);
+}
+.sx-locked strong { color: var(--as-text-1); }
+
+/* The member picker — a row of chips, one per member, with the viewer first. */
+.sx-people { display: flex; flex-wrap: wrap; gap: var(--as-space-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sx-bar, .sx-data > summary::before { transition: none; }
+}

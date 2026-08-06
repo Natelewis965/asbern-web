@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Screening room — Asbern</title>
-<meta name="description" content="One link, no account. Watch what Hearthstead is watching, in a browser, with the time you spend on the stream paid out honestly.">
+<meta name="description" content="One link, no account. Watch what your server is watching, in a browser, with the time you spend on the stream paid out honestly.">
 <meta name="color-scheme" content="dark light">
 <script>
 (function(){try{var p=localStorage.getItem('asbern.theme')||'system';
@@ -32,6 +32,7 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
       <a class="as-nav__link" href="watch.html" data-app-nav="watch">Watch</a>
       <a class="as-nav__link" href="casino.html" data-app-nav="casino">Casino</a>
       <a class="as-nav__link" href="leaderboards.html" data-app-nav="boards">Leaderboards</a>
+      <a class="as-nav__link" href="stats.html" data-app-nav="stats">Analytics</a>
     </nav>
     <div class="as-nav__actions">
       <a class="app-wallet" href="app.html#tycoon" data-app-wallet>
@@ -47,7 +48,7 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
   <div class="app-head">
     <div class="app-head__row">
       <div>
-        <span class="as-eyebrow as-eyebrow--frost">Hearthstead · Screen 1</span>
+        <span class="as-eyebrow as-eyebrow--frost" data-guild-name>Your server</span>
         <h1 class="as-display as-display--lg">Screening room</h1>
       </div>
       <p class="u-text-xs as-muted" data-room-line></p>
@@ -59,7 +60,6 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
   <div data-room></div>
 
   <div class="app-preview u-mt-12" data-app-preview></div>
-  <div class="app-preview u-mt-4" data-engine-preview></div>
 
   <!-- ============================ MEMBER-SURFACE FOOTER ============================
        ⚠ Small, but not optional. This is a consumer surface: it shows a member
@@ -76,9 +76,6 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
       <a href="terms.html">Terms</a> &middot;
       <a href="privacy.html#choices">Delete your history</a> &middot;
       <a href="index.html">About Asbern</a>
-    </p>
-    <p class="u-text-xs as-muted">
-      Preview build with example data. Nothing here is your real balance, level or history.
     </p>
   </footer>
 
@@ -97,6 +94,9 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
   <a class="app-tabbar__item" href="leaderboards.html" data-app-nav="boards">
     <span data-as-icon="trophy"></span><span>Boards</span>
   </a>
+  <a class="app-tabbar__item" href="stats.html" data-app-nav="stats">
+    <span data-as-icon="chart"></span><span>Analytics</span>
+  </a>
 </nav>
 
 <dialog class="as-modal as-modal--wide" id="join-modal" aria-labelledby="join-modal-title">
@@ -113,578 +113,194 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
 <script src="assets/app.js"></script>
 <script>
 /* =============================================================================
-   watch.html — the screening room on the web.
+   watch.html — YOUR viewing, LIVE.
 
-   THE THREE THINGS THIS SCREEN HAS TO GET RIGHT, all of which come straight out
-   of the codebase rather than out of a product deck:
+   ⚠ WHAT THIS PAGE CAN AND CANNOT KNOW, STATED RATHER THAN PAPERED OVER.
 
-   1. THE LINK IS THE PRODUCT. Pressing Watch mints a SINGLE-USE ticket. Caddy's
-      forward_auth sits at site level, so /gate runs on EVERY HLS segment — that
-      is the per-viewer heartbeat, and it is what makes "one link, no account"
-      an auth model rather than a slogan.
+   The member API serves the member's OWN watch record: what they have paused,
+   how long they have watched, what they have watched most, and whether anything
+   is on right now. It does not serve the screening room's control surface, and
+   that is a decision with a reason behind it rather than an omission:
 
-   2. PRESENCE COMES FROM THE GATE, NEVER FROM THE VOICE CHANNEL. Someone sitting
-      in voice with the stream closed is not watching. Someone watching from a
-      browser with no voice presence is. Voice presence still drives voice XP and
-      NOTHING ELSE in this room, and wiring it back in would put "time in the
-      room" rows next to "time on the stream" rows in one archive with nothing to
-      tell them apart.
+     · WHO IS WATCHING comes from the engine's gate, never from a voice channel
+       (CLAUDE.md). It is a per-viewer heartbeat on every HLS segment, and it is
+       what drives accrual, resume points and the idle-stop. This page is not a
+       viewer, so it is not in that count and must not claim to be.
 
-   3. IT IS A SHARED LIVE STREAM, SO A MEMBER CANNOT SEEK. Everybody is on the
-      same frame. The timeline is an indicator, not a control — see the note the
-      page renders next to it, and the report that ships with this build.
+     · `presence()` IS THREE-VALUED and the third value is load-bearing: `null`
+       means the engine could not be asked, and it may never be spent as "nobody
+       is watching". So `liveNow === null` renders as "we could not ask", never
+       as "nothing is on".
+
+     · A WATCH LINK IS A SINGLE-USE TICKET bound to one person and minted by the
+       engine. Starting a screening, picking what plays and joining are done
+       from the bot, where the room and the roster are.
    ========================================================================== */
 (function () {
   'use strict';
-  var M = window.MemberApp, A = window.Asbern, AM = window.AsbernMock;
-  var esc = M.esc, $ = M.$, $$ = M.$$;
+  var M = window.MemberApp, A = window.Asbern;
+  var esc = M.esc, $ = M.$;
 
-  var ENGINE_KEY = 'asbern.app.engine';
-  function engineUp() { try { return localStorage.getItem(ENGINE_KEY) !== 'down'; } catch (e) { return true; } }
-  M.server.setEngineReachable(engineUp());
-
-  var room = M.server.screening();
-  var me   = M.server.me();
-  var screen = room.screens[0];
-
-  /* Local player state. NOTE WHAT IS NOT HERE: the stream position. That belongs
-     to the room, not to this device. */
-  var local = { muted: false, volume: 0.8, playing: true, joined: false, behindSec: 0, rendition: 'src' };
-  var tick = null;
-
-  /* ------------------------------------------------------------------ ART */
-  /* An inline generative poster. No network requests, no image files, and it
-     reads identically in both themes because a video stage is dark in both —
-     that is a deliberate commitment, not an oversight. */
-  function poster(seed) {
-    var h = M.hashSeed(seed);
-    var moonX = 22 + (h % 50);
-    return '' +
-    '<svg class="app-stage__poster" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' +
-      '<defs>' +
-        '<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">' +
-          '<stop offset="0%" stop-color="#0d1a24"/><stop offset="55%" stop-color="#131b21"/><stop offset="100%" stop-color="#1d1710"/>' +
-        '</linearGradient>' +
-        '<radialGradient id="glow" cx="' + moonX + '%" cy="22%" r="46%">' +
-          '<stop offset="0%" stop-color="rgba(210,167,92,.34)"/><stop offset="100%" stop-color="rgba(210,167,92,0)"/>' +
-        '</radialGradient>' +
-      '</defs>' +
-      '<rect width="160" height="90" fill="url(#sky)"/>' +
-      '<rect width="160" height="90" fill="url(#glow)"/>' +
-      '<circle cx="' + (moonX * 1.6) + '" cy="20" r="6.5" fill="#e9c07c" opacity=".8"/>' +
-      '<circle cx="' + (moonX * 1.6 - 2.4) + '" cy="18.4" r="6.5" fill="#131b21" opacity=".92"/>' +
-      '<path d="M0 62 24 44l16 12 18-18 22 20 20-14 26 20 14-10v36H0Z" fill="#0c1218" opacity=".92"/>' +
-      '<path d="M0 72 18 60l20 10 22-8 24 12 22-8 26 12 8-4v16H0Z" fill="#080c11"/>' +
-      '<path d="M0 84h160v6H0Z" fill="#05080b"/>' +
-    '</svg>';
-  }
-
-  /* ------------------------------------------------------------- RENDER */
-  function render() {
+  M.mount({ needs: ['watch'] }, function (S, ctx) {
     var host = $('[data-room]');
-    var gate = M.entitled('screening-room');
 
-    if (!gate.ok) {
-      host.innerHTML = M.lockedHtml(gate, {
-        extra: '<p class="app-lock__body">The screening room needs a machine with the media on it and real bandwidth ' +
-               'to fan one stream out to everybody — which is the piece that costs money. That is why it sits above the free tier ' +
-               'while levels, achievements and your profile do not.</p>'
-      }) + channelsBlock() + wrapBlock();
-      M.mountIcons(host);
+    if (ctx.mode === 'demo') {
+      host.innerHTML =
+        '<div class="as-card"><h2 class="app-sec__title u-mb-4">Your viewing needs your account</h2>' +
+        '<p class="u-text-sm as-muted">What you have paused and how long you have watched are yours, so there is ' +
+        'nothing to show without you.</p>' +
+        '<a class="as-btn as-btn--primary u-mt-4" href="?demo=0">Sign in</a></div>';
       return;
     }
 
-    if (!room.engineReachable) {
-      host.innerHTML = offlineBlock() + wrapBlock();
-      M.mountIcons(host);
+    var w = S.watch();
+    if (!w) {
+      host.innerHTML = '<div class="as-card"><p class="u-text-sm as-muted">Your viewing history could not be read just now.</p></div>';
       return;
     }
+
+    var hrs = function (ms) {
+      var n = Number(ms) || 0;
+      if (n <= 0) return '0m';
+      var mins = n / 60000;
+      /* ⚠ SWITCHES UNIT BELOW AN HOUR, and that is correctness rather than
+         cosmetics. A fixed `.toFixed(1)}h` rendered a real 3-minute watch as
+         "0.0h" — which reads as "you watched none of it" and is
+         indistinguishable from the missing-data case. */
+      return mins < 60 ? Math.max(1, Math.round(mins)) + 'm' : (n / 3600000).toFixed(1) + 'h';
+    };
+
+    /* ------------------------------------------------- what is on right now */
+    var liveCard;
+    if (w.liveNow === true) {
+      liveCard =
+        '<div class="as-card as-card--frost">' +
+          '<div class="as-row as-row--between">' +
+            '<span class="as-badge as-badge--live"><span class="as-dot"></span> Something is on</span>' +
+            '<span class="u-text-xs as-muted">Join from the bot</span>' +
+          '</div>' +
+          '<p class="u-text-sm u-mt-3">A screening is running. Your watch link is a <strong>single-use ticket</strong> ' +
+            'bound to you and minted by the stream gate — which is also the thing that measures your time and pays you ' +
+            'for it. Ask the bot for it in Discord and it will be waiting.</p>' +
+        '</div>';
+    } else if (w.liveNow === false) {
+      liveCard =
+        '<div class="as-card">' +
+          '<span class="as-badge">Nothing on right now</span>' +
+          '<p class="u-text-sm as-muted u-mt-3">Start something from the bot and it appears here.</p>' +
+        '</div>';
+    } else {
+      /* ⚠ THE THIRD VALUE. `null` is "the engine could not be asked", and it is
+         a different fact from "nothing is playing". Collapsing the two is
+         exactly what CLAUDE.md forbids doing with presence. */
+      liveCard =
+        '<div class="as-card app-gate__card--bad">' +
+          '<span class="as-badge as-badge--warn">Could not ask</span>' +
+          '<p class="u-text-sm u-mt-3">The screening engine did not answer, so we do not know whether anything is on. ' +
+            'That is not the same as nothing being on, and this page will not say it is.</p>' +
+        '</div>';
+    }
+
+    /* --------------------------------------------------------------- resume */
+    var resume = (w.resume || []).map(function (r) {
+      return '<div class="app-collect">' +
+        '<span class="app-collect__glyph">🎞️</span>' +
+        '<div class="app-collect__body">' +
+          '<div class="app-collect__title">' + esc(r.title || 'Something') + '</div>' +
+          '<div class="app-collect__sub">' + Math.round((r.positionMs || 0) / 60000) + ' minutes in</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    var shows = (w.shows || []).map(function (r) {
+      return '<div class="app-collect">' +
+        '<span class="app-collect__glyph">📺</span>' +
+        '<div class="app-collect__body">' +
+          '<div class="app-collect__title">' + esc(r.showTitle || 'A series') + '</div>' +
+          '<div class="app-collect__sub">S' + r.season + '·E' + r.episode + ' up next</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    var waiting = (w.resume || []).length + (w.shows || []).length;
+
+    /* ----------------------------------------------------------- watch time */
+    var b = w.breakdown || { totalMs: 0, splitIsComplete: false };
+    var timeCard;
+    if (!b.totalMs) {
+      timeCard = '<p class="u-text-sm as-muted">Nothing tracked yet — watch anything and it counts.</p>';
+    } else {
+      /* ⚠ `splitIsComplete` GUARDS THE SPLIT. Pre-v1.4.3 rows have a total but
+         no live/on-demand marker, so "0.0h live" beside a real total reads as
+         "you have never watched anything live" — false, not missing. */
+      timeCard =
+        '<div class="app-tiles">' +
+          '<div class="as-stat"><span class="as-stat__label">Total</span><span class="as-stat__value">' + esc(hrs(b.totalMs)) + '</span></div>' +
+          (b.splitIsComplete
+            ? '<div class="as-stat"><span class="as-stat__label">Live</span><span class="as-stat__value">' + esc(hrs(b.liveMs)) + '</span></div>' +
+              '<div class="as-stat"><span class="as-stat__label">On demand</span><span class="as-stat__value">' + esc(hrs(b.totalMs - b.liveMs)) + '</span></div>'
+            : '') +
+        '</div>' +
+        (b.splitIsComplete
+          ? ''
+          : '<p class="u-text-xs as-muted u-mt-3">The live / on-demand split is not shown because some of your older ' +
+            'rows predate the marker that records it. Showing “0h live” there would be a claim, not a measurement.</p>');
+    }
+
+    /* ------------------------------------------------------- watched most */
+    var top = (w.top || []).slice(0, 5).map(function (t) {
+      /* A pre-v1.4.3 row has a play COUNT but no ms. Rendering "0.0h" there
+         reads as "you watched none of it", which is false — the time was simply
+         never captured. */
+      var right = t.ms ? hrs(t.ms) : (t.count + ' play' + (t.count === 1 ? '' : 's'));
+      return '<div class="as-row as-row--between u-text-sm" style="padding:.4rem 0;border-bottom:1px solid var(--as-border-soft)">' +
+        '<span style="min-width:0">' + esc(t.title || 'Untitled') + '</span>' +
+        '<span class="app-num as-muted">' + esc(right) + '</span>' +
+      '</div>';
+    }).join('');
+
+    M.text('[data-room-line]', waiting
+      ? waiting + (waiting === 1 ? ' thing' : ' things') + ' waiting for you'
+      : 'Anything you start remembers your place');
 
     host.innerHTML =
-      '<div class="app-grid-2">' +
-        '<div class="app-stack--6" style="display:flex;flex-direction:column">' +
-          playerBlock() +
-          nowPlayingBlock() +
-          screen2Block() +
-          channelsBlock() +
+      liveCard +
+      '<div class="app-grid-2 u-mt-6">' +
+        '<div class="app-stack" style="display:flex;flex-direction:column">' +
+          '<section class="as-card" aria-labelledby="resume-h">' +
+            '<div class="app-sec__head" style="margin-bottom:var(--as-space-4)">' +
+              '<h2 id="resume-h" class="app-sec__title">Pick up where you left off</h2>' +
+              '<span class="app-sec__note">Films and episodes both resume to the minute</span>' +
+            '</div>' +
+            (resume + shows || '<p class="u-text-sm as-muted">Nothing paused. Start something and it will show up here.</p>') +
+          '</section>' +
+          '<section class="as-card" aria-labelledby="top-h">' +
+            '<h2 id="top-h" class="app-sec__title u-mb-4">Watched most</h2>' +
+            (top || '<p class="u-text-sm as-muted">Nothing watched twice yet.</p>') +
+          '</section>' +
         '</div>' +
-        '<div class="app-stack app-sticky-aside" style="display:flex;flex-direction:column">' +
-          joinBlock() +
-          accrualBlock() +
-          viewersBlock() +
-          wrapBlock() +
+        '<div class="app-stack" style="display:flex;flex-direction:column">' +
+          '<section class="as-card" aria-labelledby="time-h">' +
+            '<h2 id="time-h" class="app-sec__title u-mb-4">Your watch time</h2>' +
+            timeCard +
+            '<div class="as-note u-mt-4 u-text-xs">' + M.icon('info') +
+              '<span>Watching pays <strong>' + esc(M.moneyFull(M.ECON.WATCH_HOUR_EARN)) + ' per completed hour</strong>, ' +
+              'and “completed” is not a style choice: money is floored to whole dollars, so spreading an hourly rate ' +
+              'across a 30-second tick floors to zero every time and would pay nobody anything.</span></div>' +
+          '</section>' +
+          '<section class="as-card" aria-labelledby="how-h">' +
+            '<h2 id="how-h" class="app-sec__title u-mb-4">Joining a screening</h2>' +
+            '<p class="u-text-sm as-muted">Starting a screening, choosing what plays and getting your link all happen ' +
+              'in Discord. The link is single-use and bound to you, and the gate that checks it on every segment of the ' +
+              'stream is the same thing that measures your time and pays you for it — which is why it cannot be handed ' +
+              'out by a web page that is not watching.</p>' +
+          '</section>' +
         '</div>' +
       '</div>';
 
     M.mountIcons(host);
     A.mount(host);
-    wirePlayer();
-  }
-
-  /* ------------------------------------------------------------- PLAYER */
-  function playerBlock() {
-    var joined = local.joined;
-    return '' +
-    '<section class="as-player" aria-labelledby="player-h">' +
-      '<h2 id="player-h" class="as-visually-hidden">Now playing</h2>' +
-      '<div class="as-player__stage">' +
-        poster(screen.title) +
-        '<div class="app-stage__scrim"></div>' +
-        '<div class="as-player__badges">' +
-          '<span class="as-badge as-badge--live"><span class="as-dot"></span> Live</span>' +
-          '<span class="as-badge as-badge--plain">Screen ' + screen.id + '</span>' +
-        '</div>' +
-        (joined
-          ? '<button class="app-stage__center" type="button" data-play aria-label="' +
-              (local.playing ? 'Pause my playback' : 'Resume and jump to live') + '"' +
-              (local.playing ? ' hidden' : '') + '>' + M.icon('play') + '</button>'
-          : '<button class="app-stage__center" type="button" data-join-cta aria-label="Join the screening">' + M.icon('play') + '</button>') +
-        '<div class="as-player__meta">' +
-          '<div class="as-player__title">' + esc(screen.title) + '</div>' +
-          '<div class="as-player__sub">' + screen.year + ' · ' + esc(screen.rating) + ' · ' +
-            M.hm(screen.runtimeSec / 60) + ' · started by ' + esc(screen.startedBy) + '</div>' +
-        '</div>' +
-        (!joined
-          ? '<div style="position:absolute;inset:0;z-index:2;background:rgba(4,6,9,.55);display:grid;place-items:center;padding:var(--as-space-5)">' +
-              '<div style="text-align:center;max-width:26rem">' +
-                '<p style="color:#eef1f5;font-family:var(--as-font-display);font-size:var(--as-text-lg)">Six people are watching this right now.</p>' +
-                '<p style="color:rgba(238,241,245,.7);font-size:var(--as-text-sm);margin-top:.4rem">Tap to get your link. No account, no install.</p>' +
-              '</div>' +
-            '</div>'
-          : '') +
-      '</div>' +
-      controlsBar() +
-    '</section>';
-  }
-
-  function controlsBar() {
-    var pos = screen.positionSec, dur = screen.runtimeSec;
-    var pct = M.clamp(pos / dur, 0, 1) * 100;
-    var dis = local.joined ? '' : ' disabled aria-disabled="true"';
-    return '' +
-    '<div class="app-player__bar">' +
-      '<button class="as-btn as-btn--ghost as-btn--icon as-btn--sm" type="button" data-play' + dis +
-        ' aria-label="' + (local.playing ? 'Pause my playback' : 'Resume and jump to live') + '">' +
-        M.icon(local.playing ? 'pause' : 'play') + '</button>' +
-
-      '<button class="as-btn as-btn--ghost as-btn--icon as-btn--sm" type="button" data-mute' + dis +
-        ' aria-label="' + (local.muted ? 'Unmute' : 'Mute') + '" aria-pressed="' + local.muted + '">' +
-        M.icon(local.muted ? 'mute' : 'volume') + '</button>' +
-
-      '<label class="as-visually-hidden" for="vol">Volume</label>' +
-      '<input class="as-range" id="vol" type="range" min="0" max="100" value="' + Math.round(local.volume * 100) + '"' +
-        ' style="max-width:5.5rem;flex:0 0 auto"' + dis + ' data-vol>' +
-
-      /* ⚠ NOT A SEEK CONTROL. See the note under the player. */
-      '<div class="app-timeline" data-timeline>' +
-        '<div class="app-timeline__track">' +
-          '<div class="app-timeline__played" style="width:' + pct.toFixed(2) + '%"></div>' +
-        '</div>' +
-        '<div class="as-range" role="progressbar" aria-label="Room position"' +
-          ' aria-valuenow="' + Math.round(pct) + '" aria-valuemin="0" aria-valuemax="100"' +
-          ' aria-valuetext="' + esc(A.clock(pos) + ' of ' + A.clock(dur)) + '" style="height:1.4rem"></div>' +
-      '</div>' +
-
-      '<span class="as-player__time" data-time>' + A.clock(pos) + ' / ' + A.clock(dur) + '</span>' +
-
-      '<label class="as-visually-hidden" for="qual">Quality</label>' +
-      '<select class="as-select" id="qual" style="width:auto;min-height:2rem;padding-block:.2rem;font-size:var(--as-text-xs)"' + dis + ' data-quality>' +
-        screen.renditions.map(function (r) {
-          return '<option value="' + esc(r.id) + '"' + (r.active ? ' selected' : '') + '>' + esc(r.label) + '</option>';
-        }).join('') +
-        '<option value="audio">Audio only</option>' +
-      '</select>' +
-
-      '<button class="as-btn as-btn--ghost as-btn--icon as-btn--sm" type="button" data-full' + dis +
-        ' aria-label="Fullscreen">' + M.icon('expand') + '</button>' +
-    '</div>';
-  }
-
-  /* --------------------------------------------------------- NOW PLAYING */
-  function nowPlayingBlock() {
-    var r = screen.renditions[0];
-    return '' +
-    '<section class="as-card" aria-labelledby="np-h">' +
-      '<div class="app-sec__head" style="margin-bottom:var(--as-space-4)">' +
-        '<h2 id="np-h" class="app-sec__title">On screen now</h2>' +
-        '<span class="app-sec__note">' + esc(r.detail) + '</span>' +
-      '</div>' +
-      '<p class="u-text-sm">' + esc(screen.summary) + '</p>' +
-
-      '<div class="as-note u-mt-4 u-text-xs">' + M.icon('info') +
-        '<span><strong>The timeline is an indicator, not a control.</strong> This is one shared stream: ' +
-        'everybody in the room is on the same frame, so there is nothing here for you to seek. ' +
-        'Pausing pauses <em>your</em> playback — the room carries on without you, and resuming jumps you back to live.</span>' +
-      '</div>' +
-
-      '<div class="as-note u-mt-3 u-text-xs">' + M.icon('sliders') +
-        '<span><strong>One quality, and it is honest about why.</strong> The engine runs a single encode next to your ' +
-        'host’s files and pushes it out; there is no adaptive ladder to pick from, because a second rendition is a second ' +
-        'encode on somebody’s home machine. “Audio only” is the one alternative that is nearly free.</span>' +
-      '</div>' +
-
-      (screen.upNext
-        ? '<div class="u-mt-4"><span class="as-eyebrow">Up next</span><p class="u-text-sm u-mt-2">' + esc(screen.upNext) + '</p></div>'
-        : '<div class="u-mt-4"><span class="as-eyebrow">Up next</span>' +
-          '<p class="u-text-sm as-muted u-mt-2">Nothing. Each screen plays one thing at a time and there is no queue, by design. ' +
-          'A TV series is the exception — episodes advance on their own while anyone is still watching.</p></div>') +
-
-      '<div class="as-note as-note--warn u-mt-4 u-text-xs">' + M.icon('clock') +
-        '<span>This screen shuts itself off after <strong>' + screen.idleStopMin + ' minutes</strong> with nobody on it. ' +
-        'It counts from the gate, so closing the tab is enough — you do not have to leave voice.</span>' +
-      '</div>' +
-
-      '<div class="as-row u-mt-4">' +
-        '<button class="as-btn as-btn--secondary as-btn--sm" type="button" disabled aria-disabled="true"' +
-          ' data-as-tip="Only ' + esc(screen.startedBy) + ', who started this, can pause the room">' +
-          M.icon('pause') + 'Pause the room</button>' +
-        '<button class="as-btn as-btn--secondary as-btn--sm" type="button" disabled aria-disabled="true"' +
-          ' data-as-tip="Host only">' + M.icon('arrow') + 'Skip</button>' +
-        '<span class="u-text-xs as-muted">Host controls — ' + esc(screen.startedBy) + ' started this screening.</span>' +
-      '</div>' +
-    '</section>';
-  }
-
-  /* -------------------------------------------------------------- JOIN */
-  function joinBlock() {
-    if (local.joined && room.ticket) {
-      return '' +
-      '<section class="as-card as-card--frost" aria-labelledby="join-h">' +
-        '<div class="as-row as-row--between u-mb-4">' +
-          '<h2 id="join-h" class="app-sec__title" style="color:var(--as-frost)">You are in</h2>' +
-          '<span class="as-badge as-badge--live"><span class="as-dot"></span> On the stream</span>' +
-        '</div>' +
-        '<p class="u-text-sm">Your link has been redeemed and the gate is seeing your player. ' +
-          'That is what puts you on the roster and what starts your watch time.</p>' +
-        '<button class="as-btn as-btn--secondary as-btn--block u-mt-4" type="button" data-leave>Leave the screening</button>' +
-      '</section>';
-    }
-    return '' +
-    '<section class="as-card as-card--accent" aria-labelledby="join-h">' +
-      '<h2 id="join-h" class="app-sec__title u-mb-4" style="color:var(--as-accent)">One link. No account.</h2>' +
-      '<p class="u-text-sm">No Plex login, no install, no screen-share mush. Tap once and a browser tab plays what ' +
-        'the room is playing.</p>' +
-      '<div class="as-list u-mt-4 u-text-xs">' +
-        '<div class="as-list__item">' + M.icon('check') + '<span>The link is <strong>yours alone</strong> and works once.</span></div>' +
-        '<div class="as-list__item">' + M.icon('check') + '<span>It authorises every segment, which is how attendance is actually counted.</span></div>' +
-        '<div class="as-list__item">' + M.icon('check') + '<span>Nothing is downloaded and nothing is stored on your device.</span></div>' +
-      '</div>' +
-      '<button class="as-btn as-btn--primary as-btn--block as-btn--lg u-mt-4" type="button" data-join-cta>' +
-        M.icon('ticket') + 'Get my link</button>' +
-      '<p class="u-text-2xs as-muted u-mt-3">Works on a phone browser. The stream is HLS, which is what phones play natively.</p>' +
-    '</section>';
-  }
-
-  /* ------------------------------------------------------------ ACCRUAL */
-  function accrualBlock() {
-    var ecoGate = M.entitled('economy');
-    if (!ecoGate.ok) {
-      return '<section class="as-card"><h2 class="app-sec__title u-mb-4">Watch time</h2>' +
-        '<p class="u-text-sm as-muted">Your time is still measured and still shows on your profile. ' +
-        'It just does not pay anything, because the economy is not on this server’s plan.</p></section>';
-    }
-    var sec = room.accrual.watchedSec;
-    var whole = Math.floor(sec / 3600);
-    var intoHour = (sec % 3600) / 3600;
-    var earned = whole * room.accrual.ratePerHour;
-    var minsLeft = Math.ceil((3600 - (sec % 3600)) / 60);
-
-    return '' +
-    '<section class="as-card" aria-labelledby="acc-h">' +
-      '<h2 id="acc-h" class="app-sec__title u-mb-4">Watch time</h2>' +
-      '<div class="as-row" style="gap:var(--as-space-4);flex-wrap:nowrap">' +
-        M.ring(intoHour, Math.round(intoHour * 60) + 'm', 'this hour', { frost: true, aria: 'Progress through the current hour' }) +
-        '<div style="min-width:0">' +
-          '<div class="app-figure__value">' + esc(M.moneyFull(earned)) + '</div>' +
-          '<div class="u-text-xs as-muted">paid so far this screening</div>' +
-          '<div class="u-text-xs u-mt-2">' + M.hm(sec / 60) + ' on the stream · next ' +
-            esc(M.moneyFull(room.accrual.ratePerHour)) + ' in ' + minsLeft + 'm</div>' +
-        '</div>' +
-      '</div>' +
-
-      '<div class="as-note as-note--frost u-mt-4 u-text-xs">' + M.icon('clock') +
-        '<span><strong>It pays by the completed hour, and the partial hour is not owed to you.</strong> ' +
-        'Balances are whole dollars, so ' + esc(M.moneyFull(1)) + ' an hour spread over the 30-second tick is under a cent a tick — ' +
-        'which floors to zero and would pay nobody anything. Paying on the hour boundary is exact, and it survives a restart ' +
-        'because both the running total and the paid-hour counter are written down.</span>' +
-      '</div>' +
-
-      '<div class="as-note u-mt-3 u-text-xs">' + M.icon('users') +
-        '<span><strong>Measured at the stream gate, never at the voice channel.</strong> Sitting in voice with this tab shut ' +
-        'earns nothing here. Watching from a browser with no voice at all earns everything. The two used to be conflated and ' +
-        'the fix was to stop asking the voice channel who was watching.</span>' +
-      '</div>' +
-
-      '<p class="u-text-2xs as-muted u-mt-3">And when the engine cannot be asked, <strong>nobody accrues on that tick</strong> — ' +
-        'an unknown is never spent as a zero. A skipped tick self-corrects; a wrong payment does not.</p>' +
-    '</section>';
-  }
-
-  /* ------------------------------------------------------------ VIEWERS */
-  function viewersBlock() {
-    return '' +
-    '<section class="as-panel" aria-labelledby="v-h">' +
-      '<div class="as-panel__header">' +
-        '<h2 id="v-h" class="as-panel__title">Watching now</h2>' +
-        '<span class="as-badge as-badge--live"><span class="as-dot"></span> ' + screen.viewers.length + '</span>' +
-      '</div>' +
-      '<div class="as-panel__body">' +
-        screen.viewers.map(function (v) {
-          return '<div class="app-viewer' + (v.me ? ' app-viewer--me' : '') + '">' +
-            M.avatar(v.initials, v.me ? 'as-avatar--accent' : '') +
-            '<span style="min-width:0">' +
-              '<span class="app-viewer__name">' + esc(v.name) + (v.me ? ' <span class="as-muted">(you)</span>' : '') + '</span>' +
-              '<span class="app-viewer__sub">' + (v.host ? 'started the screening' : v.measured ? 'on the stream' : 'pressed Watch, not seen yet') + '</span>' +
-            '</span>' +
-            '<span class="app-viewer__time">' + M.hm(v.joinedMin) + '</span>' +
-          '</div>';
-        }).join('') +
-        '<p class="u-text-2xs as-muted u-mt-3">This list is whose player is pulling segments right now — not who is in ' +
-          'the voice channel. Ylva pressed Watch and has not appeared yet; she is shown as such rather than credited.</p>' +
-      '</div>' +
-    '</section>';
-  }
-
-  /* ----------------------------------------------------------- SCREEN 2 */
-  function screen2Block() {
-    var gate = M.entitled('second-screen');
-    if (gate.ok) {
-      return '' +
-      '<section class="as-card" aria-labelledby="s2-h">' +
-        '<h2 id="s2-h" class="app-sec__title u-mb-4">Screen 2</h2>' +
-        '<div class="as-empty">' +
-          '<span class="as-empty__icon">' + M.icon('tv') + '</span>' +
-          '<span class="as-empty__title">Nothing on screen 2</span>' +
-          '<p class="as-empty__body">Two groups can watch different things at once. Start something and it appears here.</p>' +
-        '</div>' +
-      '</section>';
-    }
-    return '' +
-    '<section class="as-card" aria-labelledby="s2-h">' +
-      '<h2 id="s2-h" class="app-sec__title u-mb-4">Screen 2</h2>' +
-      M.lockedHtml(gate, {
-        extra: '<p class="app-lock__body">A second screen is a second transcode and a second stream going out of your ' +
-               'host’s connection at the same time. It is priced where the cost actually lands.</p>'
-      }) +
-    '</section>';
-  }
-
-  /* ----------------------------------------------------------- CHANNELS */
-  function channelsBlock() {
-    var gate = M.entitled('live-tv');
-    if (!gate.ok) {
-      return '<section class="as-card u-mt-6" aria-labelledby="tv-h">' +
-        '<h2 id="tv-h" class="app-sec__title u-mb-4">Live TV</h2>' + M.lockedHtml(gate) + '</section>';
-    }
-    return '' +
-    '<section class="as-card" aria-labelledby="tv-h">' +
-      '<div class="app-sec__head" style="margin-bottom:var(--as-space-4)">' +
-        '<h2 id="tv-h" class="app-sec__title">Live TV</h2>' +
-        '<span class="app-sec__note">What’s on, right now</span>' +
-      '</div>' +
-      '<div class="app-stack--2" style="display:flex;flex-direction:column;gap:.5rem">' +
-        room.channels.map(function (c) {
-          return '<button class="app-tile" type="button" data-channel="' + esc(c.id) + '">' +
-            '<span class="app-tile__art">' + M.icon('tv') + '</span>' +
-            '<span style="min-width:0;flex:1 1 auto">' +
-              '<span class="app-tile__name">' + esc(c.name) + '</span><br>' +
-              '<span class="app-tile__sub">' + esc(c.now) + '</span>' +
-            '</span>' +
-            '<span class="as-badge as-badge--plain">until ' + esc(c.ends) + '</span>' +
-          '</button>';
-        }).join('') +
-      '</div>' +
-      '<p class="u-text-2xs as-muted u-mt-3">The guide is joined to the channel list, so this is what is genuinely on — ' +
-        'not a static line-up. Dead channels are detected and flagged rather than left to buffer at you.</p>' +
-    '</section>';
-  }
-
-  /* --------------------------------------------------------- WRAP-UP CARD */
-  function wrapBlock() {
-    var w = room.lastWrap;
-    var total = w.viewers.reduce(function (a, v) { return a + v.ms; }, 0);
-    return '' +
-    '<section class="as-panel" aria-labelledby="wrap-h">' +
-      '<div class="as-panel__header">' +
-        '<h2 id="wrap-h" class="as-panel__title">Last screening</h2>' +
-        '<span class="u-text-2xs as-muted">' + new Date(w.startedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + '</span>' +
-      '</div>' +
-      '<div class="as-panel__body">' +
-        '<p class="u-text-sm"><strong>' + esc(w.title) + '</strong></p>' +
-        '<p class="u-text-xs as-muted u-mb-4">' + w.runtimeMin + ' min · ' + M.hm(total / 60000) + ' watched between ' + w.viewers.length + ' people</p>' +
-        w.viewers.map(function (v) {
-          var tag = v.noShow
-            ? '<span class="as-badge as-badge--danger">no show</span>'
-            : v.stayedToEnd ? '<span class="as-badge as-badge--success">stayed to the end</span>'
-            : !v.measured ? '<span class="as-badge as-badge--warn">assumed</span>' : '';
-          return '<div class="app-viewer">' +
-            M.avatar(v.initials) +
-            '<span style="min-width:0">' +
-              '<span class="app-viewer__name">' + esc(v.name) + '</span><br>' + tag +
-            '</span>' +
-            '<span class="app-viewer__time">' + (v.ms ? M.hm(v.ms / 60000) : '—') + '</span>' +
-          '</div>';
-        }).join('') +
-        '<p class="u-text-2xs as-muted u-mt-3">Ylva pressed Watch and the gate never once saw her player, so she is on the card ' +
-          'at zero rather than credited with the whole episode. That distinction only exists because the gate can tell the ' +
-          'difference between “no evidence either way” and “we were watching, and she was not there”.</p>' +
-      '</div>' +
-    '</section>';
-  }
-
-  /* ------------------------------------------------------------- OFFLINE */
-  function offlineBlock() {
-    return '' +
-    '<section class="as-card" aria-labelledby="off-h">' +
-      '<h2 id="off-h" class="app-sec__title u-mb-4">Screening room</h2>' +
-      '<div class="as-empty">' +
-        '<span class="as-empty__icon">' + M.icon('wifi') + '</span>' +
-        '<span class="as-empty__title">The engine cannot be reached</span>' +
-        '<p class="as-empty__body">Your host’s machine is not answering right now. That is <strong>unknown</strong>, ' +
-          'not “nothing is on” — and the difference matters, because nobody accrues watch time on a tick we could not read. ' +
-          'A skipped tick corrects itself; a wrong payment does not.</p>' +
-        '<div class="as-row as-row--center u-mt-2">' +
-          '<button class="as-btn as-btn--secondary as-btn--sm" type="button" data-retry>' + M.icon('arrow') + 'Try again</button>' +
-        '</div>' +
-      '</div>' +
-      '<div class="as-note u-mt-4 u-text-xs">' + M.icon('info') +
-        '<span>Nothing is lost while this is down. Your resume points, watch totals and last night’s recap are all written ' +
-        'to your server’s own storage, not held in the stream.</span></div>' +
-    '</section>';
-  }
-
-  /* ----------------------------------------------------------- BEHAVIOUR */
-  function wirePlayer() {
-    /* The room position advances whether or not you are watching — it is a live
-       stream. This is the client rendering a clock the SERVER owns; in
-       production it is a WebSocket tick, not a local one. */
-    if (tick) clearInterval(tick);
-    tick = setInterval(function () {
-      if (screen.positionSec < screen.runtimeSec) screen.positionSec += 1;
-      if (local.joined && local.playing) {
-        room.accrual.watchedSec += 1;
-        local.behindSec = 0;
-      } else if (local.joined) {
-        local.behindSec += 1;
-      }
-      var t = $('[data-time]');
-      if (t) t.textContent = A.clock(screen.positionSec) + ' / ' + A.clock(screen.runtimeSec);
-      var bar = $('.app-timeline__played');
-      if (bar) bar.style.width = (M.clamp(screen.positionSec / screen.runtimeSec, 0, 1) * 100).toFixed(2) + '%';
-    }, 1000);
-  }
-
-  A.on('click', '[data-join-cta]', function () {
-    var body = $('[data-join-body]');
-    body.innerHTML =
-      '<div class="as-row" style="gap:var(--as-space-3)"><span class="app-spinner" style="color:var(--as-accent)"></span>' +
-      '<span class="u-text-sm">Minting a single-use link…</span></div>';
-    A.modal('#join-modal');
-
-    /* A real round trip: the server mints the ticket, not the page. */
-    window.setTimeout(function () {
-      var t = M.server.mintTicket();
-      room = M.server.screening();
-      body.innerHTML =
-        '<div class="app-ticket">' +
-          '<div class="as-row as-row--between">' +
-            '<span class="as-eyebrow as-eyebrow--frost">Your link</span>' +
-            '<span class="as-badge as-badge--frost">single use · 5 min</span>' +
-          '</div>' +
-          '<div class="app-ticket__url">' + esc(t.url) + '</div>' +
-          '<div class="as-row">' +
-            '<button class="as-btn as-btn--primary as-btn--sm" type="button" data-as-copy="' + esc(t.url) + '">' +
-              M.icon('link') + 'Copy link</button>' +
-            '<button class="as-btn as-btn--secondary as-btn--sm" type="button" data-redeem>Open it here</button>' +
-          '</div>' +
-        '</div>' +
-        '<div class="as-note u-mt-4 u-text-xs">' + M.icon('shield') +
-          '<span>This link is bound to you and stops working once it is redeemed. That is not a security flourish — ' +
-          'it is how the room knows six people are watching rather than one person with six tabs.</span></div>' +
-        '<div class="as-note u-mt-3 u-text-xs">' + M.icon('info') +
-          '<span>Whoever you send it to would be watching <em>as you</em>, so do not. There is nothing stopping you ' +
-          'asking the host to start a screening anyone can join.</span></div>';
-      A.mount(body);
-    }, 850);
   });
-
-  A.on('click', '[data-redeem]', function () {
-    A.closeModal($('#join-modal'));
-    local.joined = true;
-    local.playing = true;
-    render();
-    A.toast('You are on the stream. The gate is counting you now.', { variant: 'success' });
-    M.announce('Joined the screening.');
-  });
-
-  A.on('click', '[data-leave]', function () {
-    local.joined = false;
-    M.server.dropTicket();
-    room = M.server.screening();
-    render();
-    A.toast('Left the screening. Your watch time is banked.', { variant: 'accent' });
-  });
-
-  A.on('click', '[data-play]', function () {
-    if (!local.joined) return;
-    local.playing = !local.playing;
-    if (local.playing && local.behindSec > 3) {
-      A.toast('Jumped back to live — you were ' + M.hm(local.behindSec / 60) + ' behind. It is one shared stream.', { variant: 'warn' });
-      local.behindSec = 0;
-    }
-    render();
-  });
-
-  A.on('click', '[data-mute]', function () { local.muted = !local.muted; render(); });
-  A.on('input', '[data-vol]', function (ev, el) {
-    local.volume = Number(el.value) / 100;
-    local.muted = local.volume === 0;
-  });
-  A.on('change', '[data-quality]', function (ev, el) {
-    local.rendition = el.value;
-    A.toast(el.value === 'audio'
-      ? 'Audio only. Same pipeline, no video — this is the one that is nearly free for your host.'
-      : 'Playing the single rendition your host’s engine produces.', { variant: 'accent' });
-  });
-  A.on('click', '[data-full]', function () {
-    var stage = $('.as-player');
-    if (!stage) return;
-    if (document.fullscreenElement) document.exitFullscreen();
-    else if (stage.requestFullscreen) stage.requestFullscreen();
-    else A.toast('This browser will not go fullscreen from a file:// page.', { variant: 'warn' });
-  });
-  A.on('click', '[data-channel]', function (ev, btn) {
-    var c = room.channels.filter(function (x) { return x.id === btn.getAttribute('data-channel'); })[0];
-    A.toast('Asked the room to switch to ' + c.name + '. The host decides.', { variant: 'accent' });
-  });
-  A.on('click', '[data-retry]', function (ev, btn) {
-    btn.innerHTML = '<span class="app-spinner"></span>Asking…';
-    window.setTimeout(function () {
-      try { localStorage.setItem(ENGINE_KEY, 'up'); } catch (e) {}
-      location.reload();
-    }, 900);
-  });
-
-  /* ------------------------------------------------- ENGINE PREVIEW CTL */
-  (function enginePreview() {
-    var host = $('[data-engine-preview]');
-    host.innerHTML =
-      '<span class="as-badge as-badge--plain">Preview control</span>' +
-      '<span>Also not a member feature. It forces the “engine cannot be asked” state, which is a designed screen rather than an error page.</span>' +
-      '<label class="as-switch"><input type="checkbox" data-engine-toggle ' + (engineUp() ? '' : 'checked') + '>' +
-      '<span class="as-switch__label">Simulate the host being offline</span></label>';
-    host.querySelector('[data-engine-toggle]').addEventListener('change', function (e) {
-      try { localStorage.setItem(ENGINE_KEY, e.target.checked ? 'down' : 'up'); } catch (err) {}
-      location.reload();
-    });
-  })();
-
-  /* ------------------------------------------------------------ HEADLINE */
-  M.text('[data-room-line]', room.engineReachable
-    ? screen.viewers.length + ' watching · started ' + M.hm((Date.now() - screen.startedAt) / 60000) + ' ago'
-    : 'The host’s machine is not answering');
-
-  render();
 })();
 </script>
 </body>

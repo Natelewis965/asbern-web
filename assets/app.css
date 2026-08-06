@@ -38,6 +38,10 @@
      8  Casino — lobby, table, cards, chips, crash chart, results
      9  Leaderboards — boards, rows, period bar
     10  Utilities local to the app
+    11  Signed-in states — sign-in, unreachable, no-guild, the demo banner
+    12  Money rows — collect and buy
+    13  Quests — the done / empty / unknown-progress states
+    14  Casino — the live table (stake control, mines grid, crash rungs)
    ========================================================================== */
 
 
@@ -954,6 +958,290 @@ button.app-ach:hover { border-color: var(--as-border-strong); background: var(--
 
 /* Screen-reader-only live region wrapper for results announced by JS. */
 .app-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+
+/* =============================================================================
+   11 · SIGNED-IN STATES — the four terminal states of assets/app.js §5
+   -----------------------------------------------------------------------------
+   A member surface has three ways of having nothing to show, and they are not
+   the same thing: nobody is signed in · the API did not answer · this is
+   example data. Each needs its own unmistakable chrome, because the failure
+   this whole layer exists to prevent is a page that LOOKS like your account
+   and is not.
+
+   ⚠ THE ERROR STATE IS DELIBERATELY NOT SUBTLE. A quiet inline warning next to
+   a stale figure is the shape of the bug — the figure is what people read. So
+   `unreachable` replaces the page rather than annotating it, and `.app-gate` is
+   sized to be the only thing on screen.
+   ========================================================================== */
+
+.app-gate {
+  display: flex;
+  justify-content: center;
+  padding-block: var(--as-space-10) var(--as-space-16);
+}
+@media (min-width: 52rem) {
+  .app-gate { padding-block: var(--as-space-20) var(--as-space-24); }
+}
+
+.app-gate__card {
+  width: 100%;
+  max-width: 34rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--as-space-4);
+  padding: var(--as-space-8) var(--as-space-6);
+}
+@media (min-width: 40rem) {
+  .app-gate__card { padding: var(--as-space-12) var(--as-space-10); }
+}
+
+/* The bad state borrows the danger line, not the danger fill: a red card reads
+   as "you did something wrong", and an outage is not the member's fault. */
+.app-gate__card--bad { border-color: var(--as-danger); }
+
+.app-gate__glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: var(--as-radius-full);
+  background: var(--as-accent-soft);
+  color: var(--as-accent);
+  box-shadow: inset 0 0 0 1px var(--as-accent-line);
+}
+.app-gate__glyph svg { width: 1.5rem; height: 1.5rem; }
+.app-gate__glyph--bad {
+  background: var(--as-danger-soft);
+  color: var(--as-danger);
+  box-shadow: inset 0 0 0 1px var(--as-danger);
+}
+
+.app-gate__title { margin: 0; }
+.app-gate__body { margin: 0; max-width: 44ch; }
+
+.app-gate__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--as-space-3);
+  justify-content: center;
+  margin-top: var(--as-space-2);
+}
+.app-gate__actions .as-btn svg { width: 1.05em; height: 1.05em; }
+
+.app-gate__foot { margin: var(--as-space-2) 0 0; max-width: 44ch; }
+
+/* -----------------------------------------------------------------------------
+   The demo banner. Persistent, top of the page, and it does not dismiss —
+   the whole point is that it cannot be mistaken for a live surface, and a
+   banner somebody closed once is a banner that is not there next time.
+   -------------------------------------------------------------------------- */
+.app-demobar {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--as-space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--as-space-6);
+  padding: var(--as-space-3) var(--as-space-4);
+  border: 1px dashed var(--as-warn);
+  border-radius: var(--as-radius-md);
+  background: var(--as-warn-soft);
+  color: var(--as-text-2);
+  font-size: var(--as-text-sm);
+  line-height: var(--as-leading-snug);
+}
+.app-demobar a { color: var(--as-text-1); }
+
+
+/* =============================================================================
+   12 · MONEY ROWS — collect and buy
+   -----------------------------------------------------------------------------
+   Two near-identical rows: a thing you can collect, and a thing you can buy.
+   They share a shape on purpose — both are "glyph · what it is · one button" —
+   because they are the same gesture and a member should not have to re-learn
+   the layout between them.
+
+   ⚠ NO STATE IN HERE MEANS "YOU CANNOT AFFORD THIS". The button is styled by
+   affordability (primary when the last read said yes, secondary otherwise) and
+   never disabled by it: the balance a page holds is by definition a moment old,
+   and a disabled button on a stale number tells a member they cannot buy
+   something they can. The server decides, and it says so in words.
+   ========================================================================== */
+
+.app-collect,
+.app-buy {
+  display: flex;
+  align-items: center;
+  gap: var(--as-space-3);
+  padding: var(--as-space-3) 0;
+  border-bottom: 1px solid var(--as-border-soft);
+}
+.app-collect:last-child,
+.app-buy:last-child { border-bottom: 0; padding-bottom: 0; }
+
+.app-collect__glyph,
+.app-buy__glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--as-radius-sm);
+  background: var(--as-surface-2);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.app-collect__body,
+.app-buy__body { min-width: 0; flex: 1 1 auto; }
+
+.app-collect__title,
+.app-buy__name {
+  font-size: var(--as-text-sm);
+  font-weight: 650;
+  color: var(--as-text-1);
+}
+
+.app-collect__sub,
+.app-buy__sub {
+  font-size: var(--as-text-xs);
+  color: var(--as-text-3);
+  line-height: var(--as-leading-snug);
+}
+
+.app-collect .as-btn,
+.app-buy .as-btn { flex: 0 0 auto; }
+
+/* An action in flight. `aria-busy` is set on <body> for exactly as long as one
+   money request is open, which is also what stops a second one starting. */
+body[aria-busy="true"] [data-money],
+body[aria-busy="true"] [data-buy],
+body[aria-busy="true"] [data-play],
+body[aria-busy="true"] [data-act] {
+  opacity: .55;
+  pointer-events: none;
+}
+
+
+/* =============================================================================
+   13 · QUESTS — the two states §5 added
+   ========================================================================== */
+
+/* Finished and already paid. Distinct from `--claimable`, which is the one
+   with a button on it: "done" and "there is money waiting" are different
+   things and the card must not look the same for both. */
+.app-quest--done { border-color: var(--as-success); }
+.app-quest--done .app-quest__glyph { background: var(--as-success-soft); }
+
+/* Nothing scheduled. Rendered rather than omitted so the board keeps its shape
+   and a member can see that the slot exists and is empty, which is not the
+   same as the page having failed to load it. */
+.app-quest--empty { opacity: .72; border-style: dashed; }
+
+/* ⚠ THE UNKNOWN-PROGRESS LINE, AND IT REPLACES THE BAR RATHER THAN DIMMING IT.
+   A challenge with no baseline yet reports `known:false`, and a bar drawn at 0%
+   for it is a measurement nobody took. A greyed-out bar would still read as
+   "zero progress"; a sentence cannot. */
+.app-quest__unknown {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--as-space-2);
+  margin: var(--as-space-2) 0 0;
+  padding: var(--as-space-2) var(--as-space-3);
+  border-left: 2px solid var(--as-border-strong);
+  background: var(--as-sunken);
+  border-radius: var(--as-radius-xs);
+  color: var(--as-text-3);
+}
+.app-quest__unknown svg { width: 1em; height: 1em; flex: none; margin-top: .15em; }
+
+
+/* =============================================================================
+   14 · CASINO — the live table
+   -----------------------------------------------------------------------------
+   The prototype's `.app-game` / `.app-table` / `.app-crash` blocks stay exactly
+   as they are; these are the pieces the live surface added.
+   ========================================================================== */
+
+/* The bet control that sits above every game. */
+.app-stake {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--as-space-2);
+  padding: var(--as-space-3);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-md);
+  background: var(--as-surface-1);
+}
+.app-stake__label {
+  font-size: var(--as-text-2xs);
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: var(--as-tracking-caps);
+  color: var(--as-text-3);
+  flex: 1 0 100%;
+}
+.app-stake .as-input { width: 8rem; flex: 0 0 auto; }
+
+/* The mines grid. 4 columns at every width — 20 tiles is 4x5 on a phone and
+   4x5 on a desktop, because a wider grid would make the tiles enormous. */
+.app-mines {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--as-space-2);
+  max-width: 22rem;
+}
+.app-mine {
+  aspect-ratio: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-sm);
+  background: var(--as-surface-2);
+  color: var(--as-text-2);
+  cursor: pointer;
+  transition: transform var(--as-dur-fast) var(--as-ease), background var(--as-dur-fast) var(--as-ease);
+}
+.app-mine:hover:not([disabled]) { background: var(--as-surface-3); transform: translateY(-1px); }
+.app-mine--safe { background: var(--as-success-soft); border-color: var(--as-success); cursor: default; }
+.app-mine--bomb { background: var(--as-danger-soft); border-color: var(--as-danger); cursor: default; }
+.app-mine[disabled] { cursor: default; }
+
+/* The crash ladder, as rungs rather than a clock — which is how the bot plays
+   it (`arcade.js`'s round is `{ bet, crashPoint, rungIdx }`). */
+.app-rungs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--as-space-2);
+  font-variant-numeric: tabular-nums;
+}
+.app-rung {
+  padding: .2rem .5rem;
+  border-radius: var(--as-radius-full);
+  border: 1px solid var(--as-border);
+  font-size: var(--as-text-xs);
+  color: var(--as-text-3);
+}
+.app-rung--passed { color: var(--as-text-3); text-decoration: line-through; opacity: .6; }
+.app-rung--at { background: var(--as-accent-soft); border-color: var(--as-accent-line); color: var(--as-accent); font-weight: 700; }
+
+/* A single playing card rendered from MemberApp.cardSvg, in a row. */
+.app-cards { display: flex; flex-wrap: wrap; gap: var(--as-space-2); }
+.app-cards svg { width: 3.2rem; height: auto; }
+
+/* The lobby grid of one-shot games. */
+.app-oneshots {
+  display: grid;
+  gap: var(--as-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+}
 
 
 /* =============================================================================

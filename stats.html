@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Analytics — Asbern</title>
+<meta name="description" content="Server analytics: activity over time, hour-of-day and weekday heatmaps, member growth, channel and role breakdowns, and your own detail — with every gap in the data named rather than drawn.">
+<meta name="color-scheme" content="dark light">
+<script>
+(function(){try{var p=localStorage.getItem('asbern.theme')||'system';
+var r=p==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):p;
+document.documentElement.setAttribute('data-theme',r);
+document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
+</script>
+<link rel="stylesheet" href="assets/asbern.css">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/stats.css">
+</head>
+<body data-app-page="stats">
+
+<a class="as-btn as-btn--secondary as-skip" href="#main">Skip to content</a>
+
+<header class="as-nav">
+  <div class="as-nav__inner">
+    <a class="as-wordmark" href="app.html" aria-label="Asbern — your profile">
+      <svg class="as-mark" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.5v19M12 5 6.6 9M12 11l-5.4 4M12 3.5l6 4.2-6 4.2M12 11.9l6 4.2-6 4.2"/>
+      </svg>
+      Asbern
+    </a>
+    <nav class="as-nav__links" aria-label="Primary">
+      <a class="as-nav__link" href="app.html" data-app-nav="home">Profile</a>
+      <a class="as-nav__link" href="watch.html" data-app-nav="watch">Watch</a>
+      <a class="as-nav__link" href="casino.html" data-app-nav="casino">Casino</a>
+      <a class="as-nav__link" href="leaderboards.html" data-app-nav="boards">Leaderboards</a>
+      <a class="as-nav__link" href="stats.html" data-app-nav="stats">Analytics</a>
+    </nav>
+    <div class="as-nav__actions">
+      <a class="app-wallet" href="app.html#tycoon" data-app-wallet>
+        <span data-app-icon="wallet"></span><span class="app-wallet__amount">—</span>
+      </a>
+      <button class="as-btn as-btn--ghost as-btn--icon" data-as-theme-toggle type="button" aria-label="Switch theme"></button>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="as-container app-main">
+
+  <div class="app-head">
+    <div class="app-head__row">
+      <div>
+        <span class="as-eyebrow">Hearthstead</span>
+        <h1 class="as-display as-display--lg">Analytics</h1>
+      </div>
+      <p class="u-text-xs as-muted">Counts and timings only. No message text is stored, read, or analysed — see the note at the foot of this page.</p>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       FILTERS — one row, above everything, so changing a range never moves
+       the control that changed it out from under the pointer.
+       ===================================================================== -->
+  <div class="sx-filters" role="group" aria-label="Range and options">
+    <span class="sx-filters__label">Range</span>
+    <span class="sx-people" data-sx-windows></span>
+    <span class="sx-filters__sep" aria-hidden="true"></span>
+    <span class="sx-custom">
+      <label class="sx-filters__label" for="sx-from">From</label>
+      <input type="date" id="sx-from" data-sx-from>
+      <label class="sx-filters__label" for="sx-to">To</label>
+      <input type="date" id="sx-to" data-sx-to>
+      <button class="as-btn as-btn--secondary as-btn--sm" type="button" data-sx-apply>Apply</button>
+    </span>
+    <span class="sx-filters__sep" aria-hidden="true"></span>
+    <span class="sx-filters__label">Metric</span>
+    <span class="sx-people" data-sx-metrics></span>
+    <span class="sx-filters__sep" aria-hidden="true"></span>
+    <button class="as-chip" type="button" data-sx-bots aria-pressed="false">Include bots</button>
+  </div>
+
+  <p class="u-text-xs as-muted u-mt-2" data-sx-range aria-live="polite"></p>
+
+  <!-- Headline tiles -->
+  <div class="as-grid as-grid--gap-6 u-mt-6" data-sx-tiles></div>
+
+  <!-- Activity over time -->
+  <section class="sx-section" aria-labelledby="sx-h-activity">
+    <div class="sx-section__head">
+      <h2 class="sx-section__title" id="sx-h-activity">Activity over time</h2>
+      <p class="sx-section__note">Voice is <strong>engaged</strong> time — minutes with somebody else in the channel and not muted. Connected time is counted separately and shown in the table.</p>
+    </div>
+    <div class="as-card">
+      <div data-sx-activity></div>
+      <details class="sx-data" data-sx-activity-table></details>
+    </div>
+  </section>
+
+  <!-- When we are busy -->
+  <section class="sx-section" aria-labelledby="sx-h-when">
+    <div class="sx-section__head">
+      <h2 class="sx-section__title" id="sx-h-when">When this server is busy</h2>
+      <p class="sx-section__note">Hour-by-hour data is kept from the moment the bot started keeping it. Daily totals go back further; hours cannot be reconstructed from a day, so they are not guessed at.</p>
+    </div>
+    <div class="as-card">
+      <div data-sx-heatmap></div>
+      <details class="sx-data" data-sx-heatmap-table></details>
+    </div>
+    <div class="sx-duo u-mt-4">
+      <div class="as-card">
+        <h3 class="as-eyebrow">By hour of day</h3>
+        <div data-sx-hours></div>
+      </div>
+      <div class="as-card">
+        <h3 class="as-eyebrow">By day of week</h3>
+        <div data-sx-weekday></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Growth -->
+  <section class="sx-section" aria-labelledby="sx-h-growth">
+    <div class="sx-section__head">
+      <h2 class="sx-section__title" id="sx-h-growth">Arrivals, departures and pulse</h2>
+      <p class="sx-section__note">Net is arrivals minus departures <em>inside this range</em> — not a member count. The store records events, never a headcount, so there is no total to add them to.</p>
+    </div>
+    <div class="sx-duo">
+      <div class="as-card">
+        <h3 class="as-eyebrow">Joins and leaves</h3>
+        <div data-sx-growth></div>
+      </div>
+      <div class="as-card">
+        <h3 class="as-eyebrow">Members active per bucket</h3>
+        <div data-sx-active></div>
+        <p class="u-text-xs as-muted u-mt-2" data-sx-active-note></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Breakdowns -->
+  <section class="sx-section" aria-labelledby="sx-h-break">
+    <div class="sx-section__head">
+      <h2 class="sx-section__title" id="sx-h-break">Breakdowns</h2>
+      <p class="sx-section__note">Bots never rank. Roles are read from the <em>current</em> roster, so a member who gained or lost a role moves retroactively.</p>
+    </div>
+    <div class="as-tabs" role="tablist" aria-label="Breakdown" data-sx-tabs></div>
+    <div class="as-card u-mt-4" data-sx-break></div>
+  </section>
+
+  <!-- My detail -->
+  <section class="sx-section" aria-labelledby="sx-h-me">
+    <div class="sx-section__head">
+      <h2 class="sx-section__title" id="sx-h-me">Member detail</h2>
+      <p class="sx-section__note">Rankings and server totals are public here. A member's hour-by-hour profile is not — it is only ever shown to that member.</p>
+    </div>
+    <div class="sx-people u-mb-4" data-sx-people></div>
+    <div class="as-card" data-sx-member></div>
+  </section>
+
+  <!-- What cannot be built, and why -->
+  <section class="sx-section" aria-labelledby="sx-h-gaps">
+    <div class="sx-section__head">
+      <h2 class="sx-section__title" id="sx-h-gaps">What is deliberately missing</h2>
+    </div>
+    <div class="as-note as-note--frost">
+      <div>
+        <strong>No message content, ever.</strong> Word clouds, "most used words", emoji rankings and sentiment
+        are not here and are not planned. The collector has stored counts and timings only since 2022 and no part
+        of it has ever held a character of message text. Adding them would mean a new collector, a privacy policy
+        that does not exist yet, and reading everything everyone writes.
+      </div>
+    </div>
+    <div class="as-note u-mt-3">
+      <div>
+        <strong>No online/idle/offline status and no "what everyone is playing".</strong> Both need Discord's
+        Presence privileged intent, which this bot does not request. Without the intent there are no events, so a
+        status chart could only ever be a drawing.
+      </div>
+    </div>
+    <div class="as-note u-mt-3">
+      <div>
+        <strong>No invite attribution.</strong> Who invited whom needs an invite-code cache diffed on every join.
+        Nothing collects it today, so "top inviters" would be an empty table with a confident heading.
+      </div>
+    </div>
+  </section>
+
+  <div class="app-preview u-mt-12" data-app-preview></div>
+
+  <footer class="app-legal u-mt-12">
+    <p class="u-text-xs as-muted">
+      &copy; <span data-as-year></span> Asbern &middot; Not affiliated with Discord Inc.
+    </p>
+    <p class="u-text-xs as-muted">
+      <a href="privacy.html">What is stored about you</a> &middot;
+      <a href="terms.html">Terms</a> &middot;
+      <a href="privacy.html#choices">Delete your history</a> &middot;
+      <a href="index.html">About Asbern</a>
+    </p>
+    <p class="u-text-xs as-muted">
+      Preview build with example data. Every number on this page is generated, not measured.
+    </p>
+  </footer>
+
+</main>
+
+<nav class="app-tabbar" aria-label="Sections">
+  <a class="app-tabbar__item" href="app.html" data-app-nav="home">
+    <span data-as-icon="home"></span><span>Profile</span>
+  </a>
+  <a class="app-tabbar__item" href="watch.html" data-app-nav="watch">
+    <span data-as-icon="film"></span><span>Watch</span>
+  </a>
+  <a class="app-tabbar__item" href="casino.html" data-app-nav="casino">
+    <span data-app-icon="dice"></span><span>Casino</span>
+  </a>
+  <a class="app-tabbar__item" href="leaderboards.html" data-app-nav="boards">
+    <span data-as-icon="trophy"></span><span>Boards</span>
+  </a>
+  <a class="app-tabbar__item" href="stats.html" data-app-nav="stats">
+    <span data-as-icon="chart"></span><span>Analytics</span>
+  </a>
+</nav>
+
+<script src="assets/mock-data.js"></script>
+<script src="assets/asbern.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/stats.js"></script>
+<script>
+(function () {
+  'use strict';
+  var S = window.AsbernStats, A = window.Asbern;
+  var $ = function (sel) { return document.querySelector(sel); };
+  var esc = S.esc;
+
+  // The whole page is a pure function of this. Every control writes here and
+  // calls render() — nothing renders a section from inside an event handler, so
+  // two controls can never leave the page in a state neither of them intended.
+  var state = { window: 'month', from: null, to: null, metric: 'messages', bots: false, tab: 'members', member: S.ME };
+
+  function opts(extra) {
+    var o = { includeBots: state.bots, metric: state.metric };
+    if (state.window === 'custom') { o.from = state.from; o.to = state.to; }
+    if (extra) for (var k in extra) if (Object.prototype.hasOwnProperty.call(extra, k)) o[k] = extra[k];
+    return o;
+  }
+  var win = function () { return state.window; };
+
+  function chip(label, active, attrs) {
+    return '<button class="as-chip' + (active ? ' is-active' : '') + '" type="button" aria-pressed="' + (active ? 'true' : 'false') + '" ' + attrs + '>' + esc(label) + '</button>';
+  }
+
+  /* ---- table view: every chart has one -------------------------------- */
+  function table(summary, head, rows) {
+    return '<summary>' + esc(summary) + '</summary>'
+      + '<div class="as-table-wrap u-mt-2"><table class="as-table"><thead><tr>'
+      + head.map(function (h) { return '<th scope="col">' + esc(h) + '</th>'; }).join('')
+      + '</tr></thead><tbody>'
+      + rows.map(function (r) {
+        return '<tr>' + r.map(function (c, i) { return i === 0 ? '<th scope="row">' + esc(c) + '</th>' : '<td class="u-tabular">' + esc(c) + '</td>'; }).join('') + '</tr>';
+      }).join('')
+      + '</tbody></table></div>';
+  }
+
+  function tile(label, value, note, delta) {
+    var d = '';
+    if (delta != null) {
+      var up = delta >= 0;
+      d = '<div class="as-stat__delta as-stat__delta--' + (up ? 'up' : 'down') + '">' + (up ? '▲' : '▼') + ' ' + Math.abs(delta) + '%</div>';
+    }
+    return '<div class="as-stat"><div class="as-stat__label">' + esc(label) + '</div>'
+      + '<div class="as-stat__value">' + esc(value) + '</div>' + d
+      + (note ? '<div class="as-stat__note">' + esc(note) + '</div>' : '') + '</div>';
+  }
+
+  /* ---- sections -------------------------------------------------------- */
+  function renderFilters() {
+    $('[data-sx-windows]').innerHTML = S.WINDOWS.map(function (w) {
+      return chip(w.short, state.window === w.key, 'data-w="' + w.key + '"');
+    }).join('') + chip('Custom', state.window === 'custom', 'data-w="custom"');
+    $('[data-sx-metrics]').innerHTML =
+      chip('Messages', state.metric === 'messages', 'data-m="messages"')
+      + chip('Voice', state.metric === 'voice', 'data-m="voice"');
+    var b = $('[data-sx-bots]');
+    b.setAttribute('aria-pressed', state.bots ? 'true' : 'false');
+    b.classList.toggle('is-active', state.bots);
+  }
+
+  function renderAll() {
+    renderFilters();
+    var sp = S.spec(win(), opts());
+    $('[data-sx-range]').textContent = sp.label + ' · ' + sp.buckets.length + ' ' + sp.unit + (sp.buckets.length === 1 ? '' : 's')
+      + (state.bots ? ' · bots included' : ' · bots excluded');
+
+    /* tiles */
+    var sum = S.serverSummary(win(), opts());
+    var cmp = S.comparePeriods(win(), opts());
+    $('[data-sx-tiles]').innerHTML = [
+      tile('Messages', S.fmtNum(sum.messages), sp.label, cmp.delta.messagesPct),
+      tile('Voice hours', S.fmtNum(sum.voiceHours) + 'h', 'engaged time', cmp.delta.voicePct),
+      tile('Active members', String(sum.activeMembers), 'distinct, in range', cmp.delta.membersPct),
+      tile('Messages / member', String(sum.messagesPerMember), 'per active member'),
+      tile('Peak hour', S.hourName(sum.peakHour), 'busiest hour of the day'),
+      tile('Net growth', (sum.net > 0 ? '+' : '') + sum.net, sum.joins + ' joined · ' + sum.leaves + ' left')
+    ].join('');
+
+    /* activity */
+    var act = S.activitySeries(win(), opts());
+    var field = state.metric === 'voice' ? 'voiceHours' : 'messages';
+    $('[data-sx-activity]').innerHTML = S.timeChart(act.bars, {
+      field: field,
+      seriesLabel: state.metric === 'voice' ? 'Voice hours' : 'Messages',
+      color: state.metric === 'voice' ? 'var(--as-frost)' : 'var(--as-accent)',
+      windowLabel: act.label
+    });
+    $('[data-sx-activity-table]').innerHTML = table(
+      'Show the numbers behind this chart',
+      [sp.unit === 'hour' ? 'Hour' : sp.unit === 'month' ? 'Month' : 'Day', 'Messages', 'Voice (engaged)', 'Voice (connected)'],
+      act.bars.map(function (b) { return [b.label, S.fmtNum(b.messages), b.voiceHours + 'h', b.presenceHours + 'h']; })
+    );
+
+    /* heatmap + hour + weekday */
+    var hm = S.heatmap(win(), opts());
+    $('[data-sx-heatmap]').innerHTML = S.heatmapChart(hm, {});
+    $('[data-sx-heatmap-table]').innerHTML = hm.available ? table(
+      'Show the grid as a table',
+      ['Weekday'].concat(['00–03', '03–06', '06–09', '09–12', '12–15', '15–18', '18–21', '21–24']),
+      hm.grid.map(function (row, w) {
+        var cells = [];
+        for (var b = 0; b < 8; b++) {
+          var v = 0;
+          for (var h = b * 3; h < b * 3 + 3; h++) v += row[h].value;
+          cells.push(S.fmtNum(v));
+        }
+        return [S.WEEKDAYS_LONG[w]].concat(cells);
+      })
+    ) : '<summary>No data to tabulate</summary>';
+
+    var hod = S.hourOfDay(win(), opts());
+    $('[data-sx-hours]').innerHTML = hod.available
+      ? S.timeChart(hod.hours, { field: field, seriesLabel: state.metric === 'voice' ? 'Voice hours' : 'Messages', color: state.metric === 'voice' ? 'var(--as-frost)' : 'var(--as-accent)', minStep: 22, height: 220, windowLabel: 'hour of day' })
+        + '<p class="u-text-xs as-muted u-mt-2">Peak: <strong>' + esc(S.hourName(hod.peakHour)) + '</strong>. Local time.</p>'
+      : S.heatmapChart(null, { empty: 'No hourly activity in this range.' });
+
+    var wd = S.weekdayProfile(win(), opts());
+    if (wd.meaningful && wd.available) {
+      $('[data-sx-weekday]').innerHTML = S.timeChart(wd.days, {
+        field: field, seriesLabel: state.metric === 'voice' ? 'Voice hours' : 'Messages',
+        color: state.metric === 'voice' ? 'var(--as-frost)' : 'var(--as-accent)', minStep: 60, height: 220, windowLabel: 'day of week'
+      }) + '<p class="u-text-xs as-muted u-mt-2">Busiest: <strong>' + esc(S.WEEKDAYS_LONG[wd.busiest]) + '</strong>.</p>';
+    } else {
+      // ⚠ REFUSED, NOT DRAWN. Over month buckets every month lands on whatever
+      // weekday its 1st happened to be, so the chart would be an artefact of the
+      // calendar rather than a measurement of anybody's week.
+      $('[data-sx-weekday]').innerHTML = '<div class="as-empty"><div class="as-empty__title">Not measurable over this range</div>'
+        + '<div class="as-empty__body">This range is bucketed by ' + esc(wd.unit) + ', and a day-of-week breakdown of monthly buckets would just be reporting which weekday each 1st fell on. Pick Day, Week or Month.</div></div>';
+    }
+
+    /* growth */
+    var g = S.growthSeries(win(), opts());
+    $('[data-sx-growth]').innerHTML = g.available
+      ? S.growthChart(g.bars, {}) + '<p class="u-text-xs as-muted u-mt-2"><strong>' + g.totals.joins + '</strong> joined · <strong>' + g.totals.leaves + '</strong> left · net <strong>' + (g.totals.net > 0 ? '+' : '') + g.totals.net + '</strong></p>'
+      : '<div class="as-empty"><div class="as-empty__title">Nothing recorded</div><div class="as-empty__body">No arrivals or departures in this range.</div></div>';
+
+    var am = S.activeMembers(win(), opts());
+    $('[data-sx-active]').innerHTML = S.timeChart(am.bars, { field: 'members', seriesLabel: 'Active members', color: 'var(--as-frost)', height: 220, windowLabel: am.label });
+    $('[data-sx-active-note]').innerHTML = '<strong>' + am.distinct + '</strong> distinct members across the range, peaking at <strong>' + am.peak + '</strong> in one ' + esc(am.unit)
+      + '. The bars do not add up to that total — somebody active on two days is one member and two bars.';
+
+    renderBreak();
+    renderMember();
+    A.mount(document);
+  }
+
+  var TABS = [['members', 'Members'], ['channels', 'Channels'], ['roles', 'Roles']];
+  function renderBreak() {
+    $('[data-sx-tabs]').innerHTML = TABS.map(function (t) {
+      return '<button class="as-tab' + (state.tab === t[0] ? ' is-active' : '') + '" type="button" role="tab" aria-selected="' + (state.tab === t[0] ? 'true' : 'false') + '" data-tab="' + t[0] + '">' + esc(t[1]) + '</button>';
+    }).join('');
+    var host = $('[data-sx-break]');
+    var unit = state.metric === 'voice' ? 'h' : '';
+    if (state.tab === 'members') {
+      var lb = S.leaderboard(state.metric, win(), opts());
+      var rows = lb.rows.slice(0, 10).map(function (r) {
+        var m = S.memberById(r.userId);
+        return { label: (m ? m.name : r.userId) + (m && m.bot ? ' (bot)' : ''), value: state.metric === 'voice' ? Math.round(r.voiceMinutes / 60 * 10) / 10 : r.messages, highlight: r.userId === S.ME };
+      });
+      host.innerHTML = S.rankChart(rows, { unit: unit, title: 'Top members', color: state.metric === 'voice' ? 'var(--as-frost)' : 'var(--as-accent)' })
+        + '<details class="sx-data">' + table('Show all ranked members', ['Member', 'Messages', 'Voice hours'],
+          lb.rows.map(function (r) { var m = S.memberById(r.userId); return [(m ? m.name : r.userId), S.fmtNum(r.messages), (Math.round(r.voiceMinutes / 60 * 10) / 10) + 'h']; })) + '</details>';
+    } else if (state.tab === 'channels') {
+      var cb = S.channelBreakdown(win(), opts());
+      host.innerHTML = S.rankChart(cb.rows.map(function (r) {
+        var c = S.channelById(r.channelId);
+        return { label: c ? c.name : r.channelId, value: state.metric === 'voice' ? r.voiceHours : r.messages };
+      }), { unit: unit, title: 'Top channels', color: state.metric === 'voice' ? 'var(--as-frost)' : 'var(--as-accent)' })
+        + '<details class="sx-data">' + table('Show every channel', ['Channel', 'Messages', 'Voice hours', 'Contributors'],
+          cb.rows.map(function (r) { var c = S.channelById(r.channelId); return [c ? c.name : r.channelId, S.fmtNum(r.messages), r.voiceHours + 'h', String(r.members)]; })) + '</details>';
+    } else {
+      var rb = S.roleBreakdown(win(), opts());
+      host.innerHTML = S.rankChart(rb.rows.map(function (r) {
+        return { label: r.name, value: state.metric === 'voice' ? r.voiceHours : r.messages };
+      }), { unit: unit, title: 'Activity by role', nameW: 130, color: state.metric === 'voice' ? 'var(--as-frost)' : 'var(--as-accent)' })
+        + '<details class="sx-data">' + table('Show every role, including per-head', ['Role', 'Members', 'Active', 'Messages', 'Voice hours', 'Per member'],
+          rb.rows.map(function (r) { return [r.name, String(r.members), String(r.activeMembers), S.fmtNum(r.messages), r.voiceHours + 'h', String(r.perMember)]; })) + '</details>'
+        + '<p class="u-text-xs as-muted u-mt-3">A member with several roles is counted under each, so these do not sum to the server total. <strong>Per member</strong> is there so a three-person mod team is comparable with @everyone.</p>';
+    }
+  }
+
+  function renderMember() {
+    // ⚠ THE VIEWER IS FIRST. This list is ordered by the fixture's activity
+    // weighting, which put the viewer third — so the only chip on the row that
+    // actually opens anything was buried between two that deliberately refuse.
+    // A picker whose default-looking first option is a locked state reads as a
+    // broken page rather than as a privacy rule.
+    var people = S.MEMBERS.filter(function (m) { return !m.bot; });
+    people.sort(function (a, b) { return (a.id === S.ME ? -1 : 0) - (b.id === S.ME ? -1 : 0); });
+    $('[data-sx-people]').innerHTML = people.map(function (m) {
+      return chip(m.name + (m.id === S.ME ? ' (you)' : ''), state.member === m.id, 'data-p="' + m.id + '"');
+    }).join('');
+    var d = S.memberDetail(state.member, win(), opts({ viewerId: S.ME }));
+    var host = $('[data-sx-member]');
+    if (!d.allowed) {
+      // ⚠ THE REFUSAL IS THE FEATURE. This is not a paywall and not a "coming
+      // soon" — the numbers were never computed. See memberDetail() in stats.js.
+      var who = S.memberById(d.userId);
+      host.innerHTML = '<div class="sx-locked"><span data-as-icon="lock" aria-hidden="true"></span><div>'
+        + '<strong>' + esc(who ? who.name : d.userId) + '’s detail is private.</strong><br>' + esc(d.why)
+        + '<br><span class="u-text-xs as-muted">Their rank and totals are on the Members board above — that much the bot already shows everyone.</span></div></div>';
+      return;
+    }
+    if (!d.available) {
+      host.innerHTML = '<div class="as-empty"><div class="as-empty__title">Nothing in this range</div><div class="as-empty__body">You have no recorded activity in the selected range.</div></div>';
+      return;
+    }
+    var rk = function (r) { return r ? '#' + r.rank + ' of ' + r.of : '—'; };
+    host.innerHTML = ''
+      + '<div class="as-grid as-grid--gap-6">'
+      + tile('Your messages', S.fmtNum(d.totals.messages), rk(d.rank.messages) + ' server-wide')
+      + tile('Your voice', d.totals.voiceHours + 'h', rk(d.rank.voice) + ' server-wide')
+      + tile('Active days', String(d.activeDays), 'longest streak ' + d.longestStreak + ' day' + (d.longestStreak === 1 ? '' : 's'))
+      + tile('Share of the server', d.share.messages + '%', 'of all messages in range')
+      + '</div>'
+      + '<div class="sx-duo u-mt-6">'
+      + '<div><h3 class="as-eyebrow">Your activity</h3>'
+      + S.timeChart(d.bars, { field: state.metric === 'voice' ? 'voiceHours' : 'messages', seriesLabel: state.metric === 'voice' ? 'Voice hours' : 'Messages', color: 'var(--as-accent)', height: 220, windowLabel: d.label })
+      + '</div>'
+      + '<div><h3 class="as-eyebrow">Your hours</h3>'
+      + S.timeChart(d.hours, { field: state.metric === 'voice' ? 'voiceHours' : 'messages', seriesLabel: state.metric === 'voice' ? 'Voice hours' : 'Messages', color: 'var(--as-frost)', minStep: 22, height: 220, windowLabel: 'hour of day' })
+      + '<p class="u-text-xs as-muted u-mt-2">You are most active around <strong>' + esc(S.hourName(d.peakHour)) + '</strong>. Your hourly profile is kept per calendar month, so it is not narrowed by the range above.</p>'
+      + '</div></div>'
+      + '<details class="sx-data">' + table('Show your numbers', ['Bucket', 'Messages', 'Voice hours'],
+        d.bars.map(function (b) { return [b.label, S.fmtNum(b.messages), b.voiceHours + 'h']; })) + '</details>';
+  }
+
+  /* ---- events: one delegated listener, and every path ends in renderAll -- */
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest ? e.target.closest('button') : null;
+    if (!t) return;
+    if (t.hasAttribute('data-w')) {
+      state.window = t.getAttribute('data-w');
+      if (state.window === 'custom' && (!state.from || !state.to)) {
+        var now = new Date();
+        var from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 13);
+        state.from = from.getTime(); state.to = now.getTime();
+        $('[data-sx-from]').value = from.toISOString().slice(0, 10);
+        $('[data-sx-to]').value = now.toISOString().slice(0, 10);
+      }
+      return renderAll();
+    }
+    if (t.hasAttribute('data-m')) { state.metric = t.getAttribute('data-m'); return renderAll(); }
+    if (t.hasAttribute('data-sx-bots')) { state.bots = !state.bots; return renderAll(); }
+    if (t.hasAttribute('data-tab')) { state.tab = t.getAttribute('data-tab'); renderBreak(); return A.mount(document); }
+    if (t.hasAttribute('data-p')) { state.member = t.getAttribute('data-p'); renderMember(); return A.mount(document); }
+    if (t.hasAttribute('data-sx-apply')) {
+      var f = $('[data-sx-from]').value, to = $('[data-sx-to]').value;
+      if (!f || !to) return;
+      var fp = f.split('-'), tp = to.split('-');
+      state.from = new Date(+fp[0], +fp[1] - 1, +fp[2]).getTime();
+      state.to = new Date(+tp[0], +tp[1] - 1, +tp[2]).getTime();
+      state.window = 'custom';
+      return renderAll();
+    }
+  });
+
+  renderAll();
+}());
+</script>
+
+</body>
+</html>
