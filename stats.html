@@ -49,7 +49,18 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
   <div class="app-head">
     <div class="app-head__row">
       <div>
-        <span class="as-eyebrow">Hearthstead</span>
+        <!-- ⚠ LAW 1. This read a specific server's name — hardcoded, shipped live
+             to a public site, on a page whose whole point is that any owner can
+             run it. The member app script loaded at the foot of this page fills
+             every [data-guild-name] from the signed-in guild; the four member
+             pages were built that way and this one was missed. The fallback text
+             is deliberately generic, because a page that cannot name your server
+             should say so rather than name somebody else's.
+             ⚠ Do not write asset FILENAMES in this comment. The script-order gate
+             in test/v172-stats-web.test.js locates each one by its first
+             occurrence in the raw page, so a filename mentioned in prose above
+             the tags reorders the check and fails a healthy page. -->
+        <span class="as-eyebrow" data-guild-name>Your server</span>
         <h1 class="as-display as-display--lg">Analytics</h1>
       </div>
       <p class="u-text-xs as-muted">Counts and timings only. No message text is stored, read, or analysed — see the note at the foot of this page.</p>
