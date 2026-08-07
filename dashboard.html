@@ -75,8 +75,15 @@ document.documentElement.setAttribute('data-theme-pref',p);}catch(e){}})();
 
     <!-- ⭐ One box that finds any control across all eleven tabs. With ~370 of
          them, search is the primary navigation and not a convenience, which is
-         why it is in the bar and not inside a tab. ⌘K / Ctrl-K focuses it. -->
-    <div id="ad-globalsearch" class="u-grow" style="position:relative;max-width:32rem;min-width:0"></div>
+         why it is in the bar and not inside a tab. ⌘K / Ctrl-K / "/" focus it.
+
+         ⚠ NO INLINE `style=` HERE ANY MORE. It carried the positioning context
+         and the width cap, which meant two of this element's three layout facts
+         lived in the markup and the third in a stylesheet — and a strict CSP
+         that ever adds `style-src` without `'unsafe-inline'` would have dropped
+         them silently. Both now live in dashboard-app.css §16, beside the
+         gutters they have to agree with. -->
+    <div id="ad-globalsearch" class="u-grow" role="search"></div>
 
     <div class="as-nav__actions">
       <span id="ad-livepill"></span>

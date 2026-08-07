@@ -3,14 +3,26 @@
    -----------------------------------------------------------------------------
    THE ADMIN CONSOLE'S OWN LAYER, ON TOP OF asbern.css AND dashboard.css.
 
-   ⚠ THIS FILE ADDS AND NEVER OVERRIDES. `dashboard.css` already owns the shell,
-   the guild switcher, the CONTROL CARD, the result strip, the module card, the
-   status lamp and the key/value rows — and `dashboard-core.js` emits exactly
-   those class names, on purpose, so the real console inherits the design system
-   the preview build established rather than growing a second one beside it.
-   Nothing below re-declares an `.ad-control*`, an `.ad-result*`, an `.ad-mod*`
-   or an `.ad-lamp*` rule; it fills the gaps the preview never needed — a
-   sign-in screen, a server chooser, a page head, a stat row, an activity log.
+   `dashboard.css` owns the shell, the guild switcher, the CONTROL CARD, the
+   result strip, the module card, the status lamp and the key/value rows — and
+   `dashboard-core.js` emits exactly those class names, on purpose, so the real
+   console inherits the design system the preview build established rather than
+   growing a second one beside it.
+
+   ⚠ THIS FILE USED TO SAY "ADDS AND NEVER OVERRIDES", AND §11 BELOW BREAKS THAT
+   DELIBERATELY. THE REASON MATTERS, SO READ IT BEFORE MOVING ANYTHING.
+   `dashboard.css` is shared with **preview.html, billing.html and bridge.html**,
+   and those pages render their cards from `assets/dashboard.js`, which emits the
+   SAME `.ad-control__*` class names off its own frozen snapshot. Editing
+   `dashboard.css` to give this console a row layout would silently restyle three
+   other live pages this session does not own. So every override below is scoped
+   to `[data-ad-page="console"]` — the attribute `dashboard.html` already carries
+   on `<body>`, and which no other page in the suite uses (they are `dashboard`,
+   `billing`, `bridge`). One page in, one page out.
+
+   Everything else here still only fills gaps the preview never needed — a
+   sign-in screen, a server chooser, a page head, a stat row, an activity log,
+   and now a filter toolbar, a severity system and a disclosure row.
 
    NAMING (dashboard.css's own convention, unchanged)
      .ad-*      dashboard-local component, candidate for promotion into asbern.css
@@ -267,6 +279,12 @@
   color: var(--as-text-1);
   transition: border-color var(--as-dur-fast) var(--as-ease), transform var(--as-dur-fast) var(--as-ease);
 }
+/* ⚠ `text-decoration: none` BELONGS ON THE RESTING STATE, NOT ONLY ON :hover.
+   It was on the hover rule alone, so every tab card on the Home screen shipped
+   with its "16 controls" line UNDERLINED — the site's global link underline
+   reaching through — and the underline vanished when you pointed at it, which is
+   the opposite of what a link is supposed to do. */
+.ad-tabcard { text-decoration: none; }
 .ad-tabcard:hover { border-color: var(--as-accent-line); text-decoration: none; }
 @media (prefers-reduced-motion: no-preference) { .ad-tabcard:hover { transform: translateY(-1px); } }
 .ad-tabcard__emoji { font-size: 1.15rem; line-height: 1; }
@@ -410,3 +428,381 @@ input[type="password"].as-input { font-family: var(--as-font-mono); letter-spaci
 .ad-skel-wrap { display: grid; gap: var(--as-space-3); }
 .ad-skel-line { height: 1.1rem; border-radius: var(--as-radius-xs); }
 .ad-skel-pill { display: inline-block; width: 6rem; height: 1.9rem; border-radius: var(--as-radius-sm); }
+
+
+/* ==========================================================================
+   11 · SEVERITY — one axis, four values, encoded as FORM and not only as text
+   ==========================================================================
+   ⚠ THE STRIPE THIS REPLACES WAS INVISIBLE, AND THAT WAS MEASURABLE RATHER
+   THAN A MATTER OF TASTE. `dashboard.css` §3 draws a destructive card as
+   `border-left: 3px solid var(--as-danger-soft)` — and `--as-danger-soft` is
+   `rgba(226,102,94,0.13)`, a 13%-alpha FILL token being spent as a LINE. At 13%
+   over `--as-surface-1` it is roughly a 1.05:1 difference from the card's own
+   border: the one visual cue separating 128 server-changing controls from 241
+   harmless ones could not be seen. Full-strength semantic tokens below.
+
+   ⚠ SEVERITY IS SEMANTIC COLOUR AND IS NOT THE ACCENT. Asbern's accent is
+   burnished brass and it means "this is the product"; success/warn/danger mean
+   "this is what will happen". A destructive control tinted with the brand hue
+   would be a control that looks important rather than dangerous. Nothing in
+   this section touches `--as-accent`.
+
+   ⚠ AND `locked` IS NEUTRAL ON PURPOSE. "You may not press this" is not a
+   hazard. Painting it red would tell an admin a control is dangerous when what
+   is true is that it is not theirs.
+
+   Both themes come free: every value is a token that asbern.css flips under
+   `:root[data-theme]` AND under `@media (prefers-color-scheme)`. There is no
+   colour literal in this file. */
+
+[data-ad-sev] { --ad-sev-line: var(--as-border-strong); --ad-sev-ink: var(--as-text-3); --ad-sev-soft: transparent; }
+[data-ad-sev="read"]    { --ad-sev-line: var(--as-success); --ad-sev-ink: var(--as-success); --ad-sev-soft: var(--as-success-soft); }
+[data-ad-sev="caution"] { --ad-sev-line: var(--as-warn);    --ad-sev-ink: var(--as-warn);    --ad-sev-soft: var(--as-warn-soft); }
+[data-ad-sev="danger"]  { --ad-sev-line: var(--as-danger);  --ad-sev-ink: var(--as-danger);  --ad-sev-soft: var(--as-danger-soft); }
+[data-ad-sev="locked"]  { --ad-sev-line: var(--as-border-strong); --ad-sev-ink: var(--as-text-3); --ad-sev-soft: transparent; }
+
+
+/* ==========================================================================
+   12 · THE CONTROL ROW — a disclosure, scoped to this console only
+   ==========================================================================
+   ⚠ SCOPED TO [data-ad-page="console"]. See the file header: dashboard.css's
+   `.ad-control*` rules are shared with three fixture-driven pages this session
+   does not own, and `assets/dashboard.js` emits the same class names. */
+
+/* One column, not a card wall. 369 cards in a 26rem auto-fill grid produce rows
+   whose height is set by the tallest card in them, so a four-field control
+   leaves a hand's width of dead space under each of its neighbours — and 76 of
+   the 369 have no fields at all. A list has no ragged row. */
+[data-ad-page="console"] .ad-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--as-space-2);
+}
+
+[data-ad-page="console"] .ad-control {
+  border-left: 3px solid var(--ad-sev-line);
+  border-radius: var(--as-radius-md);
+  scroll-margin-top: calc(var(--as-nav-h) + 6rem);
+}
+[data-ad-page="console"] .ad-control.is-destructive { border-left-color: var(--ad-sev-line); }
+[data-ad-page="console"] .ad-control:hover { border-color: var(--as-border-strong); border-left-color: var(--ad-sev-line); }
+
+.ad-control__row { display: flex; }
+
+/* THE WHOLE ROW IS THE BUTTON. A 6px chevron as the only hit target is a target
+   nobody hits; the entire row toggling is what every file tree and every
+   accordion in this category does. */
+.ad-control__disc {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto 1.2rem;
+  align-items: start;
+  gap: var(--as-space-3);
+  width: 100%;
+  padding: var(--as-space-3) var(--as-space-4);
+  text-align: left;
+  color: inherit;
+  border-radius: var(--as-radius-md);
+}
+.ad-control__disc:hover { background: var(--as-surface-2); }
+.ad-control__disc:focus-visible { outline: 2px solid var(--as-focus); outline-offset: -2px; }
+
+[data-ad-page="console"] .ad-control__glyph {
+  width: 2rem; height: 2rem;
+  border-color: var(--as-border-soft);
+  background: var(--ad-sev-soft);
+  font-size: 0.95rem;
+}
+
+/* THE THREE LINES, IN THE ORDER SOMEBODY READS THEM: what it is called, what it
+   does, and only then where it lives. The id used to sit SECOND — a mono
+   `channel.lock · admin-console` between the label and the sentence explaining
+   it — so the most machine-facing string on the card outranked the description
+   the registry had already written. */
+.ad-control__lines { display: grid; gap: 0.1rem; min-width: 0; }
+
+[data-ad-page="console"] .ad-control__title {
+  font-size: var(--as-text-base);
+  font-weight: 650;
+  line-height: var(--as-leading-snug);
+  color: var(--as-text-1);
+}
+[data-ad-page="console"] .ad-control__help {
+  display: block;
+  padding: 0;
+  font-size: var(--as-text-sm);
+  line-height: var(--as-leading-snug);
+  color: var(--as-text-2);
+  max-width: 78ch;
+}
+[data-ad-page="console"] .ad-control__id {
+  display: block;
+  margin-top: 0.15rem;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+.ad-control__fields { color: var(--as-text-3); font-family: var(--as-font-sans); }
+
+.ad-control__pills { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--as-space-2); padding-top: 0.1rem; }
+
+/* ⚠ ON A PHONE THE PILLS GO UNDER THE TEXT, NOT BESIDE IT. In the four-column
+   row grid they are an `auto` track, so at 380px they win the width fight and
+   squeeze the label and the help sentence into two-word ribbons — the pill would
+   have cost the description it exists to qualify. Two rows instead. */
+@media (max-width: 40rem) {
+  .ad-control__disc {
+    grid-template-columns: 1.7rem minmax(0, 1fr) 1.2rem;
+    gap: var(--as-space-2);
+    padding: var(--as-space-3);
+  }
+  .ad-control__pills { grid-column: 2 / 4; justify-content: flex-start; padding-top: var(--as-space-2); }
+  [data-ad-page="console"] .ad-control__glyph { width: 1.7rem; height: 1.7rem; font-size: 0.8rem; }
+}
+
+/* Two borders and a rotation. See dashboard-core's note: an inline SVG per row
+   is 66 KB of identical path data in one innerHTML assignment. */
+.ad-control__chev {
+  position: relative;
+  width: 1.2rem; height: 1.2rem;
+  margin-top: 0.35rem;
+  color: var(--as-text-3);
+}
+.ad-control__chev::before {
+  content: "";
+  position: absolute;
+  left: 0.3rem; top: 0.22rem;
+  width: 0.42rem; height: 0.42rem;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ad-control__chev { transition: transform var(--as-dur-fast) var(--as-ease); }
+}
+.ad-control__disc[aria-expanded="true"] .ad-control__chev { transform: rotate(90deg); }
+.ad-control__disc[aria-expanded="true"] { background: var(--as-surface-2); }
+
+/* The body, once opened. `.ad-control__body` already has padding + a flex
+   column from dashboard.css; these are the pieces that sit differently now that
+   it lives inside a disclosure rather than being the whole card. */
+[data-ad-page="console"] .ad-control__body {
+  border-top: 1px solid var(--as-border-soft);
+  background: var(--as-sunken);
+  gap: var(--as-space-4);
+}
+[data-ad-page="console"] .ad-control__flags { padding: 0; }
+[data-ad-page="console"] .ad-control__foot {
+  padding: 0;
+  border-top: 0;
+  background: none;
+}
+
+/* THE CONSEQUENCE SENTENCE IS NOW THE FIRST THING IN THE OPENED CARD, at body
+   size, on the severity colour. It used to be 12px `as-muted` in the footer —
+   the smallest and quietest text on a card whose whole subject it was. */
+.ad-control__conseq {
+  display: flex;
+  gap: var(--as-space-2);
+  margin: 0;
+  padding: var(--as-space-2) var(--as-space-3);
+  border-left: 2px solid var(--ad-sev-line);
+  border-radius: var(--as-radius-xs);
+  background: var(--ad-sev-soft);
+  font-size: var(--as-text-sm);
+  color: var(--as-text-2);
+}
+.ad-control__conseq::before { content: "→"; color: var(--ad-sev-ink); font-weight: 700; flex: none; }
+
+
+/* ==========================================================================
+   13 · PARAM ALIGNMENT — a column of labels that reads as a column
+   ==========================================================================
+   ⚠ THE TYPE TAG USED TO RIGHT-ALIGN AGAINST THE LABEL, NOT AGAINST THE FIELD.
+   `.ad-param__type { margin-left: auto }` on a label whose only other child was
+   a bare text node meant the tag landed wherever that text ended — so in the
+   two-column param grid the tags sat at two different x-positions on every row,
+   and a long label pushed its own tag past the card edge. A named `__name` cell
+   that can shrink is what fixes it, and it is why paramFieldHtml now wraps the
+   label text in a span. */
+
+.ad-param__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+[data-ad-page="console"] .ad-param .as-label { gap: var(--as-space-2); align-items: baseline; }
+[data-ad-page="console"] .ad-param__type { flex: none; margin-left: auto; }
+[data-ad-page="console"] .ad-params { gap: var(--as-space-4) var(--as-space-4); }
+.ad-param__hint { max-width: 62ch; }
+/* A switch is one line tall next to fields that are three; without this the
+   grid row it sits in stretches it to the top and the label floats. */
+.ad-param--switch { align-self: end; padding-bottom: var(--as-space-1); }
+
+
+/* ==========================================================================
+   14 · THE TOOLBAR — filters, with their counts, above every list
+   ========================================================================== */
+
+/* ⚠ ONE STICKY BLOCK, ONE OFFSET. See dashboard-app.js's stickyHeadHtml: as two
+   independently-sticky elements the tab strip and the toolbar SWAPPED ORDER on
+   scroll, because dashboard.css gives `.ad-sticky-tabs` the larger `top` (it was
+   written for a page that put the toolbar first). Both children are un-stuck
+   here and the wrapper owns the behaviour, so no height has to be guessed and
+   wrapping the chips onto a second line cannot break the alignment. */
+.ad-stickyhead {
+  position: sticky;
+  top: var(--as-nav-h);
+  z-index: var(--as-z-sticky);
+  background: var(--as-bg);
+  border-bottom: 1px solid var(--as-border-soft);
+  margin-bottom: var(--as-space-5);
+  padding-top: var(--as-space-2);
+}
+[data-ad-page="console"] .ad-stickyhead .ad-sticky-tabs,
+[data-ad-page="console"] .ad-stickyhead .ad-toolbar { position: static; top: auto; }
+
+[data-ad-page="console"] .ad-toolbar {
+  justify-content: space-between;
+  padding: var(--as-space-2) 0 var(--as-space-3);
+  margin-bottom: 0;
+  border-bottom: 0;
+}
+@media (max-width: 59.99rem) {
+  /* The sidebar is already a horizontal strip up here and the top bar has
+     wrapped to two rows; a third sticky layer would eat the viewport. */
+  .ad-stickyhead { position: static; }
+}
+
+.ad-facets { display: flex; flex-wrap: wrap; align-items: center; gap: var(--as-space-2); min-width: 0; }
+/* ⚠ THE TWO CHIP ROWS DO DIFFERENT THINGS AND LOOKED IDENTICAL. One navigates
+   between eleven tabs, one narrows what is listed; stacked, they read as one
+   confusing bank of twenty buttons. The tabs carry emoji, so this row carries a
+   verb. */
+.ad-facets__lede {
+  font-size: var(--as-text-2xs);
+  font-weight: 650;
+  letter-spacing: var(--as-tracking-caps);
+  text-transform: uppercase;
+  color: var(--as-text-3);
+  padding-right: var(--as-space-1);
+}
+.ad-toolbar__end { display: flex; align-items: center; gap: var(--as-space-3); margin-left: auto; flex: none; }
+.ad-toolbar__count { margin: 0; font-size: var(--as-text-xs); color: var(--as-text-3); font-variant-numeric: tabular-nums; }
+.ad-toolbar__count b { color: var(--as-text-1); font-weight: 700; }
+
+.ad-facet { gap: var(--as-space-2); }
+.ad-facet__n {
+  font-family: var(--as-font-mono);
+  font-size: var(--as-text-2xs);
+  font-variant-numeric: tabular-nums;
+  padding: 0 0.35em;
+  border-radius: var(--as-radius-xs);
+  background: var(--as-surface-3);
+  color: var(--as-text-3);
+}
+.ad-facet[aria-pressed="true"] .ad-facet__n { background: var(--as-accent-soft); color: var(--as-accent); }
+/* A chip that can only produce an empty page says so before it is pressed,
+   rather than after. Kept in the DOM: a filter that VANISHES is a filter an
+   admin remembers seeing and cannot find. */
+.ad-facet[disabled] { opacity: .45; cursor: not-allowed; }
+.ad-facet[disabled]:hover { border-color: var(--as-border); color: var(--as-text-3); }
+
+
+/* ==========================================================================
+   15 · TAB STRIP — the eleven tabs, wherever you are in the list
+   ========================================================================== */
+
+.ad-tabstrip {
+  display: flex;
+  gap: var(--as-space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: var(--as-space-2);
+}
+.ad-tabstrip::-webkit-scrollbar { display: none; }
+.ad-tabchip { flex: none; gap: var(--as-space-2); text-decoration: none; }
+.ad-tabchip:hover { text-decoration: none; }
+.ad-tabchip.is-active .ad-facet__n { background: var(--as-accent-soft); color: var(--as-accent); }
+
+
+/* ==========================================================================
+   16 · SEARCH BOX — the icon and the shortcut chip the gutters were reserved for
+   ==========================================================================
+   ⚠ `dashboard.css` §1 ALREADY PAID FOR THIS SPACE. It sets
+   `padding-left: 2.3rem` and `padding-right: 3.4rem` on `.ad-search .as-input`
+   and absolutely positions `.ad-search > svg` and `.ad-search__hint` into the
+   two gutters. The console rendered neither, so the box shipped with 37px of
+   empty indent and 54px of dead space, and the placeholder began at no edge in
+   particular. */
+
+#ad-globalsearch { position: relative; flex: 1 1 auto; min-width: 0; max-width: 32rem; }
+.ad-search .as-input { width: 100%; }
+.ad-kbd {
+  font-family: var(--as-font-mono);
+  font-size: var(--as-text-2xs);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--as-border);
+  border-bottom-width: 2px;
+  border-radius: var(--as-radius-xs);
+  background: var(--as-surface-2);
+  color: var(--as-text-3);
+  white-space: nowrap;
+}
+@media (max-width: 46rem) { .ad-search__hint { display: none; } .ad-search .as-input { padding-right: var(--as-space-3); } }
+
+
+/* ==========================================================================
+   17 · LEGEND + CLICKABLE STAT TILES
+   ========================================================================== */
+
+.ad-legend { list-style: none; display: grid; gap: var(--as-space-2); margin: 0; padding: 0; }
+.ad-legend__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--as-space-3);
+  padding: var(--as-space-3);
+  border: 1px solid var(--as-border);
+  border-radius: var(--as-radius-sm);
+  background: var(--as-surface-1);
+  font-size: var(--as-text-sm);
+}
+.ad-legend__stripe { flex: none; width: 3px; align-self: stretch; min-height: 1.2rem; border-radius: 2px; background: var(--ad-sev-line); }
+.ad-legend__row b { color: var(--as-text-1); }
+
+/* A stat tile that navigates says so with its whole surface, and it is an <a>
+   rather than a div with a click handler — so it is in the tab order, has a
+   focus ring, and opens in a new tab if somebody middle-clicks it. */
+.ad-stat--go {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-left: 3px solid var(--ad-sev-line);
+  transition: border-color var(--as-dur-fast) var(--as-ease), background-color var(--as-dur-fast) var(--as-ease);
+}
+.ad-stat--go:hover { background: var(--as-surface-2); border-color: var(--as-border-strong); border-left-color: var(--ad-sev-line); text-decoration: none; }
+.ad-stat--go .ad-stat__n,
+.ad-stat--go .ad-stat__l,
+.ad-stat--go .ad-stat__s { display: block; }
+.ad-stat--go[data-ad-sev] .ad-stat__n { color: var(--ad-sev-ink); }
+
+
+/* ==========================================================================
+   18 · MODULE CARD ADDITIONS
+   ========================================================================== */
+
+.ad-mod__bar { height: 4px; border-radius: var(--as-radius-full); background: var(--as-sunken); overflow: hidden; }
+.ad-mod__bar > span { display: block; height: 100%; background: var(--as-accent-lo); border-radius: inherit; }
+.ad-mod__danger { color: var(--as-danger); font-weight: 650; }
+.ad-mod__ctl .ad-lamp { text-transform: none; letter-spacing: 0; }
+
+/* A read's answer is somebody else's prose and can be any width. It scrolls
+   inside its own box; the page body never goes sideways.
+   ⚠ THESE MUST COME AFTER §9, WHICH SETS `overflow: hidden` ON THE SAME
+   ELEMENT. Equal specificity, so the later rule is the one that lands — and an
+   ellipsis on a JSON blob hides the end of it with no way to read it. */
+.ad-modread__body { max-width: 100%; overflow-x: auto; }
+.ad-log__params {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  text-overflow: clip;
+}

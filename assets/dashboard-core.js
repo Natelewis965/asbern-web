@@ -360,6 +360,159 @@
   }
 
   /* =======================================================================
+     4b · CONSEQUENCE + SEVERITY — ONE computation, two renderings
+     -----------------------------------------------------------------------
+     ⚠ THE PILL AND THE SENTENCE COME OUT OF THE SAME FUNCTION, AND THAT IS THE
+     WHOLE POINT. This page used to draw a red stripe from `action.destructive`
+     in one place and write "Read-only — nothing on the server changes" from a
+     SEPARATE list of flags in another. Two derivations of "what will this do"
+     is two chances to disagree, and the one that disagrees silently is the
+     colour — an admin reads a stripe in 200ms and a sentence in two seconds.
+     `test/v172` pins the equivalence: severity `read` ⟺ the sentence begins
+     "Read-only". Neither can move without the other.
+
+     ⚠ AND SEVERITY IS NOT PERMISSION. "This will change 400 members" and "you
+     are not allowed to press this" are different facts and they get different
+     form: severity is the left stripe and the semantic pill (danger / caution /
+     read), permission is a neutral chip. Colouring a locked control red would
+     say the control is dangerous when what is true is that it is not yours.
+     ======================================================================= */
+
+  var SEVERITIES = ['read', 'caution', 'danger'];
+
+  function botNeeds(action) {
+    var bp = action && action.botPermission;
+    return (bp && Array.isArray(bp.need)) ? bp.need : [];
+  }
+
+  /**
+   * What a control will do, as a severity AND as the sentence that says it.
+   *
+   * ⚠ THE `dryRun || confirm` ARM ONLY FIRES WHEN NOTHING ELSE DID, and it is
+   * not padding. A control that previews before it commits is, by construction,
+   * a control that commits — so calling it "read-only" because it declared no
+   * `destructive` flag would be the page telling an admin the opposite of the
+   * truth. Everything that reaches the final arm genuinely changes nothing.
+   */
+  function consequences(action) {
+    var a = action || {};
+    var parts = [];
+    var sev = 'read';
+    function raise(next) { if (SEVERITIES.indexOf(next) > SEVERITIES.indexOf(sev)) sev = next; }
+
+    if (a.destructive) { parts.push('changes the server'); raise('danger'); }
+    if (a.bulk) { parts.push('may touch many objects at once'); raise('caution'); }
+    if (a.composite) { parts.push('runs several steps and rolls them back if one fails'); raise('caution'); }
+    var need = botNeeds(a);
+    if (need.length) { parts.push('needs the bot to hold ' + need.join(', ')); raise('caution'); }
+    if (!parts.length && (a.dryRun || a.confirm)) {
+      parts.push('shows you what it would do before anything commits');
+      raise('caution');
+    }
+
+    return {
+      severity: sev,
+      parts: parts,
+      line: parts.length ? 'This ' + parts.join(', and ') + '.' : 'Read-only — nothing on the server changes.',
+    };
+  }
+
+  function severityOf(action) { return consequences(action).severity; }
+
+  /** One sentence for what a control will touch. Read above the confirm. */
+  function consequenceLine(control) { return consequences(control).line; }
+
+  /* =======================================================================
+     4c · FACETS — filtering that is derived from the contract, not declared
+     -----------------------------------------------------------------------
+     ⚠ EVERY PREDICATE BELOW READS A FIELD THE CONTRACT ALREADY CARRIES. There
+     is no tag list, no curated "dangerous controls" set and nothing to keep in
+     step with the registry — which is the same rule the module index follows
+     ("A dashboard that re-declares the group→module map is a dashboard that
+     will disagree with the gate one day"). A control added to the bot lands in
+     the right facets on its own.
+     ======================================================================= */
+
+  var FACETS = [
+    { id: 'destructive', label: 'Destructive', hint: 'Changes the server. Previews or arms before it commits.',
+      match: function (a) { return !!a.destructive; } },
+    { id: 'changes', label: 'Changes things', hint: 'Writes to Discord or to the bot’s own stores, but is not marked destructive.',
+      match: function (a) { return severityOf(a) === 'caution'; } },
+    { id: 'readonly', label: 'Read-only', hint: 'Nothing on the server changes. Safe to press to find something out.',
+      match: function (a) { return severityOf(a) === 'read'; } },
+    { id: 'needsinput', label: 'Needs a value', hint: 'Will not run until you fill in a required field.',
+      match: function (a) { return (a.params || []).some(function (p) { return p.required; }); } },
+    { id: 'noinput', label: 'No inputs', hint: 'Acts on the server as a whole — nothing to fill in.',
+      match: function (a) { return !(a.params || []).length; } },
+    { id: 'bulk', label: 'Bulk', hint: 'May touch many objects in one press.',
+      match: function (a) { return !!a.bulk; } },
+    { id: 'restricted', label: 'Beyond admin', hint: 'Needs the server owner, or the AI-dev role — not plain Administrator.',
+      match: function (a) { return a.permission !== 'admin'; } },
+  ];
+
+  function facetById(id) {
+    for (var i = 0; i < FACETS.length; i += 1) if (FACETS[i].id === id) return FACETS[i];
+    return null;
+  }
+
+  /**
+   * Narrow a list by every active facet.
+   *
+   * ⚠ ACTIVE FACETS ARE ANDed, AND AN UNKNOWN FACET ID IS IGNORED RATHER THAN
+   * TREATED AS "MATCH NOTHING". The active set arrives from the URL-ish state a
+   * browser holds across reloads; a facet renamed in a later release would
+   * otherwise turn a remembered filter into an empty page with no explanation.
+   */
+  function filterControls(controls, active) {
+    var list = Array.isArray(controls) ? controls : [];
+    var on = (Array.isArray(active) ? active : []).map(facetById).filter(Boolean);
+    if (!on.length) return list.slice();
+    return list.filter(function (a) {
+      for (var i = 0; i < on.length; i += 1) if (!on[i].match(a)) return false;
+      return true;
+    });
+  }
+
+  /**
+   * What to draw for each chip: its count IN THE SET THE OTHER CHIPS LEAVE, and
+   * whether pressing it can only produce an empty page.
+   *
+   * ⚠ THE COUNT IS TAKEN AGAINST THE CURRENTLY FILTERED SET, NOT AGAINST THE
+   * WHOLE REGISTRY. That is the whole value: with `Destructive` on, the
+   * `Read-only` chip reads **0** rather than 155, so an admin can see that the
+   * combination is empty before pressing it instead of after. A chip that
+   * advertises a number the current filters cannot produce is a number an admin
+   * will trust and be wrong about.
+   *
+   * ⚠ AND `others` EXCLUDING THE CHIP'S OWN ID IS THE CONVENTIONAL FORMULATION,
+   * NOT A BEHAVIOUR CHANGE — MEASURED, NOT ASSUMED. For AND-composed, idempotent
+   * predicates `filter(on).filter(f)` and `filter(on \ {f}).filter(f)` are the
+   * same set, so this reads identically either way today. It is written this way
+   * because it stays correct if a facet ever stops being idempotent, and because
+   * the alternative reads as though it were doing something it is not. A
+   * sabotage against the exclusion was written expecting red and came back
+   * green; that is why this note says so rather than claiming a defence.
+   */
+  function facetPlan(controls, active) {
+    var on = (Array.isArray(active) ? active : []).filter(function (id) { return !!facetById(id); });
+    return FACETS.map(function (f) {
+      var others = on.filter(function (id) { return id !== f.id; });
+      var base = filterControls(controls, others);
+      var n = base.filter(f.match).length;
+      return {
+        id: f.id,
+        label: f.label,
+        hint: f.hint,
+        count: n,
+        active: on.indexOf(f.id) > -1,
+        // An active chip is never disabled: it must always be pressable to turn
+        // off, even when the combination it is part of shows nothing.
+        disabled: n === 0 && on.indexOf(f.id) < 0,
+      };
+    });
+  }
+
+  /* =======================================================================
      5 · MODULES — derived from the contract, never a table in this file
      -----------------------------------------------------------------------
      ⚠ `adminactions.js` EXPORTS `MODULES` AND `GROUP_MODULE` PRECISELY SO NO
@@ -642,6 +795,9 @@
   var WIDE_TYPES = { string: true, reason: true, pattern: true };
 
   function fieldId(actionId, name) { return 'f_' + slug(actionId) + '__' + slug(name); }
+  function hintId(actionId, name) { return fieldId(actionId, name) + '__hint'; }
+  function errId(actionId, name) { return fieldId(actionId, name) + '__err'; }
+  function bodyId(actionId) { return 'ctlb-' + slug(actionId); }
 
   /**
    * ⚠ THE SNOWFLAKE TYPES ARE A TEXT BOX AND NOT A PICKER, AND SAYING WHY IS
@@ -655,22 +811,42 @@
    */
   function paramFieldHtml(action, p) {
     var id = fieldId(action.id, p.name);
+    var hId = hintId(action.id, p.name);
+    var eId = errId(action.id, p.name);
     var kind = inputKindFor(p.type);
     var label = esc(lbl(p));
-    var req = p.required ? '<span class="ad-param__req" title="Required">*</span>' : '';
-    var typeTag = '<span class="ad-param__type">' + esc(p.type) + '</span>';
     var hint = p.help || PARAM_HINT[p.type] || null;
     var wide = !!WIDE_TYPES[p.type];
-    var attrs = ' id="' + id + '" data-ad-param="' + esc(p.name) + '" data-ad-type="' + esc(p.type) + '"';
+
+    // ⚠ THE ASTERISK IS DECORATION AND `required` IS THE FACT. A screen reader
+    // gets nothing usable out of a `*` with a `title` on it; it gets "required"
+    // out of the attribute. Both are rendered because sighted admins scan for
+    // the glyph and assistive tech reads the attribute — neither substitutes.
+    var req = p.required ? '<span class="ad-param__req" aria-hidden="true">*</span>' : '';
+    var typeTag = '<span class="ad-param__type" title="' + esc('The value this field takes: ' + p.type) + '">'
+      + esc(p.type) + '</span>';
+
+    // ⚠ EVERY FIELD POINTS AT ITS OWN HELP AND ITS OWN ERROR BY ID. The help was
+    // already on the page and already read from the contract; what it was not
+    // was ATTACHED to the input, so a keyboard admin tabbing into a snowflake
+    // box heard "Channel, edit text" and never the sentence telling them where a
+    // channel id comes from. `aria-describedby` is what makes the description a
+    // description rather than adjacent text.
+    var describedBy = (hint ? hId + ' ' : '') + eId;
+    var attrs = ' id="' + id + '" data-ad-param="' + esc(p.name) + '" data-ad-type="' + esc(p.type) + '"'
+      + ' aria-describedby="' + describedBy + '"'
+      + (p.required ? ' required aria-required="true"' : '');
+    var hintHtml = hint ? '<span class="as-hint ad-param__hint" id="' + hId + '">' + esc(hint) + '</span>' : '';
+    var errHtml = '<span class="as-error" id="' + eId + '" data-ad-err hidden></span>';
 
     if (kind === 'switch') {
-      return '<div class="ad-param">'
+      return '<div class="ad-param ad-param--switch">'
         + '<div class="as-field">'
         + '<label class="as-switch" for="' + id + '">'
         + '<input type="checkbox"' + attrs + '>'
         + '<span class="as-switch__label">' + label + req + '</span></label>'
-        + (hint ? '<span class="as-hint">' + esc(hint) + '</span>' : '')
-        + '<span class="as-error" data-ad-err hidden></span>'
+        + hintHtml
+        + errHtml
         + '</div></div>';
     }
 
@@ -722,17 +898,28 @@
         + 'only the fact that something was withheld is recorded.</span>'
       : '';
 
+    // ⚠ THE LABEL TEXT AND THE TYPE TAG ARE SEPARATE CELLS, NOT TWO INLINE
+    // RUNS. The tag used to right-align with `margin-left:auto` against whatever
+    // the label happened to be, so in a two-column param grid the tags landed on
+    // two different x-positions per row and a long label pushed its own tag off
+    // the card. A named span the CSS can truncate is what makes a column of
+    // labels read as a column.
     return '<div class="ad-param' + (wide ? ' ad-param--wide' : '') + '">'
       + '<div class="as-field">'
-      + '<label class="as-label" for="' + id + '">' + label + req + typeTag + '</label>'
+      + '<label class="as-label" for="' + id + '">'
+      + '<span class="ad-param__name">' + label + req + '</span>' + typeTag
+      + '</label>'
       + control
-      + (hint ? '<span class="as-hint">' + esc(hint) + '</span>' : '')
+      + hintHtml
       + secretNote
-      + '<span class="as-error" data-ad-err hidden></span>'
+      + errHtml
       + '</div></div>';
   }
 
-  function badge(text, cls) { return '<span class="as-badge ' + (cls || '') + '">' + esc(text) + '</span>'; }
+  function badge(text, cls, title) {
+    return '<span class="as-badge ' + (cls || '') + '"'
+      + (title ? ' title="' + esc(title) + '"' : '') + '>' + esc(text) + '</span>';
+  }
 
   /**
    * The verb on the primary button.
@@ -748,40 +935,80 @@
     return (control.params && control.params.length) ? 'Apply' : 'Run';
   }
 
-  /** One sentence for what a control will touch. Read above the confirm. */
-  function consequenceLine(control) {
-    var parts = [];
-    if (control.destructive) parts.push('changes the server');
-    if (control.bulk) parts.push('may touch many objects at once');
-    if (control.composite) parts.push('runs several steps and rolls them back if one fails');
-    if (control.botPermission && control.botPermission.need && control.botPermission.need.length) {
-      parts.push('needs the bot to hold ' + control.botPermission.need.join(', '));
+  /**
+   * The pills that ride on the COLLAPSED row.
+   *
+   * ⚠ AT MOST TWO, AND SEVERITY IS ALWAYS THE FIRST. A row carrying six badges
+   * is a row nobody reads: the earlier card put Destructive, Previews first,
+   * Rolls back, Bulk, the permission level and the bot-permission list side by
+   * side in one wrap, all at the same weight, and the one that decides whether
+   * you should be careful was indistinguishable from the one naming a Discord
+   * permission bit. The full set still renders — inside the card, next to the
+   * fields, which is where somebody deciding needs it.
+   */
+  function rowPillsHtml(action, cons, permitted, withheld) {
+    var out = [];
+    if (!permitted) out.push(badge('Not yours', 'as-badge--plain', 'Your Discord permissions do not reach this control.'));
+    else if (withheld) out.push(badge('Held off', 'as-badge--plain', WITHHELD_MODULES[action.module]));
+    else if (cons.severity === 'danger') out.push(badge('Destructive', 'as-badge--danger', cons.line));
+    else if (cons.severity === 'caution') out.push(badge('Changes things', 'as-badge--warn', cons.line));
+    else out.push(badge('Read-only', 'as-badge--success', cons.line));
+
+    if (action.permission !== 'admin') {
+      out.push(badge(action.permission + ' only', 'as-badge--plain',
+        'This control is above plain Administrator in the runner’s own ladder.'));
+    } else if (action.bulk) {
+      out.push(badge('Bulk', 'as-badge--warn', 'One press may touch many objects.'));
     }
-    if (!parts.length) return 'Read-only — nothing on the server changes.';
-    return 'This ' + parts.join(', and ') + '.';
+    return out.join('');
   }
 
   /**
    * @param action  a control, verbatim from the contract
-   * @param opts    { actor, showGroup, groups, modules }
+   * @param opts    { actor, showGroup, groups, open }
+   *
+   * ⚠ THE CARD IS A DISCLOSURE, AND WHAT COLLAPSES IS THE FORM — NEVER THE
+   * DESCRIPTION. 369 fully-drawn cards is ~740 KB of markup and a scroll
+   * distance nobody browses; that wall IS the "way too confusing" the owner
+   * reported. So the row always shows the glyph, the label, the whole `help`
+   * sentence the registry wrote, the severity and the id — everything you need
+   * to decide whether this is the control you meant — and hides only the inputs,
+   * the full flag set and the button until you say so.
+   *
+   * ⚠ AND THE RUN BUTTON LIVES INSIDE THE DISCLOSURE, EXACTLY ONE PER CARD.
+   * Putting a second one on the row for the 76 controls that take no parameters
+   * was drafted and dropped: two elements carrying `data-ad-run` for one id
+   * means `card.querySelector('[data-ad-run]')` disables one and the arming
+   * press relabels the other, so a destructive control would sit half-armed with
+   * no way to see which half. One button also means every run — including the
+   * one-press read-only ones — is preceded by a deliberate open, which is the
+   * cheapest possible guard against a stray click in a list of 128 destructive
+   * controls.
    */
   function controlCardHtml(action, opts) {
     var o = opts || {};
     var actor = o.actor || { isAdmin: true, isAiDev: false, isOwner: false };
     var permitted = maySee(action, actor);
     var withheld = isWithheld(action.module);
+    var runnable = permitted && !withheld;
+    var cons = consequences(action);
+    var open = !!o.open;
+    var bId = bodyId(action.id);
+    var params = (action.params && action.params.length) ? action.params : [];
 
     var flags = [];
-    if (action.destructive) flags.push(badge('Destructive', 'as-badge--danger'));
-    if (action.dryRun) flags.push(badge('Previews first', 'as-badge--frost'));
-    if (action.composite) flags.push(badge('Rolls back', 'as-badge--accent'));
-    if (action.bulk) flags.push(badge('Bulk', 'as-badge--warn'));
+    if (action.destructive) flags.push(badge('Destructive', 'as-badge--danger', 'Marked destructive in the bot’s own registry.'));
+    if (action.dryRun) flags.push(badge('Previews first', 'as-badge--frost', 'The first press shows a plan. Nothing commits until the second.'));
+    if (action.confirm && !action.dryRun) flags.push(badge('Confirms', 'as-badge--warn', 'Press once to arm, once more to run.'));
+    if (action.composite) flags.push(badge('Rolls back', 'as-badge--accent', 'Several steps, undone together if one fails.'));
+    if (action.bulk) flags.push(badge('Bulk', 'as-badge--warn', 'May touch many objects at once.'));
     if (action.permission !== 'admin') flags.push(badge(action.permission + ' only', 'as-badge--plain'));
     if (!permitted) flags.push(badge('Above your level', 'as-badge--plain'));
     if (withheld) flags.push(badge('Held off', 'as-badge--plain'));
-    if (action.botPermission && action.botPermission.need && action.botPermission.need.length) {
+    var need = botNeeds(action);
+    if (need.length) {
       flags.push('<span class="as-badge as-badge--plain" title="What Discord must allow the bot">bot: '
-        + esc(action.botPermission.need.join(' + ')) + '</span>');
+        + esc(need.join(' + ')) + '</span>');
     }
 
     var groupMeta = null;
@@ -794,7 +1021,7 @@
     // same instinct. The preview's plan renders into the result strip in place.
     var verb = primaryVerb(action);
     var danger = action.destructive ? 'as-btn--danger' : (action.dryRun ? 'as-btn--secondary' : 'as-btn--primary');
-    var button = permitted && !withheld
+    var button = runnable
       ? '<button class="as-btn as-btn--sm ' + danger + '" type="button"'
         + ' data-ad-run="' + esc(action.id) + '"'
         + (action.dryRun ? ' data-ad-dry="1"' : '')
@@ -804,31 +1031,55 @@
         + (withheld ? esc(WITHHELD_MODULES[action.module]) : 'Your Discord permissions do not reach this control.')
         + '</span>';
 
-    return '<article class="ad-control'
+    var fieldNote = params.length
+      ? params.length + ' field' + (params.length === 1 ? '' : 's')
+        + (params.some(function (p) { return p.required; }) ? ' · one required' : '')
+      : 'No inputs';
+
+    return '<article class="ad-control ad-control--row'
       + (action.destructive ? ' is-destructive' : '')
-      + (permitted && !withheld ? '' : ' is-locked')
-      + '" data-ad-card="' + esc(action.id) + '" id="ctl-' + slug(action.id) + '">'
-      + '<div class="ad-control__head">'
-      + '<span class="ad-control__glyph">' + (action.emoji ? esc(action.emoji) : '•') + '</span>'
-      + '<div class="u-grow">'
-      + '<div class="ad-control__title">' + esc(action.label) + '</div>'
-      + '<div class="ad-control__id">' + esc(action.id)
+      + (runnable ? '' : ' is-locked')
+      + '" data-ad-card="' + esc(action.id) + '"'
+      + ' data-ad-sev="' + esc(runnable ? cons.severity : 'locked') + '"'
+      + ' id="ctl-' + slug(action.id) + '">'
+
+      // ── the row: everything needed to decide, nothing that needs deciding ──
+      + '<div class="ad-control__row">'
+      + '<button class="ad-control__disc" type="button" data-ad-toggle="' + esc(action.id) + '"'
+      + ' aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="' + bId + '">'
+      + '<span class="ad-control__glyph" aria-hidden="true">' + (action.emoji ? esc(action.emoji) : '•') + '</span>'
+      + '<span class="ad-control__lines">'
+      + '<span class="ad-control__title">' + esc(action.label) + '</span>'
+      + (action.help ? '<span class="ad-control__help">' + esc(action.help) + '</span>' : '')
+      + '<span class="ad-control__id">' + esc(action.id)
       + (o.showGroup && groupMeta ? ' · ' + esc(groupMeta.emoji + ' ' + groupMeta.label) : '')
       + ' · ' + esc(action.module)
+      + ' · <span class="ad-control__fields">' + esc(fieldNote) + '</span>'
+      + '</span>'
+      + '</span>'
+      + '<span class="ad-control__pills">' + rowPillsHtml(action, cons, permitted, withheld) + '</span>'
+      // ⚠ THE CHEVRON IS DRAWN IN CSS, NOT SHIPPED AS MARKUP. An inline SVG here
+      // is ~180 bytes × 369 rows = 66 KB of identical path data in one
+      // `innerHTML` assignment, for a shape that is two borders and a rotation.
+      + '<span class="ad-control__chev" aria-hidden="true"></span>'
+      + '</button>'
       + '</div>'
-      + '</div>'
-      + '</div>'
-      + (action.help ? '<p class="ad-control__help">' + esc(action.help) + '</p>' : '')
+
+      // ── the body: the form, the whole flag set, the outcome ──
+      + '<div class="ad-control__body" id="' + bId + '"' + (open ? '' : ' hidden') + '>'
+      + '<p class="ad-control__conseq ad-control__conseq--' + esc(cons.severity) + '">'
+      + esc(cons.line) + '</p>'
       + (flags.length ? '<div class="ad-control__flags">' + flags.join('') + '</div>' : '')
-      + '<div class="ad-control__body">'
-      + ((action.params && action.params.length)
-        ? '<div class="ad-params">' + action.params.map(function (p) { return paramFieldHtml(action, p); }).join('') + '</div>'
+      + (params.length
+        ? '<div class="ad-params">' + params.map(function (p) { return paramFieldHtml(action, p); }).join('') + '</div>'
         : '<p class="ad-empty-params">No parameters — this control acts on the server as a whole.</p>')
-      + '<div data-ad-result></div>'
-      + '</div>'
+      // ⚠ THE OUTCOME IS A LIVE REGION. A run answers by replacing this node's
+      // markup; without `role="status"` a screen-reader admin presses a button
+      // that changes the server and is told nothing at all.
+      + '<div data-ad-result role="status" aria-live="polite"></div>'
       + '<div class="ad-control__foot">'
-      + '<span class="u-text-xs as-muted">' + esc(consequenceLine(action)) + '</span>'
       + '<span class="ad-spacer"></span>' + button
+      + '</div>'
       + '</div>'
       + '</article>';
   }
@@ -873,12 +1124,33 @@
     return 'error';
   }
 
+  /**
+   * ONE vocabulary for the four outcomes, used by every surface on the page.
+   *
+   * ⚠ THE CONSOLE HAD FOUR OF THESE AND THEY DID NOT LINE UP. The result strip
+   * said `--ok / --dry / --warn / --err`, the activity log said
+   * `success / frost / warn / danger`, the lamp said
+   * `online / degraded / offline / unknown`, and `dashboard.css` shipped a fifth
+   * (`.ad-outcome--ref`) that nothing ever emitted. Four names for four states
+   * is how a fifth gets invented, and it is why "refused" reads as an error in
+   * one place and a warning two inches away. `test/v172` pins this table
+   * against `outcomeOf`'s own return values so neither can grow an arm alone.
+   */
+  var OUTCOME_TONE = {
+    ok:      { chip: 'ad-outcome--ok',  strip: 'ad-result--ok',   word: 'done',     say: 'It ran, and it changed what it said it would.' },
+    dry:     { chip: 'ad-outcome--dry', strip: 'ad-result--dry',  word: 'preview',  say: 'A plan only. Nothing has changed yet.' },
+    refused: { chip: 'ad-outcome--ref', strip: 'ad-result--warn', word: 'refused',  say: 'A gate said no, and named which one. Nothing changed.' },
+    error:   { chip: 'ad-outcome--err', strip: 'ad-result--err',  word: 'failed',   say: 'It threw, or nothing answered.' },
+  };
+
+  function outcomeTone(result) { return OUTCOME_TONE[outcomeOf(result)] || OUTCOME_TONE.error; }
+
   function resultHtml(result, action) {
     var kind = outcomeOf(result);
 
     if (kind === 'dry') {
       var plan = Array.isArray(result.plan) ? result.plan : null;
-      return '<div class="ad-result ad-result--dry">'
+      return '<div class="ad-result ' + OUTCOME_TONE.dry.strip + '">'
         + '<div class="ad-result__body">'
         + '<div class="ad-result__title">Preview — nothing has changed</div>'
         + (plan
@@ -900,7 +1172,7 @@
 
     if (kind === 'ok') {
       var changes = Array.isArray(result.changes) ? result.changes : null;
-      return '<div class="ad-result ad-result--ok">'
+      return '<div class="ad-result ' + OUTCOME_TONE.ok.strip + '">'
         + '<div class="ad-result__body">'
         + '<div class="ad-result__title">Done'
         + (result.affected != null ? ' — ' + esc(result.affected) + ' affected' : '') + '</div>'
@@ -916,7 +1188,7 @@
 
     if (kind === 'refused') {
       var copy = REFUSAL_COPY[String(result.refused)] || ['Refused', 'The runner declined. Its reason is below.'];
-      return '<div class="ad-result ad-result--warn">'
+      return '<div class="ad-result ' + OUTCOME_TONE.refused.strip + '">'
         + '<div class="ad-result__body">'
         + '<div class="ad-result__title">' + esc(copy[0]) + '</div>'
         + (result.error ? '<div class="u-text-sm">' + esc(result.error) + '</div>' : '')
@@ -928,7 +1200,7 @@
         + '</div></div>';
     }
 
-    return '<div class="ad-result ad-result--err">'
+    return '<div class="ad-result ' + OUTCOME_TONE.error.strip + '">'
       + '<div class="ad-result__body">'
       + '<div class="ad-result__title">It failed</div>'
       + '<div class="u-text-sm">' + esc(result && (result.error || result.message) || 'The API gave no reason.') + '</div>'
@@ -1126,6 +1398,17 @@
     groupControls: groupControls,
     searchControls: searchControls,
 
+    // consequence + severity (one computation, two renderings)
+    SEVERITIES: SEVERITIES,
+    consequences: consequences,
+    severityOf: severityOf,
+
+    // faceted filtering, derived from contract fields only
+    FACETS: FACETS,
+    facetById: facetById,
+    filterControls: filterControls,
+    facetPlan: facetPlan,
+
     // modules
     WITHHELD_MODULES: WITHHELD_MODULES,
     isWithheld: isWithheld,
@@ -1146,10 +1429,16 @@
     verifyContract: verifyContract,
 
     // rendering
+    hintId: hintId,
+    errId: errId,
+    bodyId: bodyId,
     paramFieldHtml: paramFieldHtml,
     controlCardHtml: controlCardHtml,
     resultHtml: resultHtml,
     outcomeOf: outcomeOf,
+    OUTCOME_TONE: OUTCOME_TONE,
+    outcomeTone: outcomeTone,
+    rowPillsHtml: rowPillsHtml,
     primaryVerb: primaryVerb,
     consequenceLine: consequenceLine,
     REFUSAL_COPY: REFUSAL_COPY,

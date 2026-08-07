@@ -166,6 +166,14 @@
     groupId: null,
     query: '',
 
+    // ⚠ WHICH CARDS ARE OPEN IS STATE, NOT DOM. Every live event, every activity
+    // line and every background read calls render(), which replaces `#ad-main`
+    // wholesale — so an `open` attribute living only in the markup is an
+    // expansion that closes itself while somebody is filling the form in it.
+    // Keyed by control id, so it also survives changing tab and coming back.
+    open: {},
+    facets: [],         // active facet ids, ANDed. See dashboard-core FACETS.
+
     live: { socket: null, status: 'idle', lastEvent: null, events: 0, tries: 0, timer: null },
     activity: [],       // newest first — what THIS browser did, plus live events
     readState: {},      // actionId -> { at, result } from the auto-read pass
@@ -180,6 +188,15 @@
      ======================================================================= */
 
   function setHtml(node, html) { if (node) node.innerHTML = html; }
+
+  // ⚠ INLINE, BECAUSE asbern.js's ICON TABLE HAS NO MAGNIFIER AND THIS FILE DOES
+  // NOT OWN THAT TABLE. `Asbern.icon()` returns the EMPTY STRING for a name it
+  // does not know — so calling `icon('search')` would have rendered nothing at
+  // all and left the gutter `.ad-search` reserves for it empty, which is the
+  // exact defect being fixed. Same 24×24 stroke geometry as the rest of the set.
+  var MAGNIFIER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"'
+    + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'
+    + '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 4 4"/></svg>';
 
   function when(ts) {
     if (!ts) return '';
@@ -202,6 +219,27 @@
       + (body ? '<div class="u-text-sm u-mt-2">' + body + '</div>' : '')
       + (actions ? '<div class="as-row u-mt-3">' + actions + '</div>' : '')
       + '</div></div>';
+  }
+
+  /** Open or close one card's body, in the DOM, without a re-render. */
+  function setCardOpen(card, disc, want) {
+    if (!card) return;
+    var body = card.querySelector('[id^="ctlb-"]') || card.querySelector('.ad-control__body');
+    if (disc) disc.setAttribute('aria-expanded', want ? 'true' : 'false');
+    if (body) { if (want) body.removeAttribute('hidden'); else body.setAttribute('hidden', ''); }
+  }
+
+  /** Is this event target something the visitor is typing into? */
+  function typing(node) {
+    if (!node || !node.tagName) return false;
+    var t = String(node.tagName).toUpperCase();
+    return t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || node.isContentEditable === true;
+  }
+
+  /** Put keyboard focus back on an element a re-render has just replaced. */
+  function refocus(selector) {
+    var next = document.querySelector(selector);
+    if (next && next.focus) { try { next.focus(); } catch (e) { /* detached */ } }
   }
 
   function pageHead(title, sub, right) {
@@ -499,8 +537,17 @@
      8 · CHROME — the top bar and the sidebar
      ======================================================================= */
 
+  /**
+   * ⚠ THE FIRST ONE IS CALLED "HOME", NOT "OVERVIEW", AND THAT IS A COLLISION
+   * FIX RATHER THAN A PREFERENCE. The registry's FIRST TAB is itself named
+   * `Overview` (🏠, 9 controls), so a console view of the same name put two
+   * entries reading "Overview" in one sidebar, four rows apart, going to
+   * different places. The route id stays `overview` — it is in people's
+   * bookmarks — and only the label moves, because the label is the half that was
+   * ambiguous.
+   */
   var VIEWS = [
-    { id: 'overview', label: 'Overview', icon: 'home' },
+    { id: 'overview', label: 'Home', icon: 'home' },
     { id: 'modules', label: 'Modules', icon: 'grid' },
     { id: 'controls', label: 'All controls', icon: 'sliders' },
     { id: 'activity', label: 'Activity', icon: 'clock' },
@@ -568,13 +615,38 @@
     return name.replace(/^Server\s+/, '').slice(0, 2).toUpperCase();
   }
 
+  /**
+   * ⚠ THE ICON AND THE ⌘K CHIP ARE NOT DECORATION — THE SPACE FOR THEM WAS
+   * ALREADY BEING PAID FOR. `dashboard.css` §1 reserves `padding-left: 2.3rem`
+   * and `padding-right: 3.4rem` on `.ad-search .as-input`, and positions
+   * `.ad-search > svg` and `.ad-search__hint` into those gutters. The console
+   * rendered neither, so the box shipped with 37px of empty indent on the left
+   * and 54px of dead space on the right, and the placeholder started nowhere in
+   * particular. Drawing them costs nothing and makes the primary navigation for
+   * 369 controls look like a search box instead of a misaligned text field.
+   */
   function searchBoxHtml() {
     if (!state.contract) return '';
+    var n = state.contract.actions.length;
     return '<label class="as-field ad-search">'
-      + '<span class="ad-sr">Search controls</span>'
-      + '<input class="as-input" type="search" id="ad-q" placeholder="Search ' + state.contract.actions.length + ' controls…"'
-      + ' autocomplete="off" value="' + esc(state.query) + '" data-ad-search>'
+      + '<span class="ad-sr">Search all ' + n + ' controls by name, id, or what they do</span>'
+      + MAGNIFIER
+      + '<input class="as-input" type="search" id="ad-q" placeholder="Search ' + n + ' controls…"'
+      + ' autocomplete="off" spellcheck="false" aria-keyshortcuts="Control+K Meta+K"'
+      + ' value="' + esc(state.query) + '" data-ad-search>'
+      + '<kbd class="ad-search__hint ad-kbd" aria-hidden="true">' + esc(shortcutHint()) + '</kbd>'
       + '</label>';
+  }
+
+  /**
+   * ⚠ READ FROM THE PLATFORM, NEVER ASSUMED. A Windows admin shown `⌘K` learns
+   * that the shortcut is for somebody else's machine; the handler already
+   * accepts either modifier, so the LABEL is the only thing that has to know.
+   */
+  function shortcutHint() {
+    var p = '';
+    try { p = String((navigator.platform || navigator.userAgent || '')); } catch (e) { p = ''; }
+    return /Mac|iPhone|iPad|iPod/i.test(p) ? '⌘K' : 'Ctrl K';
   }
 
   function accountHtml() {
@@ -589,21 +661,93 @@
       + '</div>';
   }
 
+  /**
+   * ⚠ `aria-current="page"` IS A LAYOUT FIX, NOT ONLY AN ACCESSIBILITY ONE, AND
+   * THIS WAS A REAL BUG. asbern.css styles the active item as
+   * `.as-sidebar__item[aria-current], .as-sidebar__item.is-active` — both — but
+   * `dashboard.css`'s narrow-viewport rule, where the sidebar becomes a
+   * horizontal tab strip, keys the underline off `[aria-current]` ALONE. This
+   * function emitted only `is-active`, so on every viewport under 60rem the
+   * console had no indication whatsoever of which section you were in. Emitting
+   * both fixes the phone and tells assistive tech at the same time.
+   */
   function sideNavHtml() {
     if (!state.me || !state.contract) return '';
     var grouped = C.groupControls(state.contract, state.actor);
-    return VIEWS.map(function (v) {
-      return '<a class="as-sidebar__item' + (state.view === v.id && !state.groupId ? ' is-active' : '') + '"'
-        + ' href="#/' + v.id + '">' + icon(v.icon) + '<span>' + esc(v.label) + '</span></a>';
-    }).join('')
-      + '<div class="as-sidebar__head">Tabs</div>'
+    var here = function (on) { return on ? ' class="as-sidebar__item is-active" aria-current="page"' : ' class="as-sidebar__item"'; };
+    return '<div class="as-sidebar__head" id="ad-nav-console">Console</div>'
+      + VIEWS.map(function (v) {
+        return '<a' + here(state.view === v.id && !state.groupId) + ' href="#/' + v.id + '">'
+          + icon(v.icon) + '<span>' + esc(v.label) + '</span></a>';
+      }).join('')
+      + '<div class="as-sidebar__head">Tabs · the same eleven as <code>/menu</code></div>'
       + grouped.map(function (g) {
-        return '<a class="as-sidebar__item' + (state.groupId === g.group.id ? ' is-active' : '') + '"'
-          + ' href="#/group/' + esc(g.group.id) + '">'
+        return '<a' + here(state.groupId === g.group.id) + ' href="#/group/' + esc(g.group.id) + '"'
+          + ' title="' + esc(g.group.label + ' — ' + g.controls.length + ' control'
+            + (g.controls.length === 1 ? '' : 's') + ' you can use') + '">'
           + '<span class="ad-side-emoji" aria-hidden="true">' + esc(g.group.emoji) + '</span>'
-          + '<span>' + esc(g.group.label) + '</span>'
+          + '<span class="u-grow">' + esc(g.group.label) + '</span>'
           + '<span class="ad-count">' + g.controls.length + '</span></a>';
       }).join('');
+  }
+
+  /* =======================================================================
+     8b · THE TOOLBAR — filters, counts, and one gesture for 369 cards
+     -----------------------------------------------------------------------
+     ⚠ THE CHIPS ARE THE SECOND HALF OF WHAT SEARCH CANNOT DO. Search answers
+     "where is the control I can name". It cannot answer "which of these 369
+     things will change my server", which is the question an admin who has never
+     seen this page actually has — and there are 128 of them. Every facet is a
+     predicate over a field the contract already carries (see dashboard-core
+     FACETS), so nothing here can fall out of step with the registry.
+
+     ⚠ AND EVERY CHIP CARRIES ITS COUNT BEFORE IT IS PRESSED. A filter that can
+     silently produce an empty page is a filter that reads as a broken console.
+     ======================================================================= */
+
+  /**
+   * ⚠ THE TAB STRIP AND THE TOOLBAR ARE ONE STICKY BLOCK, NOT TWO.
+   * MEASURED IN A BROWSER: as two independent sticky elements they SWAP VISUAL
+   * ORDER as you scroll. `.ad-toolbar` sticks at `--as-nav-h` and
+   * `.ad-sticky-tabs` at `--as-nav-h + 3.55rem` (dashboard.css was written for a
+   * page that put the toolbar first), so the strip that sits ABOVE the filters at
+   * rest jumps BELOW them the moment the page moves. One container with one
+   * offset cannot do that, and it needs no height arithmetic to stay right when
+   * the chips wrap to a second line.
+   */
+  function stickyHeadHtml(inner) {
+    return '<div class="ad-stickyhead">' + inner + '</div>';
+  }
+
+  function toolbarHtml(pool, shown) {
+    var plan = C.facetPlan(pool, state.facets);
+    var openCount = 0;
+    for (var i = 0; i < shown.length; i += 1) if (state.open[shown[i].id]) openCount += 1;
+    var allOpen = shown.length > 0 && openCount === shown.length;
+
+    return '<div class="ad-toolbar" role="group" aria-label="Filter the controls on this page">'
+      + '<div class="ad-facets">'
+      + '<span class="ad-facets__lede" aria-hidden="true">Show only</span>'
+      + plan.map(function (f) {
+        return '<button class="as-chip ad-facet" type="button" data-ad-facet="' + esc(f.id) + '"'
+          + ' aria-pressed="' + (f.active ? 'true' : 'false') + '"'
+          + (f.disabled ? ' disabled' : '')
+          + ' title="' + esc(f.hint) + '">'
+          + esc(f.label) + '<span class="ad-facet__n">' + f.count + '</span></button>';
+      }).join('')
+      + (state.facets.length
+        ? '<button class="as-btn as-btn--ghost as-btn--sm" type="button" data-ad-clearfacets>Clear filters</button>'
+        : '')
+      + '</div>'
+      + '<div class="ad-toolbar__end">'
+      + '<p class="ad-toolbar__count" role="status" aria-live="polite">'
+      + '<b>' + shown.length + '</b> of ' + pool.length + ' shown</p>'
+      + (shown.length
+        ? '<button class="as-btn as-btn--ghost as-btn--sm" type="button" data-ad-expandall="'
+          + (allOpen ? '0' : '1') + '">' + (allOpen ? 'Collapse all' : 'Expand all') + '</button>'
+        : '')
+      + '</div>'
+      + '</div>';
   }
 
   /* =======================================================================
@@ -764,27 +908,46 @@
     var destructive = state.contract.actions.filter(function (a) { return a.destructive; }).length;
     var check = state.contractCheck || {};
 
+    var pool = visibleControls();
+    var readOnly = pool.filter(function (a) { return C.severityOf(a) === 'read'; }).length;
+
     return pageHead(guildLabel(state.guildId),
-      'Every control your Discord admin menu has, on one page — generated from the same registry.',
+      'Every control your Discord admin menu has, on one page — generated from the same registry. '
+      + 'Start with a filter below, or search from the bar at the top.',
       livePill())
+
+      // ⚠ THE TILES ARE THE FIRST FILTER, NOT A SCOREBOARD. "128 destructive"
+      // beside no way to see which 128 is a number an admin can do nothing with.
+      // Each one lands on the same list, pre-filtered by the facet it counts.
       + '<div class="ad-stats">'
-      + statTile(state.contract.actions.length, 'controls', 'Every one of them is on this page.')
-      + statTile(grouped.length, 'tabs', 'The same eleven the bot’s /menu console has.')
-      + statTile(mods.length, 'modules', 'Derived from the contract — no second table.')
-      + statTile(destructive, 'destructive', 'These preview before they commit, on both surfaces.')
+      + statTile(state.contract.actions.length, 'controls', 'Every one of them is on this page.', '#/controls')
+      + statTile(readOnly, 'read-only', 'Change nothing. Safe to press to find something out.', '#/controls', 'readonly', 'read')
+      + statTile(destructive, 'destructive', 'Change the server. Each previews or arms first.', '#/controls', 'destructive', 'danger')
+      + statTile(mods.length, 'modules', 'Derived from the contract — no second table.', '#/modules')
       + '</div>'
 
       + '<section class="ad-section">'
       + '<h2 class="ad-section__title">Where do I change things?</h2>'
       + '<div class="ad-duo">'
       + '<div class="ad-panel"><h3 class="ad-panel__title">' + icon('grid') + ' Modules</h3>'
-      + '<p class="u-text-sm as-muted">Turn features on and off. This is the thing you will do most.</p>'
+      + '<p class="u-text-sm as-muted">What this server’s Asbern can do, grouped the way the bot groups it. '
+      + 'Read each one’s current state without changing anything.</p>'
       + '<a class="as-btn as-btn--primary as-btn--sm u-mt-3" href="#/modules">Open modules</a></div>'
       + '<div class="ad-panel"><h3 class="ad-panel__title">' + icon('sliders') + ' All controls</h3>'
-      + '<p class="u-text-sm as-muted">Search ' + state.contract.actions.length + ' controls by name, id, or what they do. '
-      + 'Faster than browsing once you know what you want.</p>'
+      + '<p class="u-text-sm as-muted">All ' + state.contract.actions.length + ' of them, one scannable row each, '
+      + 'filterable by what they do. Search from the top bar if you can name the one you want.</p>'
       + '<a class="as-btn as-btn--secondary as-btn--sm u-mt-3" href="#/controls">Browse everything</a></div>'
       + '</div></section>'
+
+      + '<section class="ad-section">'
+      + '<h2 class="ad-section__title">How to read a row</h2>'
+      + '<ul class="ad-legend">'
+      + legendRow('read', 'Read-only', 'Nothing on the server changes. Press it to find something out.')
+      + legendRow('caution', 'Changes things', 'Writes to Discord or to the bot’s stores. Most of these preview first.')
+      + legendRow('danger', 'Destructive', 'Marked destructive by the bot itself. Two presses, always — a preview or an arm, then a commit.')
+      + legendRow('locked', 'Not yours', 'Above your Discord permission level, or held off by the server owner. Listed, explained, never a dead button.')
+      + '</ul>'
+      + '</section>'
 
       + '<section class="ad-section">'
       + '<h2 class="ad-section__title">Tabs</h2>'
@@ -813,10 +976,22 @@
       + '</section>';
   }
 
-  function statTile(n, label, sub) {
-    return '<div class="ad-stat"><div class="ad-stat__n">' + esc(String(n)) + '</div>'
-      + '<div class="ad-stat__l">' + esc(label) + '</div>'
-      + '<div class="ad-stat__s">' + esc(sub) + '</div></div>';
+  function statTile(n, label, sub, href, facet, sev) {
+    var body = '<span class="ad-stat__n">' + esc(String(n)) + '</span>'
+      + '<span class="ad-stat__l">' + esc(label) + '</span>'
+      + '<span class="ad-stat__s">' + esc(sub) + '</span>';
+    if (!href) return '<div class="ad-stat">' + body + '</div>';
+    return '<a class="ad-stat ad-stat--go" href="' + esc(href) + '"'
+      + (sev ? ' data-ad-sev="' + esc(sev) + '"' : '')
+      + (facet ? ' data-ad-gofacet="' + esc(facet) + '"' : '')
+      + '>' + body + '</a>';
+  }
+
+  function legendRow(sev, title, why) {
+    return '<li class="ad-legend__row" data-ad-sev="' + esc(sev) + '">'
+      + '<span class="ad-legend__stripe" aria-hidden="true"></span>'
+      + '<span><b>' + esc(title) + '</b> <span class="as-muted">' + esc(why) + '</span></span>'
+      + '</li>';
   }
 
   function kv(k, v) {
@@ -853,32 +1028,79 @@
       + '</div>';
   }
 
+  /**
+   * ⚠ THE LAMP DESCRIBES **THE READ**, NOT THE MODULE, AND THAT DISTINCTION IS
+   * THE WHOLE HONESTY OF THIS CARD. The contract publishes what a control ASKS
+   * FOR and never what the store HOLDS — there is no read-value endpoint on the
+   * write API — so this page has no way to know whether a module is on. What it
+   * CAN know, exactly, is whether it managed to run that module's own read-only
+   * controls and what they answered. Inferring "enabled" by pattern-matching the
+   * text those controls return would be a number that looks authoritative and
+   * is a guess, which is the defect class this whole console exists against.
+   *
+   * So: `unknown` (never asked) · `online` (every read answered) · `degraded`
+   * (some read refused) · `offline` (a read failed outright). Four states, and
+   * `unknown` is hollow rather than red — dashboard.css §12's rule, verbatim:
+   * "'offline' is a stated condition, never assumed to be 'no'."
+   */
+  function moduleReadState(reads) {
+    var asked = 0, refused = 0, failed = 0, at = 0;
+    for (var i = 0; i < reads.length; i += 1) {
+      var st = state.readState[reads[i].id];
+      if (!st) continue;
+      asked += 1;
+      if (st.at > at) at = st.at;
+      if (!st.ok) { if (st.result && st.result.refused) refused += 1; else failed += 1; }
+    }
+    if (!reads.length) return { lamp: 'unknown', word: 'nothing to read', at: 0, title: 'This module publishes no read-only control, so there is nothing to ask.' };
+    if (!asked) return { lamp: 'unknown', word: 'not read yet', at: 0, title: 'Nobody has asked. Each read costs one audit line, so it is not on a timer.' };
+    if (failed) return { lamp: 'offline', word: 'a read failed', at: at, title: failed + ' of ' + asked + ' reads did not answer.' };
+    if (refused) return { lamp: 'degraded', word: 'a read was refused', at: at, title: refused + ' of ' + asked + ' reads were refused by a gate. That is an answer, not an error.' };
+    return { lamp: 'online', word: 'read ' + when(at), at: at, title: 'All ' + asked + ' read-only controls answered.' };
+  }
+
   function moduleCardHtml(m) {
     var reads = C.autoReadControls(state.contract, m.id);
+    var rs = moduleReadState(reads);
     var readOut = reads.map(function (r) {
       var st = state.readState[r.id];
       if (!st) return '';
       return '<div class="ad-modread"><span class="ad-modread__id">' + esc(r.id) + '</span>'
         + '<span class="ad-modread__at">' + esc(when(st.at)) + '</span>'
-        + '<div class="ad-modread__body">' + C.resultHtml(st.result, null) + '</div></div>';
+        // ⚠ A READ'S ANSWER IS SOMEBODY ELSE'S PROSE AND CAN BE ANY WIDTH. Its
+        // own scroller, so a long line scrolls inside the card and the page body
+        // never goes sideways.
+        + '<div class="ad-modread__body u-scroll-x">' + C.resultHtml(st.result, null) + '</div></div>';
     }).join('');
+
+    var share = m.controls && state.contract.actions.length
+      ? Math.max(3, Math.round((m.controls / state.contract.actions.length) * 100)) : 0;
 
     return '<article class="ad-mod' + (m.withheld ? ' is-unavailable' : '') + '" data-ad-module="' + esc(m.id) + '">'
       + '<div class="ad-mod__top">'
       + '<div class="u-grow"><div class="ad-mod__name">' + esc(prettyModule(m.id)) + '</div>'
       + '<div class="ad-mod__id">' + esc(m.id) + '</div></div>'
+      + '<span class="ad-mod__ctl">'
+      + (m.withheld
+        ? '<span class="ad-lamp ad-lamp--unknown" title="' + esc(m.why) + '">held off</span>'
+        : '<span class="ad-lamp ad-lamp--' + esc(rs.lamp) + '" title="' + esc(rs.title) + '">' + esc(rs.word) + '</span>')
+      + '</span>'
       + '</div>'
       + (m.withheld
         ? '<p class="ad-mod__why">' + icon('lock') + ' ' + esc(m.why) + '</p>'
-        : '<p class="ad-mod__why">' + esc(m.controls) + ' control' + (m.controls === 1 ? '' : 's')
-          + (m.destructive ? ' · ' + m.destructive + ' destructive' : '')
+        : '<p class="ad-mod__why">' + esc(String(m.controls)) + ' control' + (m.controls === 1 ? '' : 's')
+          + (m.destructive ? ' · <b class="ad-mod__danger">' + m.destructive + ' destructive</b>' : '')
           + ' · ' + esc(m.groups.join(', ')) + '</p>')
+      // A share bar: how much of this server's console belongs to this module.
+      // Encodes the count as a length so the list reads without arithmetic.
+      + '<div class="ad-mod__bar" aria-hidden="true"><span style="width:' + share + '%"></span></div>'
       + (readOut ? '<div class="ad-mod__read">' + readOut + '</div>' : '')
       + '<div class="ad-mod__foot">'
-      + '<a class="as-btn as-btn--ghost as-btn--sm" href="#/module/' + esc(m.id) + '">'
-      + esc(m.controls) + ' control' + (m.controls === 1 ? '' : 's') + '</a>'
+      + '<a class="as-btn as-btn--secondary as-btn--sm" href="#/module/' + esc(m.id) + '">'
+      + 'Open ' + esc(String(m.controls)) + ' control' + (m.controls === 1 ? '' : 's') + '</a>'
       + (reads.length && !m.withheld
-        ? '<button class="as-btn as-btn--ghost as-btn--sm" type="button" data-ad-readmodule="' + esc(m.id) + '">Read state</button>'
+        ? '<button class="as-btn as-btn--ghost as-btn--sm" type="button" data-ad-readmodule="' + esc(m.id) + '">'
+          + (rs.lamp === 'unknown' ? 'Read state' : 'Read again') + '</button>'
         : '')
       + '</div></article>';
   }
@@ -890,28 +1112,73 @@
   /* ---- All controls / one tab / one module ------------------------------ */
 
   function controlsGridHtml(list, opts) {
+    var o = opts || {};
     if (!list.length) {
-      return '<p class="ad-empty">Nothing here for you. ' + (state.actor.isOwner ? '' : 'Some controls are above your permission level.') + '</p>';
+      return '<p class="ad-empty">'
+        + (state.facets.length
+          ? 'No control matches every filter you have on. Turn one off, or clear them all.'
+          : 'Nothing here for you. ' + (state.actor.isOwner ? '' : 'Some controls are above your permission level.'))
+        + '</p>';
     }
     return '<div class="ad-controls">' + list.map(function (a) {
       return C.controlCardHtml(a, {
         actor: state.actor,
         groups: state.contract.groups,
-        showGroup: !!(opts && opts.showGroup),
+        showGroup: !!o.showGroup,
+        open: !!state.open[a.id] || !!o.openAll,
       });
     }).join('') + '</div>';
   }
 
+  /** Everything this actor may see, before the facets narrow it. */
+  function visibleControls() {
+    return state.contract.actions.filter(function (a) { return C.maySee(a, state.actor); });
+  }
+
+  /**
+   * ⚠ THE TAB STRIP IS STICKY BECAUSE THE BIGGEST TAB HOLDS 97 CONTROLS.
+   * `dashboard.css` §1 shipped `.ad-sticky-tabs` for exactly this and nothing
+   * ever emitted it: halfway down Bot there was no way to change tab except
+   * scrolling back to the sidebar, which on a phone is above the whole list.
+   */
+  function tabStripHtml(grouped, activeId) {
+    return '<nav class="ad-sticky-tabs" aria-label="Jump to a tab">'
+      + '<div class="ad-tabstrip">'
+      + grouped.map(function (g) {
+        var on = activeId === g.group.id;
+        return '<a class="as-chip ad-tabchip' + (on ? ' is-active' : '') + '"'
+          + ' href="#' + (activeId ? '/group/' + esc(g.group.id) : 'tab-' + esc(g.group.id)) + '"'
+          + (on ? ' aria-current="page"' : '') + '>'
+          + '<span aria-hidden="true">' + esc(g.group.emoji) + '</span>' + esc(g.group.label)
+          + '<span class="ad-facet__n">' + g.controls.length + '</span></a>';
+      }).join('')
+      + '</div></nav>';
+  }
+
   function allControlsHtml() {
     var grouped = C.groupControls(state.contract, state.actor);
-    return pageHead('All controls', 'Every one of the ' + state.contract.actions.length
-      + ' controls in the registry, in the tab it lives on in Discord.',
+    var pool = visibleControls();
+    var shown = C.filterControls(pool, state.facets);
+    var keep = {};
+    for (var i = 0; i < shown.length; i += 1) keep[shown[i].id] = true;
+
+    return pageHead('All controls',
+      'Every control the bot has, in the tab it lives on in Discord. Each row says what it does; open one to see its fields.',
       '<a class="as-btn as-btn--ghost as-btn--sm" href="#/overview">Back to overview</a>')
+      + stickyHeadHtml(tabStripHtml(grouped, null) + toolbarHtml(pool, shown))
       + grouped.map(function (g) {
+        var list = g.controls.filter(function (a) { return keep[a.id]; });
         return '<section class="ad-section" id="tab-' + esc(g.group.id) + '">'
           + '<h2 class="ad-section__title"><span aria-hidden="true">' + esc(g.group.emoji) + '</span> ' + esc(g.group.label)
-          + ' <span class="ad-count">' + g.controls.length + '</span></h2>'
-          + controlsGridHtml(g.controls)
+          + ' <span class="ad-count">' + list.length
+          + (list.length === g.controls.length ? '' : ' of ' + g.controls.length) + '</span></h2>'
+          // ⚠ AN EMPTY TAB STILL RENDERS ITS HEADING. A section that disappears
+          // under a filter is indistinguishable from a tab that was never built,
+          // which is the same argument groupControls() makes for keeping empty
+          // groups in the sidebar.
+          + (list.length
+            ? controlsGridHtml(list)
+            : '<p class="ad-empty">Nothing in this tab matches the filters above.</p>')
           + '</section>';
       }).join('');
   }
@@ -919,32 +1186,61 @@
   function groupHtml(groupId) {
     var g = state.contract.groups.filter(function (x) { return x.id === groupId; })[0];
     if (!g) { state.groupId = null; return overviewHtml(); }
-    var list = state.contract.actions.filter(function (a) { return a.group === groupId; });
-    var visible = list.filter(function (a) { return C.maySee(a, state.actor); });
+    var grouped = C.groupControls(state.contract, state.actor);
+    var all = state.contract.actions.filter(function (a) { return a.group === groupId; });
+    var pool = all.filter(function (a) { return C.maySee(a, state.actor); });
+    var shown = C.filterControls(pool, state.facets);
     return pageHead(g.emoji + ' ' + g.label,
-      esc(visible.length) + ' control' + (visible.length === 1 ? '' : 's')
-      + (list.length !== visible.length ? ' · ' + (list.length - visible.length) + ' above your permission level' : ''),
+      esc(String(pool.length)) + ' control' + (pool.length === 1 ? '' : 's') + ' you can use'
+      + (all.length !== pool.length ? ' · ' + (all.length - pool.length) + ' above your permission level' : ''),
       '<a class="as-btn as-btn--ghost as-btn--sm" href="#/controls">All tabs</a>')
-      + controlsGridHtml(visible);
+      + stickyHeadHtml(tabStripHtml(grouped, groupId) + toolbarHtml(pool, shown))
+      + controlsGridHtml(shown);
   }
 
   function moduleHtml(moduleId) {
-    var list = state.contract.actions.filter(function (a) { return a.module === moduleId && C.maySee(a, state.actor); });
-    return pageHead(prettyModule(moduleId), esc(moduleId) + ' · ' + list.length + ' control' + (list.length === 1 ? '' : 's'),
+    var pool = state.contract.actions.filter(function (a) { return a.module === moduleId && C.maySee(a, state.actor); });
+    var shown = C.filterControls(pool, state.facets);
+    return pageHead(prettyModule(moduleId),
+      '<code>' + esc(moduleId) + '</code> · ' + pool.length + ' control' + (pool.length === 1 ? '' : 's')
+      + ' across ' + tabsOfHtml(pool),
       '<a class="as-btn as-btn--ghost as-btn--sm" href="#/modules">All modules</a>')
       + (C.isWithheld(moduleId)
         ? note('warn', 'This module is held off', '<p>' + esc(C.WITHHELD_MODULES[moduleId]) + '</p>')
         : '')
-      + controlsGridHtml(list, { showGroup: true });
+      + stickyHeadHtml(toolbarHtml(pool, shown))
+      + controlsGridHtml(shown, { showGroup: true });
+  }
+
+  /** "3 tabs" — named, because a module's controls are scattered across them. */
+  function tabsOfHtml(list) {
+    var seen = {};
+    var names = [];
+    for (var i = 0; i < list.length; i += 1) {
+      if (seen[list[i].group]) continue;
+      seen[list[i].group] = true;
+      var g = state.contract.groups.filter(function (x) { return x.id === list[i].group; })[0];
+      names.push(esc(g ? g.label : list[i].group));
+    }
+    return names.join(', ') || '—';
   }
 
   function searchResultsHtml() {
-    var hits = C.searchControls(state.contract.actions.filter(function (a) { return C.maySee(a, state.actor); }), state.query, 60);
-    return pageHead('“' + state.query + '”', hits.length + ' match' + (hits.length === 1 ? '' : 'es')
-      + ' across ' + state.contract.actions.length + ' controls',
-      '<button class="as-btn as-btn--ghost as-btn--sm" type="button" data-ad-clearsearch>Clear</button>')
-      + (hits.length ? controlsGridHtml(hits, { showGroup: true })
-        : '<p class="ad-empty">No control matches that. Search matches the id, the label, the help text and the module.</p>');
+    var pool = C.searchControls(visibleControls(), state.query, 60);
+    var hits = C.filterControls(pool, state.facets);
+    // ⚠ A HANDFUL OF HITS OPENS ITSELF. If you searched for a control by name
+    // and there are three answers, making you click each one is a step the page
+    // could have taken for you. Above that it is a wall again, so it does not.
+    var openAll = hits.length > 0 && hits.length <= 3;
+    return pageHead('“' + state.query + '”', pool.length + ' match' + (pool.length === 1 ? '' : 'es')
+      + ' across ' + state.contract.actions.length + ' controls — ranked by id, then label, then the help text',
+      '<button class="as-btn as-btn--ghost as-btn--sm" type="button" data-ad-clearsearch>Clear search</button>')
+      + (pool.length ? stickyHeadHtml(toolbarHtml(pool, hits)) : '')
+      + (hits.length ? controlsGridHtml(hits, { showGroup: true, openAll: openAll })
+        : '<p class="ad-empty">'
+          + (pool.length ? 'Those matches are all filtered out. Turn a filter off above.'
+            : 'No control matches that. Search looks at the id, the label, the help text and the module.')
+          + '</p>');
   }
 
   /* ---- Activity -------------------------------------------------------- */
@@ -960,19 +1256,24 @@
         : '<p class="ad-empty">Nothing yet this session.</p>');
   }
 
+  /**
+   * ⚠ ONE OUTCOME VOCABULARY, READ FROM dashboard-core's TABLE. This row used to
+   * carry its own `as-badge--success / frost / warn / danger` map while the
+   * result strip inside the card used `--ok / --dry / --warn / --err` and
+   * `dashboard.css` shipped a THIRD set (`.ad-outcome--ok/dry/ref/err`) that
+   * nothing emitted at all. Three names for four states is how "refused" ends up
+   * reading as an error in one place and a warning two inches away.
+   */
   function logRowHtml(e) {
-    var badge = {
-      ok: ['as-badge--success', 'done'],
-      dry: ['as-badge--frost', 'preview'],
-      refused: ['as-badge--warn', 'refused'],
-      error: ['as-badge--danger', 'failed'],
-      live: ['as-badge--accent', 'live'],
-    }[e.outcome] || ['as-badge--plain', String(e.outcome || '—')];
+    var tone = C.OUTCOME_TONE[e.outcome];
+    var cls = tone ? tone.chip : (e.outcome === 'live' ? 'ad-outcome--dry' : 'ad-outcome--ok');
+    var word = tone ? tone.word : String(e.outcome || '—');
+    var title = tone ? tone.say : 'Published on the live channel by the bot.';
     return '<div class="ad-log__row">'
-      + '<span class="as-badge ' + badge[0] + '">' + esc(badge[1]) + '</span>'
+      + '<span class="ad-outcome ' + cls + '" title="' + esc(title) + '">' + esc(word) + '</span>'
       + '<span class="ad-log__what">' + esc(e.label || e.event || e.detail || e.kind) + '</span>'
       + '<code class="ad-log__id">' + esc(e.actionId || e.event || '') + '</code>'
-      + '<span class="ad-log__params">' + esc(e.params ? JSON.stringify(e.params) : '') + '</span>'
+      + '<span class="ad-log__params u-scroll-x">' + esc(e.params ? JSON.stringify(e.params) : '') + '</span>'
       + '<span class="ad-log__at">' + esc(when(e.at)) + '</span>'
       + '</div>';
   }
@@ -1092,6 +1393,12 @@
     // pinned port of, so this cannot let through anything Discord would refuse.
     var checked = C.validate(control, raw);
     if (!checked.ok) {
+      // ⚠ AN ERROR ON A FIELD NOBODY CAN SEE IS NOT AN ERROR MESSAGE. The card
+      // is normally open (the button lives inside the disclosure), but "Collapse
+      // all" can close it while a request is in flight, and a validation refusal
+      // that paints into a `hidden` body is a press that visibly did nothing.
+      state.open[control.id] = true;
+      setCardOpen(card, card.querySelector('[data-ad-toggle]'), true);
       showFieldErrors(card, checked.fieldErrors);
       paintResult(card, { ok: false, refused: 'params', error: checked.errors.join(' · ') }, control);
       logRun(control, checked.values, 'refused', 'local validation');
@@ -1234,6 +1541,58 @@
       if (box) box.focus();
     });
 
+    /* ── the disclosure ─────────────────────────────────────────────────
+       ⚠ THE DOM IS TOGGLED IN PLACE AND THE STATE OBJECT IS UPDATED TOO.
+       Only re-rendering would be simpler and it is wrong twice over: it
+       drops the caret of anybody typing in a field on ANOTHER open card,
+       and it costs a full 369-card rebuild for one chevron. The state
+       write is what makes the expansion survive the NEXT render, which
+       comes from somewhere else entirely (a live event, a background
+       read, an activity line). */
+    A.on('click', '[data-ad-toggle]', function (ev, btn) {
+      var id = btn.getAttribute('data-ad-toggle');
+      var card = btn.closest('[data-ad-card]');
+      var want = btn.getAttribute('aria-expanded') !== 'true';
+      state.open[id] = want;
+      if (!want) delete state.open[id];
+      setCardOpen(card, btn, want);
+    });
+
+    A.on('click', '[data-ad-facet]', function (ev, btn) {
+      var id = btn.getAttribute('data-ad-facet');
+      var at = state.facets.indexOf(id);
+      if (at > -1) state.facets.splice(at, 1); else state.facets.push(id);
+      render();
+      // ⚠ PUT THE FOCUS BACK ON THE CHIP THAT WAS PRESSED. render() replaces
+      // #ad-main wholesale, so the element that had focus is gone and the
+      // browser drops focus to <body> — which sends a keyboard admin back to
+      // the top of the document on every single filter press.
+      refocus('[data-ad-facet="' + id + '"]');
+    });
+
+    A.on('click', '[data-ad-clearfacets]', function () {
+      state.facets = [];
+      render();
+      refocus('[data-ad-facet]');
+    });
+
+    // A stat tile is a filter, not a scoreboard: it sets the facet on the way.
+    A.on('click', '[data-ad-gofacet]', function (ev, el) {
+      state.facets = [el.getAttribute('data-ad-gofacet')];
+    });
+
+    A.on('click', '[data-ad-expandall]', function (ev, btn) {
+      var want = btn.getAttribute('data-ad-expandall') === '1';
+      $$('[data-ad-card]').forEach(function (card) {
+        var id = card.getAttribute('data-ad-card');
+        var disc = card.querySelector('[data-ad-toggle]');
+        if (want) state.open[id] = true; else delete state.open[id];
+        setCardOpen(card, disc, want);
+      });
+      btn.setAttribute('data-ad-expandall', want ? '0' : '1');
+      btn.textContent = want ? 'Collapse all' : 'Expand all';
+    });
+
     var searchTimer = null;
     A.on('input', '[data-ad-search]', function (ev, input) {
       var v = input.value;
@@ -1307,17 +1666,39 @@
       }
     });
 
-    // ⌘K / Ctrl-K to the search box — 370 controls is not a browsable number.
+    // ⌘K / Ctrl-K / "/" to the search box — 369 controls is not a browsable
+    // number, and the box is the primary navigation rather than a convenience.
+    // ⚠ THE BARE "/" ARM MUST NOT FIRE WHILE SOMEBODY IS TYPING. Without the
+    // field check it eats the slash out of every reason, pattern and name an
+    // admin types into a control's own form.
     document.addEventListener('keydown', function (ev) {
+      var box = $('#ad-q');
+      var inField = typing(ev.target);
       if ((ev.metaKey || ev.ctrlKey) && String(ev.key).toLowerCase() === 'k') {
-        var box = $('#ad-q');
         if (box) { ev.preventDefault(); box.focus(); box.select(); }
+        return;
+      }
+      if (ev.key === '/' && !inField && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
+        if (box) { ev.preventDefault(); box.focus(); box.select(); }
+        return;
       }
       if (ev.key === 'Escape' && state.query) { state.query = ''; render(); }
     });
   }
 
+  /**
+   * ⚠ A ROUTE STARTS `#/`. ANYTHING ELSE IS AN IN-PAGE ANCHOR AND MUST NOT
+   * CHANGE THE VIEW. The tab strip on the All-controls page links to
+   * `#tab-<group>` so a click jumps 97 rows down the same document; without this
+   * distinction the old parser read `tab-bot` as a view name, matched nothing in
+   * `viewHtml()`'s switch, and dumped the admin on the Overview — a link that
+   * looks like navigation and silently does the opposite. Card ids (`#ctl-…`)
+   * are the same shape, so deep-linking one control also survives.
+   */
+  function isRoute() { return /^#\//.test(String(location.hash || '')); }
+
   function parseHash() {
+    if (!isRoute()) return;
     var h = String(location.hash || '').replace(/^#\/?/, '');
     var parts = h.split('/').filter(Boolean);
     state.groupId = null;
@@ -1329,6 +1710,12 @@
   }
 
   function route() {
+    if (!isRoute()) {
+      // An in-page anchor. The document is already correct; let the browser do
+      // what it was going to do and do not steal the scroll position.
+      scrollToAnchor();
+      return;
+    }
     parseHash();
     render();
     if (state.view === 'modules' && state.contract && state.readGuild !== state.guildId) {
@@ -1337,6 +1724,16 @@
       refreshReadState(true);
     }
     window.scrollTo({ top: 0, behavior: A.reducedMotion ? 'auto' : 'smooth' });
+  }
+
+  /** Re-run the anchor jump, because the target was drawn after the hash was set. */
+  function scrollToAnchor() {
+    var id = String(location.hash || '').replace(/^#/, '');
+    if (!id) return;
+    var node = document.getElementById(id);
+    if (node && node.scrollIntoView) {
+      node.scrollIntoView({ block: 'start', behavior: A.reducedMotion ? 'auto' : 'smooth' });
+    }
   }
 
   /* =======================================================================
